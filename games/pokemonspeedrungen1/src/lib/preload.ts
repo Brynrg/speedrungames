@@ -1,7 +1,7 @@
 const imagePromiseCache = new Map<string, Promise<void>>();
 
 export function getGen1ImageSrc(id: number): string {
-  return `/assets/gen1/${String(id).padStart(3, "0")}.png`;
+  return `/games/pokemonspeedrungen1/assets/gen1/${String(id).padStart(3, "0")}.png`;
 }
 
 export function preloadImage(src: string): Promise<void> {

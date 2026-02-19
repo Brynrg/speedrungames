@@ -1,4 +1,4 @@
-import styles from "@/components/ui.module.css";
+import styles from "./ui.module.css";
 
 type EndScreenProps = {
   finalTimeLabel: string;
