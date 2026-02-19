@@ -8,5 +8,4 @@ dist/
 .env.*
 *.log
 .DS_Store
-Thumbs.db
 .pnpm-store/
