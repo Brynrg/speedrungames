@@ -1,4 +1,4 @@
-import type { SpeechCallbacks, SpeechProvider, SpeechStatus, StartSpeechOptions } from "@/lib/speech/SpeechProvider";
+import type { SpeechCallbacks, SpeechProvider, SpeechStatus, StartSpeechOptions } from "../speech/SpeechProvider";
 
 type BrowserSpeechRecognition = {
   continuous: boolean;

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import styles from "@/components/ui.module.css";
+import styles from "./ui.module.css";
 
 type PokemonStageProps = {
   imageSrc: string | null;

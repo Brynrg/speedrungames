@@ -1,4 +1,4 @@
-import { normalize } from "@/lib/normalize";
+import { normalize } from "../lib/normalize";
 
 export type Gen1Pokemon = {
   id: number;

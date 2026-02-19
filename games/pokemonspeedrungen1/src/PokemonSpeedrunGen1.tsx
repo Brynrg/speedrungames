@@ -7,7 +7,7 @@
  */
 
 import React from "react";
-import GamePage from "../app/page";
+import GamePage from "./app/page";
 
 export default function PokemonSpeedrunGen1() {
   return <GamePage />;

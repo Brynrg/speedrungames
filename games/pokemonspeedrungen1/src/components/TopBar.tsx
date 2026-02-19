@@ -1,5 +1,5 @@
-import styles from "@/components/ui.module.css";
-import type { SpeechStatus } from "@/lib/speech/SpeechProvider";
+import styles from "./ui.module.css";
+import type { SpeechStatus } from "../lib/speech/SpeechProvider";
 
 export type InputMode = "voice" | "tap";
 
