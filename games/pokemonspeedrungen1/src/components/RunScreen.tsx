@@ -1,9 +1,9 @@
-import { PokemonStage } from "@/components/PokemonStage";
-import { TapChoices, type TapOption } from "@/components/TapChoices";
-import { TopBar, type InputMode } from "@/components/TopBar";
-import { VoiceHUD } from "@/components/VoiceHUD";
-import styles from "@/components/ui.module.css";
-import type { SpeechStatus } from "@/lib/speech/SpeechProvider";
+import { PokemonStage } from "./PokemonStage";
+import { TapChoices, type TapOption } from "./TapChoices";
+import { TopBar, type InputMode } from "./TopBar";
+import { VoiceHUD } from "./VoiceHUD";
+import styles from "./ui.module.css";
+import type { SpeechStatus } from "../lib/speech/SpeechProvider";
 
 type RunScreenProps = {
   timerLabel: string;

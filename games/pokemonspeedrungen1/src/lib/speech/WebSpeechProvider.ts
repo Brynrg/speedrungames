@@ -1,4 +1,4 @@
-import type { SpeechCallbacks, SpeechProvider, SpeechStatus, StartSpeechOptions } from "@/lib/speech/SpeechProvider";
+import type { SpeechCallbacks, SpeechProvider, SpeechStatus, StartSpeechOptions } from "./SpeechProvider";
 
 type BrowserSpeechRecognition = {
   continuous: boolean;
@@ -147,11 +147,8 @@ export class WebSpeechProvider implements SpeechProvider {
         try {
           recognition.start();
         } catch {
-          // Browser may reject immediate restart. It will retry on next tick.
           setTimeout(() => {
-            if (!this.shouldContinue) {
-              return;
-            }
+            if (!this.shouldContinue) return;
             try {
               recognition.start();
             } catch {
@@ -176,11 +173,7 @@ export class WebSpeechProvider implements SpeechProvider {
       for (let i = event.resultIndex; i < event.results.length; i += 1) {
         const result = event.results[i];
         const transcript = result[0]?.transcript?.trim() ?? "";
-
-        if (!transcript) {
-          continue;
-        }
-
+        if (!transcript) continue;
         if (result.isFinal) {
           this.callbacks.onFinal(transcript);
         } else {

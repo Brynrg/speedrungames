@@ -1,19 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { EndScreen } from "@/components/EndScreen";
-import { RunScreen } from "@/components/RunScreen";
-import { StartScreen, type Difficulty } from "@/components/StartScreen";
-import { UnlockModal } from "@/components/UnlockModal";
-import styles from "@/components/ui.module.css";
-import { GEN1_POKEMON, type Gen1Pokemon } from "@/data/gen1";
-import { normalize } from "@/lib/normalize";
-import { ensureImageLoadedById, preloadAllGen1 } from "@/lib/preload";
-import { getSilhouetteForId } from "@/lib/silhouette";
-import type { SpeechStatus } from "@/lib/speech/SpeechProvider";
-import { WebSpeechProvider } from "@/lib/speech/WebSpeechProvider";
-import type { InputMode } from "@/components/TopBar";
-import type { TapOption } from "@/components/TapChoices";
+import { EndScreen } from "../components/EndScreen";
+import { RunScreen } from "../components/RunScreen";
+import { StartScreen, type Difficulty } from "../components/StartScreen";
+import { UnlockModal } from "../components/UnlockModal";
+import styles from "../components/ui.module.css";
+import { GEN1_POKEMON, type Gen1Pokemon } from "../data/gen1";
+import { normalize } from "../lib/normalize";
+import { ensureImageLoadedById, preloadAllGen1 } from "../lib/preload";
+import { getSilhouetteForId } from "../lib/silhouette";
+import type { SpeechStatus } from "../lib/speech/SpeechProvider";
+import { WebSpeechProvider } from "../lib/speech/WebSpeechProvider";
+import type { InputMode } from "../components/TopBar";
+import type { TapOption } from "../components/TapChoices";
 
 const TOTAL_POKEMON = 151;
 const LEVEL2_KEY = "pokedex_speedrun_level2_unlocked";
