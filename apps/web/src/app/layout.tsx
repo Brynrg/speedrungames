@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -16,9 +15,9 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <header>
-          <Link href="/" className="site-logo">
+          <a href="/" className="site-logo">
             ⚡ Speed Run Games
-          </Link>
+          </a>
         </header>
         <main>{children}</main>
       </body>
