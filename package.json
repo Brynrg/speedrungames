@@ -1,0 +1,11 @@
+{
+  "name": "speedrungames",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.30.0",
+  "scripts": {
+    "dev": "pnpm -C apps/web dev",
+    "build": "pnpm -C apps/web build",
+    "lint": "pnpm -C apps/web lint"
+  }
+}
