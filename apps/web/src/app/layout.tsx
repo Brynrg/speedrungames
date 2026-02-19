@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -7,12 +6,18 @@ export const metadata: Metadata = {
   description: "Play fast. Beat your record.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
       <body>
         <header>
-          <Link href="/" className="site-logo">⚡ Speed Run Games</Link>
+          <a href="/" className="site-logo">
+            ⚡ Speed Run Games
+          </a>
         </header>
         <main>{children}</main>
       </body>

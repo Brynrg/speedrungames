@@ -1,6 +1,14 @@
 "use client";
 
-// Re-export the game page as a named default component.
-// The @/ alias in the game resolves to games/pokemonspeedrungen1/src/
-// Next.js transpilePackages handles compilation of this workspace package.
-export { default } from "./app/page";
+/**
+ * PokemonSpeedrunGen1
+ * Package entrypoint for @speedrungames/pokemonspeedrungen1
+ * Assets served from: /games/pokemonspeedrungen1/assets/gen1/
+ */
+
+import React from "react";
+import GamePage from "../app/page";
+
+export default function PokemonSpeedrunGen1() {
+  return <GamePage />;
+}

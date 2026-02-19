@@ -6,10 +6,8 @@ A monorepo platform for speedrun games. Live at [speedrungames.net](https://spee
 
 ```
 speedrungames/
-├── apps/
-│   └── web/                     # Next.js 15 site (speedrungames.net)
-├── games/
-│   └── pokemonspeedrungen1/     # Pokémon Gen 1 voice speedrun (git subtree)
+├── apps/web/                        # Next.js 15 site
+├── games/pokemonspeedrungen1/       # Pokémon Gen 1 voice speedrun
 ├── pnpm-workspace.yaml
 └── netlify.toml
 ```
@@ -18,10 +16,17 @@ speedrungames/
 
 ```bash
 pnpm install
-pnpm dev      # http://localhost:3000
-pnpm build
+pnpm dev   # → http://localhost:3000
 ```
 
-## Deploy
+## Routes
 
-Hosted on Netlify, DNS via Cloudflare. Config in `netlify.toml`.
+| URL | Game |
+|-----|------|
+| `/` | Home — game listing |
+| `/pokemonspeedrungen1` | Pokémon Speedrun Gen 1 |
+
+## Assets
+
+Pokémon sprites go in:
+`apps/web/public/games/pokemonspeedrungen1/assets/gen1/001.png` … `151.png`
