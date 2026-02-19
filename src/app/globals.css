@@ -1,0 +1,35 @@
+:root {
+  color-scheme: light;
+  --bg-1: #e8f6ff;
+  --bg-2: #fff8e8;
+  --ink: #0f2436;
+  --surface: rgba(255, 255, 255, 0.92);
+  --border: #b7cfde;
+  --accent: #0075b8;
+  --accent-2: #ff8b00;
+  --danger: #c32929;
+  --ok: #1d8a3f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  min-height: 100%;
+  font-family: "Segoe UI", "Trebuchet MS", sans-serif;
+  color: var(--ink);
+  background: radial-gradient(circle at top left, var(--bg-2) 0%, var(--bg-1) 44%, #d8f8ec 100%);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+}
