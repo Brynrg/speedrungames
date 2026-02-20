@@ -16,9 +16,16 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <header>
-          <Link href="/" className="site-logo">
-            ⚡ Speed Run Games
-          </Link>
+          <div className="header-inner">
+            <Link href="/" className="site-logo">
+              ⚡ Speed Run Games
+            </Link>
+            <nav className="site-nav" aria-label="Primary">
+              <Link href="/">Home</Link>
+              <Link href="/games/tower-wars">Tower Wars</Link>
+              <Link href="/pokemonspeedrungen1">Pokémon Gen 1</Link>
+            </nav>
+          </div>
         </header>
         <main>{children}</main>
       </body>
