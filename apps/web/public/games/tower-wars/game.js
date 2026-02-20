@@ -245,7 +245,7 @@ const camera = {
   x: WIDTH / 2,
   y: HEIGHT / 2,
   zoom: FIT_ZOOM,
-  minZoom: Math.max(0.45, FIT_ZOOM * 0.85),
+  minZoom: FIT_ZOOM,
   maxZoom: 2,
 };
 const keyState = {
@@ -2182,6 +2182,8 @@ function clamp(value, min, max) {
 }
 
 function clampCamera() {
+  camera.minZoom = Math.max(canvas.width / WIDTH, canvas.height / HEIGHT);
+  camera.zoom = clamp(camera.zoom, camera.minZoom, camera.maxZoom);
   const halfW = canvas.width / (2 * camera.zoom);
   const halfH = canvas.height / (2 * camera.zoom);
 
@@ -4387,6 +4389,19 @@ function handleCanvasMouseUp() {
 }
 
 function handleCanvasWheel(event) {
+  if (event.currentTarget !== canvas || event.target !== canvas) {
+    return;
+  }
+  const rect = canvas.getBoundingClientRect();
+  const insideCanvas =
+    event.clientX >= rect.left &&
+    event.clientX <= rect.right &&
+    event.clientY >= rect.top &&
+    event.clientY <= rect.bottom;
+  if (!insideCanvas) {
+    return;
+  }
+
   if (event.shiftKey) {
     const panDelta = Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX;
     camera.x += (panDelta * 0.8) / camera.zoom;
