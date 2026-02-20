@@ -9,6 +9,8 @@ const waveEl = document.getElementById("wave");
 const scoreEl = document.getElementById("score");
 const bestEl = document.getElementById("best");
 const speedEl = document.getElementById("speed");
+const incomeEl = document.getElementById("income");
+const incomeTickEl = document.getElementById("incomeTick");
 const waveStatusEl = document.getElementById("waveStatus");
 const tooltipBoxEl = document.getElementById("tooltipBox");
 
@@ -18,6 +20,7 @@ const speedGameBtn = document.getElementById("speedGame");
 const autoWaveBtn = document.getElementById("autoWave");
 const modeClassicBtn = document.getElementById("modeClassic");
 const modeMazeBtn = document.getElementById("modeMaze");
+const modeDuelBtn = document.getElementById("modeDuel");
 const saveRunBtn = document.getElementById("saveRun");
 const loadRunBtn = document.getElementById("loadRun");
 const newRunBtn = document.getElementById("newRun");
@@ -27,6 +30,22 @@ const branchAButton = document.getElementById("branchA");
 const branchBButton = document.getElementById("branchB");
 const branchControlsEl = document.getElementById("branchControls");
 const highScoresEl = document.getElementById("highScores");
+
+const sendRunnerBtn = document.getElementById("sendRunner");
+const sendArmorBtn = document.getElementById("sendArmor");
+const sendAirBtn = document.getElementById("sendAir");
+const sendBreakerBtn = document.getElementById("sendBreaker");
+const sendSplitterBtn = document.getElementById("sendSplitter");
+const sendMiniBossBtn = document.getElementById("sendMiniBoss");
+const clearSendsBtn = document.getElementById("clearSends");
+const sendQueueEl = document.getElementById("sendQueue");
+const duelPlayerSwitchEl = document.getElementById("duelPlayerSwitch");
+const duelP1Btn = document.getElementById("duelP1Btn");
+const duelP2Btn = document.getElementById("duelP2Btn");
+const duelStatsEl = document.getElementById("duelStats");
+const duelP1El = document.getElementById("duelP1");
+const duelP2El = document.getElementById("duelP2");
+const duelActiveEl = document.getElementById("duelActive");
 
 const selectionNoneEl = document.getElementById("selectionNone");
 const selectionDetailsEl = document.getElementById("selectionDetails");
@@ -39,12 +58,46 @@ const selRateEl = document.getElementById("selRate");
 const selBranchEl = document.getElementById("selBranch");
 const selAuraEl = document.getElementById("selAura");
 const towerButtons = [...document.querySelectorAll(".tower-btn")];
+const sendButtons = {
+  runner: sendRunnerBtn,
+  armor: sendArmorBtn,
+  air: sendAirBtn,
+  breaker: sendBreakerBtn,
+  splitter: sendSplitterBtn,
+  miniboss: sendMiniBossBtn,
+};
+const CONTROL_TOOLTIPS = {
+  startWave: "Start the next wave when you are ready.",
+  pauseGame: "Pause or resume the game simulation.",
+  speedGame: "Cycle game speed: 1x, 2x, 3x.",
+  autoWave: "Auto-start the next wave after a clear.",
+  modeClassic: "Classic mode: fixed creep path.",
+  modeMaze: "Maze mode: build towers to shape the path.",
+  modeDuel: "Duel mode: two lanes, sends target the opponent.",
+  duelP1Btn: "Switch active controls to Player 1.",
+  duelP2Btn: "Switch active controls to Player 2.",
+  upgradeTower: "Upgrade selected tower stats.",
+  castAbility: "Cast selected tower branch ability.",
+  branchA: "Choose branch A specialization.",
+  branchB: "Choose branch B specialization.",
+  sendRunner: "Queue fast light creeps for next wave.",
+  sendArmor: "Queue durable heavy creeps for next wave.",
+  sendAir: "Queue flying creeps for next wave.",
+  sendBreaker: "Queue a magic-immune heavy creep.",
+  sendSplitter: "Queue splitter creeps for next wave.",
+  sendMiniBoss: "Queue one mini-boss for next wave.",
+  clearSends: "Clear queued sends and refund cost/income.",
+  saveRun: "Save current run to local storage.",
+  loadRun: "Load the last saved run.",
+  newRun: "Start a fresh run.",
+};
 
 const TILE = 48;
-const COLS = 20;
-const ROWS = 12;
+const COLS = 34;
+const ROWS = 20;
 const WIDTH = COLS * TILE;
 const HEIGHT = ROWS * TILE;
+const CAMERA_KEY_PAN_SPEED = 560;
 
 const RUN_SAVE_KEY = "green_circle_td_run_v2";
 const HIGH_SCORE_KEY = "green_circle_td_highscores_v2";
@@ -72,32 +125,30 @@ const DAMAGE_TABLE = {
   spell: { unarmored: 1.1, light: 1.1, medium: 1.1, heavy: 1.1, fortified: 1.1 },
 };
 
-const PATH_NODES = [
-  [0, 5],
-  [1, 5],
-  [2, 5],
-  [3, 5],
-  [3, 3],
-  [4, 3],
-  [5, 3],
-  [6, 3],
-  [7, 3],
-  [7, 7],
-  [8, 7],
-  [9, 7],
-  [10, 7],
-  [10, 2],
-  [11, 2],
-  [12, 2],
-  [13, 2],
-  [13, 9],
-  [14, 9],
-  [15, 9],
-  [16, 9],
-  [17, 9],
-  [18, 9],
-  [19, 9],
-];
+const PATH_NODES = (() => {
+  const midY = Math.floor(ROWS / 2);
+  const topY = Math.max(2, Math.floor(ROWS * 0.18));
+  const lowY = Math.min(ROWS - 3, Math.floor(ROWS * 0.82));
+  const xA = Math.max(3, Math.floor(COLS * 0.14));
+  const xB = Math.max(xA + 3, Math.floor(COLS * 0.3));
+  const xC = Math.max(xB + 3, Math.floor(COLS * 0.47));
+  const xD = Math.max(xC + 3, Math.floor(COLS * 0.64));
+  const xE = Math.max(xD + 3, Math.floor(COLS * 0.81));
+  return [
+    [0, midY],
+    [xA, midY],
+    [xA, topY],
+    [xB, topY],
+    [xB, lowY],
+    [xC, lowY],
+    [xC, topY + 2],
+    [xD, topY + 2],
+    [xD, lowY],
+    [xE, lowY],
+    [xE, midY],
+    [COLS - 1, midY],
+  ];
+})();
 
 function buildPathCells(nodes) {
   const cells = [];
@@ -137,12 +188,109 @@ const WAYPOINTS = PATH_NODES.map(([cx, cy]) => ({
 const PATH_SET = new Set(PATH_CELLS.map(([x, y]) => `${x},${y}`));
 const MAZE_START = { cx: PATH_NODES[0][0], cy: PATH_NODES[0][1] };
 const MAZE_EXIT = { cx: PATH_NODES[PATH_NODES.length - 1][0], cy: PATH_NODES[PATH_NODES.length - 1][1] };
+const DUEL_LANE_IDS = [0, 1];
+
+function buildDuelPathNodes(laneId) {
+  const laneCenter = laneId === 0 ? Math.max(3, Math.floor(ROWS * 0.26)) : Math.min(ROWS - 4, Math.floor(ROWS * 0.74));
+  const bend = 3;
+  const yUp = Math.max(1, laneCenter - bend);
+  const yDown = Math.min(ROWS - 2, laneCenter + bend);
+  const xA = Math.max(3, Math.floor(COLS * 0.14));
+  const xB = Math.max(xA + 3, Math.floor(COLS * 0.31));
+  const xC = Math.max(xB + 3, Math.floor(COLS * 0.5));
+  const xD = Math.max(xC + 3, Math.floor(COLS * 0.69));
+
+  return [
+    [0, laneCenter],
+    [xA, laneCenter],
+    [xA, yUp],
+    [xB, yUp],
+    [xB, yDown],
+    [xC, yDown],
+    [xC, yUp],
+    [xD, yUp],
+    [xD, laneCenter],
+    [COLS - 1, laneCenter],
+  ];
+}
+
+const DUEL_PATH_NODES = DUEL_LANE_IDS.map((laneId) => buildDuelPathNodes(laneId));
+const DUEL_PATH_CELLS = DUEL_PATH_NODES.map((nodes) => buildPathCells(nodes));
+const DUEL_PATH_SET = new Set(DUEL_PATH_CELLS.flat().map(([x, y]) => `${x},${y}`));
+const DUEL_WAYPOINTS = DUEL_PATH_NODES.map((nodes) => nodes.map(([cx, cy]) => ({ x: cx * TILE + TILE / 2, y: cy * TILE + TILE / 2 })));
+const DUEL_SPAWNS = DUEL_PATH_NODES.map((nodes) => ({ cx: nodes[0][0], cy: nodes[0][1] }));
+const DUEL_EXITS = DUEL_PATH_NODES.map((nodes) => ({ cx: nodes[nodes.length - 1][0], cy: nodes[nodes.length - 1][1] }));
 const DIR4 = [
   [1, 0],
   [0, 1],
   [-1, 0],
   [0, -1],
 ];
+const FIT_ZOOM = Math.max(canvas.width / WIDTH, canvas.height / HEIGHT);
+const camera = {
+  x: WIDTH / 2,
+  y: HEIGHT / 2,
+  zoom: FIT_ZOOM,
+  minZoom: Math.max(0.45, FIT_ZOOM * 0.85),
+  maxZoom: 2,
+};
+const keyState = {
+  left: false,
+  right: false,
+  up: false,
+  down: false,
+};
+const panState = {
+  active: false,
+  lastScreenX: 0,
+  lastScreenY: 0,
+  moved: false,
+};
+
+const SEND_OPTIONS = {
+  runner: {
+    id: "runner",
+    label: "Runner Pack",
+    cost: 60,
+    incomeGain: 1,
+    description: "6 fast light creeps",
+  },
+  armor: {
+    id: "armor",
+    label: "Armor Column",
+    cost: 90,
+    incomeGain: 1,
+    description: "4 heavy creeps",
+  },
+  air: {
+    id: "air",
+    label: "Air Squad",
+    cost: 110,
+    incomeGain: 2,
+    description: "4 flying creeps",
+  },
+  breaker: {
+    id: "breaker",
+    label: "Spellbreaker",
+    cost: 140,
+    incomeGain: 2,
+    description: "1 magic immune heavy",
+  },
+  splitter: {
+    id: "splitter",
+    label: "Splitter Nest",
+    cost: 160,
+    incomeGain: 2,
+    description: "2 splitter creeps",
+  },
+  miniboss: {
+    id: "miniboss",
+    label: "Mini-Boss",
+    cost: 220,
+    incomeGain: 3,
+    description: "1 mini boss",
+  },
+};
 
 const TOWER_DATA = {
   arrow: {
@@ -374,10 +522,77 @@ const TOWER_DATA = {
       },
     },
   },
+  mortar: {
+    name: "Fire Mortar",
+    cost: 155,
+    color: "#f08f5b",
+    core: "#8b3e29",
+    roleTags: ["AoE"],
+    element: "Fire",
+    damageType: "siege",
+    canHitAir: false,
+    damage: 26,
+    range: 185,
+    fireRate: 1.25,
+    projectileSpeed: 360,
+    projectileRadius: 5,
+    splashRadius: 64,
+    burnDps: 7,
+    burnDuration: 2.8,
+    branches: {
+      a: {
+        id: "shrapnel",
+        name: "Shrapnel",
+        description: "Wider splash with stronger burn.",
+        mods: { damageMul: 1.06, splashAdd: 18, burnDpsAdd: 3, burnDurAdd: 0.8 },
+      },
+      b: {
+        id: "incendiary",
+        name: "Incendiary",
+        description: "Leaves a burning patch on impact.",
+        mods: { damageMul: 0.96, splashAdd: 6, burnDpsAdd: 2, burnDurAdd: 0.5, firePatch: true },
+      },
+    },
+  },
+  obelisk: {
+    name: "Frost Obelisk",
+    cost: 150,
+    color: "#a4ddff",
+    core: "#416786",
+    roleTags: ["Control"],
+    element: "Frost",
+    damageType: "magic",
+    canHitAir: true,
+    damage: 9,
+    range: 175,
+    fireRate: 0.66,
+    projectileSpeed: 430,
+    projectileRadius: 4,
+    slowFactor: 0.62,
+    slowDuration: 1.05,
+    branches: {
+      a: {
+        id: "permafrost",
+        name: "Permafrost",
+        description: "Projects a chilling aura around the obelisk.",
+        mods: { damageMul: 0.9 },
+        auraSlow: { radius: 130, factor: 0.8, name: "Permafrost Aura" },
+      },
+      b: {
+        id: "ice_lance",
+        name: "Ice Lance",
+        description: "Periodic freeze-window shots with heavy slow.",
+        mods: { damageMul: 1.18, rangeAdd: 12 },
+        freeze: { factor: 0.2, duration: 0.65, cooldown: 4.0 },
+      },
+    },
+  },
 };
 
 const game = {
   mode: "classic",
+  duelMode: false,
+  activePlayer: 0,
   gold: 230,
   lives: 20,
   wave: 0,
@@ -398,9 +613,14 @@ const game = {
   speedIndex: 0,
   autoWaveEnabled: true,
   autoWaveTimer: 0,
+  income: 2,
+  incomeTimer: 0,
+  incomeInterval: 10,
+  sendQueue: [],
   message: "Build towers and send wave 1.",
   shake: 0,
   autoSaveTimer: 0,
+  players: [],
 };
 
 const towers = [];
@@ -409,6 +629,78 @@ const projectiles = [];
 const effects = [];
 const areaEffects = [];
 const buffZones = [];
+
+function createPlayerState(id) {
+  return {
+    id,
+    gold: 230,
+    lives: 20,
+    score: 0,
+    income: 2,
+    incomeTimer: 0,
+    incomeInterval: 10,
+    sendQueue: [],
+  };
+}
+
+function getPlayerState(id) {
+  if (!game.duelMode) {
+    return game;
+  }
+  return game.players[id] || game.players[0];
+}
+
+function getActivePlayerState() {
+  return getPlayerState(game.activePlayer);
+}
+
+function getEnemyDefenderState(enemy) {
+  if (!game.duelMode) {
+    return game;
+  }
+  if (enemy.targetPlayer !== undefined) {
+    return getPlayerState(enemy.targetPlayer);
+  }
+  return getPlayerState(enemy.lane || 0);
+}
+
+function getEnemyLane(enemy) {
+  if (!game.duelMode) {
+    return 0;
+  }
+  if (enemy.targetPlayer !== undefined) {
+    return enemy.targetPlayer;
+  }
+  return enemy.lane || 0;
+}
+
+function getLaneOwnerForCell(cx, cy) {
+  if (!game.duelMode) {
+    return game.activePlayer || 0;
+  }
+  return cy < Math.floor(ROWS / 2) ? 0 : 1;
+}
+
+function syncLegacyEconomyFromActive() {
+  if (!game.duelMode) {
+    return;
+  }
+  const active = getActivePlayerState();
+  game.gold = active.gold;
+  game.lives = active.lives;
+  game.score = active.score;
+  game.income = active.income;
+  game.incomeTimer = active.incomeTimer;
+  game.incomeInterval = active.incomeInterval;
+  game.sendQueue = active.sendQueue;
+}
+
+function syncActiveToLegacyIfDuel() {
+  if (!game.duelMode) {
+    return;
+  }
+  syncLegacyEconomyFromActive();
+}
 
 const audio = {
   ctx: null,
@@ -421,6 +713,7 @@ const audio = {
 
 let highScores = loadHighScores();
 let mazeDistances = null;
+game.players = [createPlayerState(0), createPlayerState(1)];
 
 class Enemy {
   constructor(stats) {
@@ -440,6 +733,8 @@ class Enemy {
     this.reward = stats.reward;
     this.leakDamage = stats.leakDamage || 1;
     this.radius = stats.radius || (this.isBoss ? 20 : this.flying ? 12 : 13);
+    this.lane = stats.lane || 0;
+    this.targetPlayer = stats.targetPlayer !== undefined ? stats.targetPlayer : this.lane;
 
     this.color = stats.color || (this.flying ? "#8bb8df" : "#c9645f");
     this.rim = stats.rim || (this.flying ? "#d5ecff" : "#f0c8a4");
@@ -450,23 +745,36 @@ class Enemy {
     this.segmentProgress = spawn.segmentProgress || 0;
     this.progress = stats.progress || 0;
 
-    const classicAnchor = WAYPOINTS[Math.min(this.pathIndex, WAYPOINTS.length - 1)] || WAYPOINTS[0];
+    const classicRoute = this.routeMode === "duel-classic" ? DUEL_WAYPOINTS[this.lane] || DUEL_WAYPOINTS[0] : WAYPOINTS;
+    const classicAnchor = classicRoute[Math.min(this.pathIndex, classicRoute.length - 1)] || classicRoute[0];
     const mazeStartWorld = worldFromCell(MAZE_START.cx, MAZE_START.cy);
     const spawnAnchor = this.routeMode === "maze-ground" ? mazeStartWorld : classicAnchor;
     this.x = spawn.x ?? spawnAnchor.x;
     this.y = spawn.y ?? spawnAnchor.y;
 
-    this.routePoints = this.routeMode === "maze-air" ? [mazeStartWorld, worldFromCell(MAZE_EXIT.cx, MAZE_EXIT.cy)] : WAYPOINTS;
+    this.routePoints =
+      this.routeMode === "maze-air"
+        ? [mazeStartWorld, worldFromCell(MAZE_EXIT.cx, MAZE_EXIT.cy)]
+        : this.routeMode === "duel-classic"
+          ? DUEL_WAYPOINTS[this.lane] || DUEL_WAYPOINTS[0]
+          : WAYPOINTS;
     this.mazeTargetX = spawn.mazeTargetX ?? null;
     this.mazeTargetY = spawn.mazeTargetY ?? null;
 
     this.slowFactor = 1;
     this.slowTimer = 0;
+    this.auraSlowFactor = 1;
+    this.burnDps = 0;
+    this.burnTimer = 0;
+    this.burnTick = 0;
     this.leaked = false;
     this.dead = false;
   }
 
   inferRouteMode() {
+    if (game.mode === "duel") {
+      return "duel-classic";
+    }
     if (game.mode !== "maze") {
       return "classic";
     }
@@ -490,6 +798,8 @@ class Enemy {
       reward: this.reward,
       leakDamage: this.leakDamage,
       radius: this.radius,
+      lane: this.lane,
+      targetPlayer: this.targetPlayer,
       color: this.color,
       rim: this.rim,
       routeMode: this.routeMode,
@@ -502,6 +812,10 @@ class Enemy {
       mazeTargetY: this.mazeTargetY,
       slowFactor: this.slowFactor,
       slowTimer: this.slowTimer,
+      auraSlowFactor: this.auraSlowFactor,
+      burnDps: this.burnDps,
+      burnTimer: this.burnTimer,
+      burnTick: this.burnTick,
     };
   }
 
@@ -521,6 +835,8 @@ class Enemy {
       reward: data.reward,
       leakDamage: data.leakDamage,
       radius: data.radius,
+      lane: data.lane || 0,
+      targetPlayer: data.targetPlayer !== undefined ? data.targetPlayer : data.lane || 0,
       color: data.color,
       rim: data.rim,
       routeMode: data.routeMode,
@@ -537,8 +853,12 @@ class Enemy {
 
     enemy.hp = data.hp;
     enemy.maxHp = data.maxHp;
-    enemy.slowFactor = data.slowFactor;
-    enemy.slowTimer = data.slowTimer;
+    enemy.slowFactor = data.slowFactor !== undefined ? data.slowFactor : 1;
+    enemy.slowTimer = data.slowTimer !== undefined ? data.slowTimer : 0;
+    enemy.auraSlowFactor = data.auraSlowFactor !== undefined ? data.auraSlowFactor : 1;
+    enemy.burnDps = data.burnDps !== undefined ? data.burnDps : 0;
+    enemy.burnTimer = data.burnTimer !== undefined ? data.burnTimer : 0;
+    enemy.burnTick = data.burnTick !== undefined ? data.burnTick : 0;
     return enemy;
   }
 
@@ -555,6 +875,15 @@ class Enemy {
     }
 
     this.slowTimer = Math.max(this.slowTimer, duration);
+  }
+
+  applyBurn(dps, duration) {
+    if (dps <= 0 || duration <= 0) {
+      return;
+    }
+    this.burnDps = Math.max(this.burnDps, dps);
+    this.burnTimer = Math.max(this.burnTimer, duration);
+    this.burnTick = 0;
   }
 
   getGridCell() {
@@ -694,8 +1023,29 @@ class Enemy {
         this.slowFactor = 1;
       }
     }
+    if (this.burnTimer > 0) {
+      this.burnTimer -= dt;
+      this.burnTick += dt;
+
+      while (this.burnTick >= 0.25 && this.burnTimer > -0.001) {
+        this.burnTick -= 0.25;
+        if (!enemies.includes(this)) {
+          break;
+        }
+        const burnDamage = this.burnDps * 0.25;
+        dealDamageToEnemy(this, burnDamage, "spell", null, { allowZero: true });
+      }
+
+      if (this.burnTimer <= 0) {
+        this.burnTimer = 0;
+        this.burnDps = 0;
+        this.burnTick = 0;
+      }
+    }
+
+    const effectiveSlow = Math.min(this.slowFactor, this.auraSlowFactor || 1);
     const speedMul = this.flying ? 1.05 : 1;
-    const travel = this.speed * this.slowFactor * speedMul * dt;
+    const travel = this.speed * effectiveSlow * speedMul * dt;
 
     if (this.routeMode === "maze-ground") {
       this.updateMazeGround(travel);
@@ -707,10 +1057,11 @@ class Enemy {
 }
 
 class Tower {
-  constructor(type, x, y) {
+  constructor(type, x, y, owner = 0) {
     this.type = type;
     this.x = x;
     this.y = y;
+    this.owner = owner;
 
     const base = TOWER_DATA[type];
     this.level = 1;
@@ -729,10 +1080,11 @@ class Tower {
     this.auraDamageMul = 1;
     this.auraRateMul = 1;
     this.auraGrantAir = false;
+    this._freezeCd = 0;
   }
 
   static fromSave(data) {
-    const tower = new Tower(data.type, data.x, data.y);
+    const tower = new Tower(data.type, data.x, data.y, data.owner || 0);
     tower.level = data.level;
     tower.baseDamage = data.baseDamage;
     tower.baseRange = data.baseRange;
@@ -743,6 +1095,7 @@ class Tower {
     tower.tempDamageMul = data.tempDamageMul;
     tower.tempRateMul = data.tempRateMul;
     tower.tempBuffTimer = data.tempBuffTimer;
+    tower._freezeCd = data._freezeCd || 0;
     return tower;
   }
 
@@ -751,6 +1104,7 @@ class Tower {
       type: this.type,
       x: this.x,
       y: this.y,
+      owner: this.owner,
       level: this.level,
       baseDamage: this.baseDamage,
       baseRange: this.baseRange,
@@ -761,6 +1115,7 @@ class Tower {
       tempDamageMul: this.tempDamageMul,
       tempRateMul: this.tempRateMul,
       tempBuffTimer: this.tempBuffTimer,
+      _freezeCd: this._freezeCd,
     };
   }
 
@@ -816,7 +1171,20 @@ class Tower {
   get splashRadius() {
     const base = this.data.splashRadius || 0;
     const mul = this.branchData?.mods?.splashMul || 1;
-    return base * mul;
+    const add = this.branchData?.mods?.splashAdd || 0;
+    return base * mul + add;
+  }
+
+  get burnDps() {
+    const base = this.data.burnDps || 0;
+    const add = this.branchData?.mods?.burnDpsAdd || 0;
+    return base + add;
+  }
+
+  get burnDuration() {
+    const base = this.data.burnDuration || 0;
+    const add = this.branchData?.mods?.burnDurAdd || 0;
+    return base + add;
   }
 
   get effectiveDamage() {
@@ -840,7 +1208,7 @@ class Tower {
   }
 
   hasAura() {
-    return !!this.branchData?.aura;
+    return !!(this.branchData?.aura || this.branchData?.auraSlow);
   }
 
   canChooseBranch() {
@@ -889,6 +1257,9 @@ class Tower {
     if (enemy.flying && !this.canHitAir) {
       return false;
     }
+    if (game.duelMode && getEnemyLane(enemy) !== this.owner) {
+      return false;
+    }
 
     const dx = enemy.x - this.x;
     const dy = enemy.y - this.y;
@@ -914,6 +1285,15 @@ class Tower {
   }
 
   fire(target) {
+    let freezeOnHit = null;
+    if (this.type === "obelisk") {
+      const freeze = this.branchData?.freeze;
+      if (freeze && this._freezeCd <= 0) {
+        freezeOnHit = { factor: freeze.factor, duration: freeze.duration };
+        this._freezeCd = freeze.cooldown;
+      }
+    }
+
     const projectile = new Projectile({
       x: this.x,
       y: this.y,
@@ -924,9 +1304,13 @@ class Tower {
       damage: this.effectiveDamage,
       damageType: this.damageType,
       splashRadius: this.splashRadius,
-      canSlow: this.type === "frost",
+      canSlow: this.type === "frost" || this.type === "obelisk",
       slowFactor: this.slowFactor,
       slowDuration: this.slowDuration,
+      burnDps: this.type === "mortar" ? this.burnDps : 0,
+      burnDuration: this.type === "mortar" ? this.burnDuration : 0,
+      spawnFirePatch: this.type === "mortar" && !!this.branchData?.mods?.firePatch,
+      freezeOnHit,
     });
     projectiles.push(projectile);
     playSfx("shoot");
@@ -957,6 +1341,7 @@ class Tower {
       buffZones.push({
         x: this.x,
         y: this.y,
+        owner: this.owner,
         radius: 145,
         damageMul: 1.22,
         rateMul: 1.35,
@@ -1123,6 +1508,7 @@ class Tower {
     if (this.abilityCooldown > 0) {
       this.abilityCooldown -= dt;
     }
+    this._freezeCd = Math.max(0, this._freezeCd - dt);
 
     this.cooldown -= dt;
     if (this.cooldown > 0) {
@@ -1154,6 +1540,10 @@ class Projectile {
     this.canSlow = config.canSlow;
     this.slowFactor = config.slowFactor;
     this.slowDuration = config.slowDuration;
+    this.burnDps = config.burnDps || 0;
+    this.burnDuration = config.burnDuration || 0;
+    this.spawnFirePatch = !!config.spawnFirePatch;
+    this.freezeOnHit = config.freezeOnHit || null;
 
     this.trackX = config.target.x;
     this.trackY = config.target.y;
@@ -1165,6 +1555,13 @@ class Projectile {
 
     if (this.canSlow && result.damageDealt > 0 && this.slowFactor) {
       enemy.applySlow(this.slowFactor, this.slowDuration);
+    }
+    if (this.burnDps > 0 && this.burnDuration > 0) {
+      enemy.applyBurn(this.burnDps, this.burnDuration);
+    }
+    if (this.freezeOnHit && result.damageDealt > 0) {
+      enemy.applySlow(this.freezeOnHit.factor, this.freezeOnHit.duration);
+      effects.push(new Effect(enemy.x, enemy.y, "ring", { radius: enemy.radius + 7, color: "rgba(182, 230, 255, 0.48)" }));
     }
 
     return result;
@@ -1183,6 +1580,22 @@ class Projectile {
       const falloff = 1 - 0.45 * (d / (splash + 1));
       const amount = Math.max(1, Math.round(this.damage * falloff));
       this.impact(enemy, amount);
+    }
+
+    if (this.spawnFirePatch) {
+      const patchRadius = Math.max(18, Math.round(splash * 0.9));
+      areaEffects.push(
+        new AreaEffect({
+          x: this.x,
+          y: this.y,
+          radius: patchRadius,
+          duration: 3.6,
+          interval: 0.45,
+          damage: Math.max(1, Math.round(this.damage * 0.22)),
+          damageType: "spell",
+          color: "rgba(255, 110, 44, 0.34)",
+        })
+      );
     }
   }
 
@@ -1308,16 +1721,320 @@ function saveHighScores() {
 }
 
 function defaultTooltip() {
-  return "Hover tower buttons and enemies for detail.";
+  return "Hover buttons, towers, and enemies for detail. Scroll pans, ctrl/cmd + wheel zooms.";
 }
 
 function setTooltip(text) {
   tooltipBoxEl.textContent = text || defaultTooltip();
 }
 
+function getButtonTooltip(button) {
+  if (button.dataset.tip) {
+    return button.dataset.tip;
+  }
+  if (button.id && CONTROL_TOOLTIPS[button.id]) {
+    return CONTROL_TOOLTIPS[button.id];
+  }
+  if (button.title) {
+    return button.title;
+  }
+  return button.textContent.replace(/\s+/g, " ").trim();
+}
+
 function status(text) {
   game.message = text;
   waveStatusEl.textContent = text;
+}
+
+function isSendLocked() {
+  return game.waveActive || game.gameOver;
+}
+
+function getIncomePayout(state = game) {
+  return Math.max(0, Math.floor(state.income));
+}
+
+function buildRunnerSendUnits(wave) {
+  const w = Math.max(1, wave);
+  const units = [];
+  for (let i = 0; i < 6; i += 1) {
+    units.push({
+      name: "Runner",
+      armorType: "light",
+      hp: 28 + w * 8,
+      speed: 110 + w * 2 + (i % 2 === 0 ? 0 : 4),
+      reward: 4 + Math.floor(w * 0.7),
+      leakDamage: 1,
+      color: "#d8897a",
+      rim: "#f3c9b4",
+    });
+  }
+  return units;
+}
+
+function buildArmorSendUnits(wave) {
+  const w = Math.max(1, wave);
+  const units = [];
+  for (let i = 0; i < 4; i += 1) {
+    units.push({
+      name: "Armor Guard",
+      armorType: "heavy",
+      hp: 95 + w * 20,
+      speed: 52 + w,
+      reward: 7 + w,
+      leakDamage: 2,
+      color: "#8f6558",
+      rim: "#e1c49c",
+    });
+  }
+  return units;
+}
+
+function buildAirSendUnits(wave) {
+  const w = Math.max(1, wave);
+  const units = [];
+  for (let i = 0; i < 4; i += 1) {
+    units.push({
+      name: "Harpy Scout",
+      armorType: "light",
+      hp: 70 + w * 16,
+      speed: 96 + w * 2,
+      reward: 8 + w,
+      leakDamage: 1,
+      flying: true,
+      color: "#76a4d6",
+      rim: "#d5ebff",
+    });
+  }
+  return units;
+}
+
+function buildBreakerSendUnits(wave) {
+  const w = Math.max(1, wave);
+  return [
+    {
+      name: "Send Spellbreaker",
+      armorType: "heavy",
+      hp: 220 + w * 28,
+      speed: 64 + Math.floor(w * 1.2),
+      reward: 18 + w,
+      leakDamage: 2,
+      magicImmune: true,
+      color: "#7e7b8f",
+      rim: "#d9d5ff",
+    },
+  ];
+}
+
+function buildSplitterSendUnits(wave) {
+  const w = Math.max(1, wave);
+  const depth = w >= 12 ? 2 : 1;
+  return [
+    {
+      name: "Send Broodling",
+      armorType: "medium",
+      hp: 110 + w * 20,
+      speed: 72 + w,
+      reward: 12 + w,
+      leakDamage: 1,
+      splitter: true,
+      splitDepth: depth,
+      color: "#cf8a67",
+      rim: "#f8d8b6",
+    },
+    {
+      name: "Send Broodling",
+      armorType: "medium",
+      hp: 110 + w * 20,
+      speed: 72 + w,
+      reward: 12 + w,
+      leakDamage: 1,
+      splitter: true,
+      splitDepth: depth,
+      color: "#cf8a67",
+      rim: "#f8d8b6",
+    },
+  ];
+}
+
+function buildMiniBossSendUnits(wave) {
+  const w = Math.max(1, wave);
+  return [
+    {
+      name: "Mini Tyrant",
+      armorType: "fortified",
+      hp: 520 + w * 110,
+      speed: 48 + w * 0.6,
+      reward: 60 + w * 8,
+      leakDamage: 3,
+      radius: 19,
+      color: "#764940",
+      rim: "#f2c894",
+      slowImmune: w >= 16,
+    },
+  ];
+}
+
+function makeSendUnits(key, wave) {
+  if (key === "runner") {
+    return buildRunnerSendUnits(wave);
+  }
+  if (key === "armor") {
+    return buildArmorSendUnits(wave);
+  }
+  if (key === "air") {
+    return buildAirSendUnits(wave);
+  }
+  if (key === "breaker") {
+    return buildBreakerSendUnits(wave);
+  }
+  if (key === "splitter") {
+    return buildSplitterSendUnits(wave);
+  }
+  if (key === "miniboss") {
+    return buildMiniBossSendUnits(wave);
+  }
+  return [];
+}
+
+function queueSend(key) {
+  const option = SEND_OPTIONS[key];
+  if (!option) {
+    return;
+  }
+
+  if (isSendLocked()) {
+    status("Sends can only be managed between waves.");
+    return;
+  }
+
+  const player = getActivePlayerState();
+
+  if (player.gold < option.cost) {
+    status(`Not enough gold for ${option.label}.`);
+    return;
+  }
+
+  player.gold -= option.cost;
+  player.income += option.incomeGain;
+  player.sendQueue.push({
+    key: option.id,
+    label: option.label,
+    cost: option.cost,
+    incomeGain: option.incomeGain,
+    wavePurchased: game.wave,
+  });
+
+  status(
+    game.duelMode
+      ? `${option.label} queued by P${game.activePlayer + 1}. Income +${option.incomeGain}.`
+      : `${option.label} queued for next wave. Income +${option.incomeGain}.`
+  );
+  syncActiveToLegacyIfDuel();
+  saveRun(false);
+}
+
+function clearSendQueue() {
+  if (isSendLocked()) {
+    status("Cannot clear sends during an active wave.");
+    return;
+  }
+
+  const player = getActivePlayerState();
+  if (player.sendQueue.length === 0) {
+    status("No sends queued.");
+    return;
+  }
+
+  let refund = 0;
+  let incomeBack = 0;
+  for (const entry of player.sendQueue) {
+    refund += entry.cost || 0;
+    incomeBack += entry.incomeGain || 0;
+  }
+
+  player.gold += refund;
+  player.income = Math.max(0, player.income - incomeBack);
+  player.sendQueue = [];
+  status(
+    game.duelMode
+      ? `P${game.activePlayer + 1} queue cleared. Refunded ${refund}g and removed ${incomeBack} income.`
+      : `Send queue cleared. Refunded ${refund}g and removed ${incomeBack} income.`
+  );
+  syncActiveToLegacyIfDuel();
+  saveRun(false);
+}
+
+function consumeSendQueueForWave(state, wave, laneTarget = 0) {
+  if (!state.sendQueue || state.sendQueue.length === 0) {
+    return { units: [], summary: "" };
+  }
+
+  const units = [];
+  const counts = {};
+
+  for (const entry of state.sendQueue) {
+    const option = SEND_OPTIONS[entry.key];
+    if (!option) {
+      continue;
+    }
+    counts[option.label] = (counts[option.label] || 0) + 1;
+    const pack = makeSendUnits(option.id, wave);
+    for (const unit of pack) {
+      units.push({ ...unit, lane: laneTarget, targetPlayer: laneTarget });
+    }
+  }
+
+  state.sendQueue = [];
+  const summary = Object.entries(counts)
+    .map(([label, count]) => `${label} x${count}`)
+    .join(", ");
+
+  return { units, summary };
+}
+
+function updateSendUi() {
+  const locked = isSendLocked();
+  const player = getActivePlayerState();
+
+  for (const [key, button] of Object.entries(sendButtons)) {
+    if (!button) {
+      continue;
+    }
+    const option = SEND_OPTIONS[key];
+    const cannotAfford = player.gold < option.cost;
+    button.disabled = locked || cannotAfford;
+  }
+
+  if (clearSendsBtn) {
+    clearSendsBtn.disabled = locked || player.sendQueue.length === 0;
+  }
+
+  if (!sendQueueEl) {
+    return;
+  }
+
+  if (player.sendQueue.length === 0) {
+    sendQueueEl.textContent = "No sends queued.";
+    return;
+  }
+
+  const grouped = {};
+  for (const entry of player.sendQueue) {
+    const key = entry.key;
+    if (!grouped[key]) {
+      grouped[key] = { label: entry.label, count: 0, income: 0 };
+    }
+    grouped[key].count += 1;
+    grouped[key].income += entry.incomeGain || 0;
+  }
+
+  const parts = [];
+  for (const key of Object.keys(grouped)) {
+    const g = grouped[key];
+    parts.push(`<span class="send-chip">${g.label} x${g.count} (+${g.income})</span>`);
+  }
+  sendQueueEl.innerHTML = parts.join("");
 }
 
 function getDamageMultiplier(damageType, armorType) {
@@ -1377,8 +2094,9 @@ function onEnemyKilled(enemy) {
     enemies.splice(idx, 1);
   }
 
-  game.gold += enemy.reward;
-  game.score += enemy.reward * (enemy.isBoss ? 10 : enemy.flying ? 4 : 3);
+  const defender = getEnemyDefenderState(enemy);
+  defender.gold += enemy.reward;
+  defender.score += enemy.reward * (enemy.isBoss ? 10 : enemy.flying ? 4 : 3);
 
   effects.push(new Effect(enemy.x, enemy.y, "kill"));
   playSfx("kill");
@@ -1388,10 +2106,11 @@ function onEnemyKilled(enemy) {
   }
 
   if (enemy.isBoss) {
-    game.gold += 80;
-    game.score += 700;
+    defender.gold += 80;
+    defender.score += 700;
     status(`Boss defeated on wave ${game.wave}.`);
   }
+  syncActiveToLegacyIfDuel();
 }
 
 function spawnSplitChildren(parent) {
@@ -1418,6 +2137,8 @@ function spawnSplitChildren(parent) {
       },
       routeMode: parent.routeMode,
       progress: parent.progress,
+      lane: parent.lane,
+      targetPlayer: parent.targetPlayer,
     });
     enemies.push(child);
   }
@@ -1441,7 +2162,41 @@ function inBounds(cx, cy) {
   return cx >= 0 && cy >= 0 && cx < COLS && cy < ROWS;
 }
 
-function getMousePos(event) {
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function clampCamera() {
+  const halfW = canvas.width / (2 * camera.zoom);
+  const halfH = canvas.height / (2 * camera.zoom);
+
+  if (halfW >= WIDTH / 2) {
+    camera.x = WIDTH / 2;
+  } else {
+    camera.x = clamp(camera.x, halfW, WIDTH - halfW);
+  }
+
+  if (halfH >= HEIGHT / 2) {
+    camera.y = HEIGHT / 2;
+  } else {
+    camera.y = clamp(camera.y, halfH, HEIGHT - halfH);
+  }
+}
+
+function screenToWorld(screenX, screenY) {
+  return {
+    x: (screenX - canvas.width / 2) / camera.zoom + camera.x,
+    y: (screenY - canvas.height / 2) / camera.zoom + camera.y,
+  };
+}
+
+function applyCameraTransform() {
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  ctx.scale(camera.zoom, camera.zoom);
+  ctx.translate(-camera.x, -camera.y);
+}
+
+function getScreenPos(event) {
   const rect = canvas.getBoundingClientRect();
   const scaleX = canvas.width / rect.width;
   const scaleY = canvas.height / rect.height;
@@ -1559,6 +2314,17 @@ function getBuildBlockReason(cx, cy) {
     return null;
   }
 
+  if (game.mode === "duel") {
+    const owner = getLaneOwnerForCell(cx, cy);
+    if (owner !== game.activePlayer) {
+      return "enemy_lane";
+    }
+    if (DUEL_PATH_SET.has(`${cx},${cy}`)) {
+      return "road";
+    }
+    return null;
+  }
+
   if (isMazeReservedCell(cx, cy)) {
     return "reserved";
   }
@@ -1596,7 +2362,31 @@ function describeEnemy(enemy) {
   if (enemy.isBoss) {
     tags.push("Boss");
   }
+  if (game.duelMode) {
+    tags.push(`Target P${getEnemyLane(enemy) + 1}`);
+  }
   return `${enemy.name} | HP ${Math.max(0, Math.round(enemy.hp))}/${enemy.maxHp} | ${tags.join(" • ")}`;
+}
+
+function describeTower(tower) {
+  const tags = [];
+  tags.push(DAMAGE_LABELS[tower.damageType] || tower.damageType);
+  tags.push(tower.canHitAir ? "Air+Ground" : "Ground Only");
+  if (tower.splashRadius > 0) {
+    tags.push(`Splash ${Math.round(tower.splashRadius)}`);
+  }
+  if (tower.burnDps > 0) {
+    tags.push(`Burn ${tower.burnDps.toFixed(0)}/s`);
+  }
+  if (tower.slowFactor) {
+    const slowPct = Math.round((1 - tower.slowFactor) * 100);
+    tags.push(`Slow ${slowPct}%`);
+  }
+  if (game.duelMode) {
+    tags.push(`P${tower.owner + 1}`);
+  }
+  const branchName = tower.branchData?.name ? ` | ${tower.branchData.name}` : "";
+  return `${tower.data.name} L${tower.level}${branchName} | Dmg ${tower.effectiveDamage} | Rng ${Math.round(tower.effectiveRange)} | ${tags.join(" • ")}`;
 }
 
 function tryBuildTower(cx, cy) {
@@ -1604,6 +2394,8 @@ function tryBuildTower(cx, cy) {
   if (blockReason) {
     if (blockReason === "road") {
       status("You cannot build on the road.");
+    } else if (blockReason === "enemy_lane") {
+      status("In Duel mode, build only in your own lane.");
     } else if (blockReason === "reserved") {
       status("Spawn and exit tiles must stay clear in Maze mode.");
     } else if (blockReason === "blocked_maze") {
@@ -1614,14 +2406,16 @@ function tryBuildTower(cx, cy) {
 
   const type = game.selectedType;
   const cost = TOWER_DATA[type].cost;
+  const owner = game.duelMode ? game.activePlayer : 0;
+  const player = game.duelMode ? getPlayerState(owner) : game;
 
-  if (game.gold < cost) {
+  if (player.gold < cost) {
     status(`Not enough gold for ${TOWER_DATA[type].name}.`);
     return;
   }
 
   const pos = worldFromCell(cx, cy);
-  towers.push(new Tower(type, pos.x, pos.y));
+  towers.push(new Tower(type, pos.x, pos.y, owner));
   if (game.mode === "maze") {
     rebuildMazeDistances();
     for (const enemy of enemies) {
@@ -1631,7 +2425,8 @@ function tryBuildTower(cx, cy) {
       }
     }
   }
-  game.gold -= cost;
+  player.gold -= cost;
+  syncActiveToLegacyIfDuel();
   status(`${TOWER_DATA[type].name} constructed.`);
   playSfx("build");
   saveRun(false);
@@ -1648,14 +2443,21 @@ function tryUpgradeSelectedTower() {
     return;
   }
 
+  if (game.duelMode && tower.owner !== game.activePlayer) {
+    status(`Switch to P${tower.owner + 1} to upgrade this tower.`);
+    return;
+  }
+
+  const ownerState = game.duelMode ? getPlayerState(tower.owner) : game;
   const cost = tower.upgradeCost;
-  if (game.gold < cost) {
+  if (ownerState.gold < cost) {
     status(`Need ${cost} gold to upgrade.`);
     return;
   }
 
-  game.gold -= cost;
+  ownerState.gold -= cost;
   tower.upgrade();
+  syncActiveToLegacyIfDuel();
   status(`${tower.data.name} upgraded to level ${tower.level}.`);
   playSfx("upgrade");
 }
@@ -1671,8 +2473,14 @@ function chooseBranch(branchKey) {
     return;
   }
 
+  if (game.duelMode && tower.owner !== game.activePlayer) {
+    status(`Switch to P${tower.owner + 1} to choose this tower's branch.`);
+    return;
+  }
+
+  const ownerState = game.duelMode ? getPlayerState(tower.owner) : game;
   const cost = tower.branchCost;
-  if (game.gold < cost) {
+  if (ownerState.gold < cost) {
     status(`Need ${cost} gold to choose a branch.`);
     return;
   }
@@ -1682,7 +2490,8 @@ function chooseBranch(branchKey) {
     return;
   }
 
-  game.gold -= cost;
+  ownerState.gold -= cost;
+  syncActiveToLegacyIfDuel();
   status(`${tower.data.name} specialized into ${tower.branchData.name}.`);
   playSfx("upgrade");
 }
@@ -1695,6 +2504,10 @@ function castSelectedAbility() {
   }
   if (!tower.ability) {
     status("This tower has no active ability. Choose a branch first.");
+    return;
+  }
+  if (game.duelMode && tower.owner !== game.activePlayer) {
+    status(`Switch to P${tower.owner + 1} to cast this tower ability.`);
     return;
   }
   if (tower.abilityCooldown > 0) {
@@ -1859,6 +2672,17 @@ function buildWavePlan(wave) {
   return { tag: "Assault Wave", interval: Math.max(0.24, 0.82 - wave * 0.014), queue };
 }
 
+function buildDuelWavePlan(wave) {
+  const base = buildWavePlan(wave);
+  const queue = [];
+  for (const lane of DUEL_LANE_IDS) {
+    for (const unit of base.queue) {
+      queue.push({ ...unit, lane, targetPlayer: lane });
+    }
+  }
+  return { tag: `${base.tag} Duel`, interval: base.interval, queue };
+}
+
 function spawnEnemyFromQueue() {
   if (game.spawnQueue.length === 0) {
     return;
@@ -1887,7 +2711,35 @@ function startWave() {
   }
 
   game.wave += 1;
-  const plan = buildWavePlan(game.wave);
+  const plan = game.mode === "duel" ? buildDuelWavePlan(game.wave) : buildWavePlan(game.wave);
+  let sendText = "";
+
+  if (game.mode === "duel") {
+    const p1Injection = consumeSendQueueForWave(getPlayerState(0), game.wave, 1);
+    const p2Injection = consumeSendQueueForWave(getPlayerState(1), game.wave, 0);
+    if (p1Injection.units.length > 0 || p2Injection.units.length > 0) {
+      plan.tag = `${plan.tag} + Sends`;
+    }
+    plan.queue.push(...p1Injection.units, ...p2Injection.units);
+    const parts = [];
+    if (p1Injection.units.length > 0) {
+      parts.push(`P1->P2 ${p1Injection.summary}`);
+    }
+    if (p2Injection.units.length > 0) {
+      parts.push(`P2->P1 ${p2Injection.summary}`);
+    }
+    if (parts.length > 0) {
+      sendText = ` Sends: ${parts.join(" | ")}.`;
+    }
+  } else {
+    const sendInjection = consumeSendQueueForWave(game, game.wave, 0);
+    if (sendInjection.units.length > 0) {
+      plan.queue.push(...sendInjection.units);
+      plan.tag = `${plan.tag} + Sends`;
+      sendText = ` Includes sends: ${sendInjection.summary}.`;
+    }
+  }
+
   game.waveTag = plan.tag;
   game.spawnQueue = plan.queue;
   game.spawnInterval = plan.interval;
@@ -1895,8 +2747,9 @@ function startWave() {
   game.waveActive = true;
   game.autoWaveTimer = 0;
 
-  status(`Wave ${game.wave} (${plan.tag}) started. ${game.spawnQueue.length} enemies incoming.`);
+  status(`Wave ${game.wave} (${plan.tag}) started. ${game.spawnQueue.length} enemies incoming.${sendText}`);
   playSfx("wave");
+  syncActiveToLegacyIfDuel();
   saveRun(false);
 }
 
@@ -1908,7 +2761,7 @@ function toggleAutoWave() {
 }
 
 function setGameMode(mode) {
-  if (mode !== "classic" && mode !== "maze") {
+  if (mode !== "classic" && mode !== "maze" && mode !== "duel") {
     return;
   }
   if (game.mode === mode) {
@@ -1917,15 +2770,30 @@ function setGameMode(mode) {
 
   const hadProgress = game.wave > 0 || towers.length > 0 || enemies.length > 0 || game.waveActive;
   game.mode = mode;
+  game.duelMode = mode === "duel";
+  game.activePlayer = 0;
   resetRun({ keepMode: true, keepAutoWave: true });
   rebuildMazeDistances();
   saveRun(false);
 
+  const modeLabel = mode === "maze" ? "Maze" : mode === "duel" ? "Duel" : "Classic";
   if (hadProgress) {
-    status(`Switched to ${mode === "maze" ? "Maze" : "Classic"} mode. New run started.`);
+    status(`Switched to ${modeLabel} mode. New run started.`);
   } else {
-    status(`${mode === "maze" ? "Maze" : "Classic"} mode ready.`);
+    status(`${modeLabel} mode ready.`);
   }
+}
+
+function setActivePlayer(id) {
+  if (!game.duelMode) {
+    return;
+  }
+  game.activePlayer = id === 1 ? 1 : 0;
+  syncLegacyEconomyFromActive();
+  if (game.selectedTower && game.selectedTower.owner !== game.activePlayer) {
+    game.selectedTower = null;
+  }
+  status(`Active controls: P${game.activePlayer + 1}.`);
 }
 
 function updateBuffsAndAuras(dt) {
@@ -1933,6 +2801,9 @@ function updateBuffsAndAuras(dt) {
     tower.auraDamageMul = 1;
     tower.auraRateMul = 1;
     tower.auraGrantAir = false;
+  }
+  for (const enemy of enemies) {
+    enemy.auraSlowFactor = 1;
   }
 
   for (let i = buffZones.length - 1; i >= 0; i -= 1) {
@@ -1944,6 +2815,9 @@ function updateBuffsAndAuras(dt) {
     }
 
     for (const tower of towers) {
+      if (game.duelMode && zone.owner !== undefined && tower.owner !== zone.owner) {
+        continue;
+      }
       const d = Math.hypot(tower.x - zone.x, tower.y - zone.y);
       if (d <= zone.radius) {
         tower.applyTempBuff(zone.damageMul, zone.rateMul, zone.timer);
@@ -1961,6 +2835,9 @@ function updateBuffsAndAuras(dt) {
       if (tower === source) {
         continue;
       }
+      if (game.duelMode && tower.owner !== source.owner) {
+        continue;
+      }
       const d = Math.hypot(tower.x - source.x, tower.y - source.y);
       if (d > aura.radius) {
         continue;
@@ -1969,6 +2846,19 @@ function updateBuffsAndAuras(dt) {
       tower.auraRateMul *= aura.rateMul;
       if (aura.grantAir) {
         tower.auraGrantAir = true;
+      }
+    }
+  }
+
+  for (const source of towers) {
+    const auraSlow = source.branchData?.auraSlow;
+    if (!auraSlow) {
+      continue;
+    }
+    for (const enemy of enemies) {
+      const d = Math.hypot(enemy.x - source.x, enemy.y - source.y);
+      if (d <= auraSlow.radius) {
+        enemy.auraSlowFactor = Math.min(enemy.auraSlowFactor, auraSlow.factor);
       }
     }
   }
@@ -1994,14 +2884,16 @@ function updateSelectionPanel() {
   selRangeEl.textContent = String(Math.round(tower.effectiveRange));
   selRateEl.textContent = `${(1 / tower.effectiveFireRate).toFixed(2)} /s`;
   selBranchEl.textContent = tower.branchData?.name || "None";
-  selAuraEl.textContent = tower.branchData?.aura?.name || "None";
+  selAuraEl.textContent = tower.branchData?.aura?.name || tower.branchData?.auraSlow?.name || "None";
+  const ownerState = game.duelMode ? getPlayerState(tower.owner) : game;
+  const controllable = !game.duelMode || tower.owner === game.activePlayer;
 
   if (!tower.canUpgrade()) {
     upgradeTowerBtn.textContent = "Max Level";
     upgradeTowerBtn.disabled = true;
   } else {
     upgradeTowerBtn.textContent = `Upgrade (U) - ${tower.upgradeCost}g`;
-    upgradeTowerBtn.disabled = game.gold < tower.upgradeCost;
+    upgradeTowerBtn.disabled = !controllable || ownerState.gold < tower.upgradeCost;
   }
 
   if (tower.ability) {
@@ -2010,7 +2902,7 @@ function updateSelectionPanel() {
       castAbilityBtn.disabled = true;
     } else {
       castAbilityBtn.textContent = `${tower.ability.name} (F)`;
-      castAbilityBtn.disabled = false;
+      castAbilityBtn.disabled = !controllable;
     }
   } else {
     castAbilityBtn.textContent = "Cast Ability (F)";
@@ -2023,8 +2915,8 @@ function updateSelectionPanel() {
     const b = tower.data.branches.b;
     branchAButton.textContent = `${a.name} - ${tower.branchCost}g`;
     branchBButton.textContent = `${b.name} - ${tower.branchCost}g`;
-    branchAButton.disabled = game.gold < tower.branchCost;
-    branchBButton.disabled = game.gold < tower.branchCost;
+    branchAButton.disabled = !controllable || ownerState.gold < tower.branchCost;
+    branchBButton.disabled = !controllable || ownerState.gold < tower.branchCost;
   } else {
     branchControlsEl.classList.add("hidden");
   }
@@ -2077,7 +2969,13 @@ function getRunSnapshot() {
   return {
     game: {
       mode: game.mode,
+      duelMode: game.duelMode,
+      activePlayer: game.activePlayer,
       gold: game.gold,
+      income: game.income,
+      incomeTimer: game.incomeTimer,
+      incomeInterval: game.incomeInterval,
+      sendQueue: game.sendQueue,
       lives: game.lives,
       wave: game.wave,
       score: game.score,
@@ -2094,6 +2992,7 @@ function getRunSnapshot() {
       gameOver: game.gameOver,
       message: game.message,
       scoreRecorded: game.scoreRecorded,
+      players: game.players,
     },
     towers: towers.map((tower) => tower.serialize()),
     enemies: enemies.map((enemy) => enemy.serialize()),
@@ -2153,17 +3052,26 @@ function loadRun(showMessage = true) {
     areaEffects.length = 0;
     buffZones.length = 0;
 
-    game.gold = parsed.game.gold;
-    game.lives = parsed.game.lives;
+    game.gold = parsed.game.gold !== undefined ? parsed.game.gold : 230;
+    game.income = parsed.game.income !== undefined ? parsed.game.income : 2;
+    game.incomeTimer = parsed.game.incomeTimer !== undefined ? parsed.game.incomeTimer : 0;
+    game.incomeInterval = parsed.game.incomeInterval !== undefined ? parsed.game.incomeInterval : 10;
+    game.sendQueue = Array.isArray(parsed.game.sendQueue) ? parsed.game.sendQueue : [];
+    game.lives = parsed.game.lives !== undefined ? parsed.game.lives : 20;
     game.wave = parsed.game.wave;
-    game.score = parsed.game.score;
+    game.score = parsed.game.score !== undefined ? parsed.game.score : 0;
     game.waveActive = parsed.game.waveActive;
     game.spawnQueue = parsed.game.spawnQueue || [];
     game.spawnCooldown = parsed.game.spawnCooldown;
     game.spawnInterval = parsed.game.spawnInterval;
     game.waveTag = parsed.game.waveTag;
     game.selectedType = parsed.game.selectedType || "arrow";
-    game.mode = parsed.game.mode === "maze" ? "maze" : "classic";
+    game.mode = parsed.game.mode === "maze" ? "maze" : parsed.game.mode === "duel" ? "duel" : "classic";
+    game.duelMode = game.mode === "duel" || !!parsed.game.duelMode;
+    if (game.duelMode && game.mode !== "duel") {
+      game.mode = "duel";
+    }
+    game.activePlayer = parsed.game.activePlayer === 1 ? 1 : 0;
     game.paused = !!parsed.game.paused;
     game.speedIndex = Math.max(0, Math.min(SPEED_LEVELS.length - 1, parsed.game.speedIndex || 0));
     game.autoWaveEnabled = parsed.game.autoWaveEnabled !== undefined ? !!parsed.game.autoWaveEnabled : true;
@@ -2171,6 +3079,24 @@ function loadRun(showMessage = true) {
     game.gameOver = !!parsed.game.gameOver;
     game.message = parsed.game.message || "Run loaded.";
     game.scoreRecorded = !!parsed.game.scoreRecorded;
+    game.players = [createPlayerState(0), createPlayerState(1)];
+    if (Array.isArray(parsed.game.players) && parsed.game.players.length >= 2) {
+      for (let i = 0; i < 2; i += 1) {
+        const saved = parsed.game.players[i] || {};
+        game.players[i] = {
+          id: i,
+          gold: saved.gold !== undefined ? saved.gold : 230,
+          lives: saved.lives !== undefined ? saved.lives : 20,
+          score: saved.score !== undefined ? saved.score : 0,
+          income: saved.income !== undefined ? saved.income : 2,
+          incomeTimer: saved.incomeTimer !== undefined ? saved.incomeTimer : 0,
+          incomeInterval: saved.incomeInterval !== undefined ? saved.incomeInterval : 10,
+          sendQueue: Array.isArray(saved.sendQueue) ? saved.sendQueue : [],
+        };
+      }
+    } else if (game.duelMode) {
+      game.players = [createPlayerState(0), createPlayerState(1)];
+    }
 
     for (const towerData of parsed.towers) {
       towers.push(Tower.fromSave(towerData));
@@ -2189,8 +3115,10 @@ function loadRun(showMessage = true) {
     }
 
     game.selectedTower = null;
+    syncLegacyEconomyFromActive();
     setSelectedType(game.selectedType);
     rebuildMazeDistances();
+    clampCamera();
     status(showMessage ? "Run loaded." : game.message);
     return true;
   } catch {
@@ -2205,6 +3133,7 @@ function resetRun(options = {}) {
   const keepMode = options.keepMode !== undefined ? !!options.keepMode : true;
   const keepAutoWave = options.keepAutoWave !== undefined ? !!options.keepAutoWave : false;
   const modeValue = keepMode ? game.mode : "classic";
+  const duelValue = modeValue === "duel";
   const autoWaveValue = keepAutoWave ? game.autoWaveEnabled : true;
 
   towers.length = 0;
@@ -2214,7 +3143,14 @@ function resetRun(options = {}) {
   areaEffects.length = 0;
   buffZones.length = 0;
 
+  game.players = [createPlayerState(0), createPlayerState(1)];
+  game.activePlayer = 0;
+  game.duelMode = duelValue;
   game.gold = 230;
+  game.income = 2;
+  game.incomeTimer = 0;
+  game.incomeInterval = 10;
+  game.sendQueue = [];
   game.lives = 20;
   game.wave = 0;
   game.score = 0;
@@ -2237,6 +3173,11 @@ function resetRun(options = {}) {
   game.message = "Build towers and send wave 1.";
   game.shake = 0;
   game.autoSaveTimer = 0;
+  syncLegacyEconomyFromActive();
+  camera.x = WIDTH / 2;
+  camera.y = HEIGHT / 2;
+  camera.zoom = FIT_ZOOM;
+  clampCamera();
 
   rebuildMazeDistances();
   setSelectedType(game.selectedType);
@@ -2351,7 +3292,7 @@ function drawBoard() {
     ctx.strokeStyle = "#8e846f";
     ctx.lineWidth = 24;
     ctx.stroke();
-  } else {
+  } else if (game.mode === "maze") {
     const preview = getMazePreviewPoints();
     if (preview.length > 1) {
       ctx.beginPath();
@@ -2363,26 +3304,70 @@ function drawBoard() {
       ctx.lineWidth = 6;
       ctx.stroke();
     }
+  } else {
+    for (let lane = 0; lane < DUEL_WAYPOINTS.length; lane += 1) {
+      const points = DUEL_WAYPOINTS[lane];
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i += 1) {
+        ctx.lineTo(points[i].x, points[i].y);
+      }
+      ctx.strokeStyle = "#6d6657";
+      ctx.lineWidth = 30;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i += 1) {
+        ctx.lineTo(points[i].x, points[i].y);
+      }
+      ctx.strokeStyle = lane === 0 ? "#9ea07c" : "#7f8ca6";
+      ctx.lineWidth = 22;
+      ctx.stroke();
+    }
+
+    ctx.strokeStyle = "rgba(230, 236, 195, 0.25)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, Math.floor(HEIGHT / 2) + 0.5);
+    ctx.lineTo(WIDTH, Math.floor(HEIGHT / 2) + 0.5);
+    ctx.stroke();
   }
 
-  const spawnPoint = worldFromCell(MAZE_START.cx, MAZE_START.cy);
-  ctx.fillStyle = "#91d164";
-  ctx.beginPath();
-  ctx.arc(spawnPoint.x, spawnPoint.y, 9, 0, Math.PI * 2);
-  ctx.fill();
+  if (game.mode === "duel") {
+    for (let lane = 0; lane < DUEL_LANE_IDS.length; lane += 1) {
+      const spawnPoint = worldFromCell(DUEL_SPAWNS[lane].cx, DUEL_SPAWNS[lane].cy);
+      ctx.fillStyle = lane === 0 ? "#9add7a" : "#7ab5e4";
+      ctx.beginPath();
+      ctx.arc(spawnPoint.x, spawnPoint.y, 8, 0, Math.PI * 2);
+      ctx.fill();
 
-  const exitPoint = worldFromCell(MAZE_EXIT.cx, MAZE_EXIT.cy);
-  ctx.fillStyle = "#e98a75";
-  ctx.beginPath();
-  ctx.arc(exitPoint.x, exitPoint.y, 9, 0, Math.PI * 2);
-  ctx.fill();
+      const exitPoint = worldFromCell(DUEL_EXITS[lane].cx, DUEL_EXITS[lane].cy);
+      ctx.fillStyle = lane === 0 ? "#e89a85" : "#e082a5";
+      ctx.beginPath();
+      ctx.arc(exitPoint.x, exitPoint.y, 8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else {
+    const spawnPoint = worldFromCell(MAZE_START.cx, MAZE_START.cy);
+    ctx.fillStyle = "#91d164";
+    ctx.beginPath();
+    ctx.arc(spawnPoint.x, spawnPoint.y, 9, 0, Math.PI * 2);
+    ctx.fill();
+
+    const exitPoint = worldFromCell(MAZE_EXIT.cx, MAZE_EXIT.cy);
+    ctx.fillStyle = "#e98a75";
+    ctx.beginPath();
+    ctx.arc(exitPoint.x, exitPoint.y, 9, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
   if (game.hoverCell) {
     const { cx, cy } = game.hoverCell;
     if (inBounds(cx, cy)) {
       const center = worldFromCell(cx, cy);
       const canBuild = canBuildOnCell(cx, cy);
-      const affordable = game.gold >= TOWER_DATA[game.selectedType].cost;
+      const affordable = getActivePlayerState().gold >= TOWER_DATA[game.selectedType].cost;
 
       ctx.beginPath();
       ctx.arc(center.x, center.y, 17, 0, Math.PI * 2);
@@ -2592,6 +3577,62 @@ function drawVenomTowerModel(tower) {
   ctx.fill();
 }
 
+function drawMortarTowerModel(tower) {
+  const x = tower.x;
+  const y = tower.y;
+  const aim = getTowerAimAngle(tower);
+
+  ctx.fillStyle = "#75503e";
+  ctx.fillRect(x - 10, y - 1, 20, 11);
+  ctx.fillStyle = "#8f634d";
+  ctx.fillRect(x - 8, y - 5, 16, 5);
+
+  ctx.save();
+  ctx.translate(x, y - 2);
+  ctx.rotate(aim);
+  ctx.fillStyle = "#6e4533";
+  ctx.fillRect(-3, -4, 14, 8);
+  ctx.fillStyle = "#bd774f";
+  ctx.fillRect(8, -3, 6, 6);
+  ctx.restore();
+
+  ctx.fillStyle = "rgba(255, 172, 117, 0.65)";
+  ctx.beginPath();
+  ctx.arc(x, y - 7, 2.4, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawObeliskTowerModel(tower) {
+  const x = tower.x;
+  const y = tower.y;
+  const pulse = 0.76 + Math.sin(performance.now() * 0.005) * 0.24;
+
+  ctx.fillStyle = "#466378";
+  drawPolygon(x, y + 1, 10, 6, Math.PI / 6);
+  ctx.fill();
+
+  ctx.fillStyle = "#77b0d6";
+  ctx.beginPath();
+  ctx.moveTo(x, y - 18);
+  ctx.lineTo(x + 7, y - 3);
+  ctx.lineTo(x, y + 3);
+  ctx.lineTo(x - 7, y - 3);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = `rgba(203, 241, 255, ${0.7 * pulse})`;
+  ctx.beginPath();
+  ctx.arc(x, y - 8, 3, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = "rgba(205, 239, 255, 0.7)";
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(x, y - 14);
+  ctx.lineTo(x, y);
+  ctx.stroke();
+}
+
 function drawTowerRankAndBranch(tower) {
   for (let i = 0; i < tower.level; i += 1) {
     ctx.fillStyle = "#f2d86e";
@@ -2620,14 +3661,26 @@ function drawTower(tower) {
     drawCannonTowerModel(tower);
   } else if (tower.type === "arcane") {
     drawArcaneTowerModel(tower);
+  } else if (tower.type === "mortar") {
+    drawMortarTowerModel(tower);
+  } else if (tower.type === "obelisk") {
+    drawObeliskTowerModel(tower);
   } else {
     drawVenomTowerModel(tower);
   }
 
   drawTowerRankAndBranch(tower);
 
+  if (game.duelMode) {
+    ctx.strokeStyle = tower.owner === 0 ? "rgba(173, 239, 139, 0.55)" : "rgba(146, 201, 255, 0.55)";
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.arc(tower.x, tower.y, 19, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
   if (tower.hasAura()) {
-    const aura = tower.branchData.aura;
+    const aura = tower.branchData.aura || tower.branchData.auraSlow;
     ctx.beginPath();
     ctx.arc(tower.x, tower.y, aura.radius, 0, Math.PI * 2);
     ctx.strokeStyle = "rgba(152, 211, 255, 0.12)";
@@ -2674,6 +3727,14 @@ function drawEnemy(enemy) {
     ctx.beginPath();
     ctx.arc(enemy.x, enemy.y, enemy.radius + 3, 0, Math.PI * 2);
     ctx.strokeStyle = "rgba(132, 210, 255, 0.6)";
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+  }
+
+  if (enemy.burnTimer > 0) {
+    ctx.beginPath();
+    ctx.arc(enemy.x, enemy.y, enemy.radius + 5, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(255, 136, 85, 0.55)";
     ctx.lineWidth = 1.2;
     ctx.stroke();
   }
@@ -2758,14 +3819,16 @@ function drawEffect(effect) {
 }
 
 function drawOverlay() {
+  const viewW = canvas.width;
+  const viewH = canvas.height;
   if (game.paused && !game.gameOver) {
     ctx.fillStyle = "rgba(8, 11, 8, 0.4)";
-    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    ctx.fillRect(0, 0, viewW, viewH);
 
     ctx.fillStyle = "#f2d486";
     ctx.font = "700 44px Cinzel, serif";
     ctx.textAlign = "center";
-    ctx.fillText("Paused", WIDTH / 2, HEIGHT / 2);
+    ctx.fillText("Paused", viewW / 2, viewH / 2);
   }
 
   if (!game.gameOver) {
@@ -2773,25 +3836,49 @@ function drawOverlay() {
   }
 
   ctx.fillStyle = "rgba(8, 11, 8, 0.63)";
-  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  ctx.fillRect(0, 0, viewW, viewH);
 
   ctx.fillStyle = "#f2d486";
   ctx.font = "700 56px Cinzel, serif";
   ctx.textAlign = "center";
-  ctx.fillText("Defeat", WIDTH / 2, HEIGHT / 2 - 20);
+  ctx.fillText(game.duelMode ? "Match End" : "Defeat", viewW / 2, viewH / 2 - 20);
 
   ctx.font = "700 20px Rajdhani, sans-serif";
   ctx.fillStyle = "#ebf2d7";
-  ctx.fillText(`You reached wave ${game.wave} | Score ${game.score}`, WIDTH / 2, HEIGHT / 2 + 20);
-  ctx.fillText("Use New Run or Load Run to continue.", WIDTH / 2, HEIGHT / 2 + 50);
+  const scoreText = game.duelMode
+    ? `Wave ${game.wave} | P1 ${Math.floor(game.players[0].score)} vs P2 ${Math.floor(game.players[1].score)}`
+    : `You reached wave ${game.wave} | Score ${game.score}`;
+  ctx.fillText(scoreText, viewW / 2, viewH / 2 + 20);
+  ctx.fillText("Use New Run or Load Run to continue.", viewW / 2, viewH / 2 + 50);
 }
 
 function update(dt) {
+  updateCameraFromKeys(dt);
+
   if (game.gameOver || game.paused) {
     return;
   }
 
+  syncActiveToLegacyIfDuel();
   updateBuffsAndAuras(dt);
+
+  const incomeStates = game.duelMode ? game.players : [game];
+  for (let i = 0; i < incomeStates.length; i += 1) {
+    const state = incomeStates[i];
+    state.incomeTimer += dt;
+    if (state.incomeTimer >= state.incomeInterval) {
+      const ticks = Math.floor(state.incomeTimer / state.incomeInterval);
+      state.incomeTimer -= ticks * state.incomeInterval;
+      const payout = ticks * getIncomePayout(state);
+      if (payout > 0) {
+        state.gold += payout;
+        if (payout >= 3 && (!game.duelMode || i === game.activePlayer)) {
+          status(`${game.duelMode ? `P${i + 1} ` : ""}Income +${payout}g`);
+        }
+      }
+    }
+  }
+  syncActiveToLegacyIfDuel();
 
   if (game.waveActive) {
     game.spawnCooldown -= dt;
@@ -2804,14 +3891,25 @@ function update(dt) {
       game.waveActive = false;
       game.autoWaveTimer = game.autoWaveEnabled ? 2.8 : 0;
       const bounty = 24 + game.wave * 3;
-      game.gold += bounty;
-      game.score += 120 + game.wave * 30;
-      if (game.wave % 4 === 0) {
-        game.lives = Math.min(30, game.lives + 1);
+      if (game.duelMode) {
+        for (const state of game.players) {
+          state.gold += bounty;
+          state.score += 120 + game.wave * 30;
+          if (game.wave % 4 === 0) {
+            state.lives = Math.min(30, state.lives + 1);
+          }
+        }
+      } else {
+        game.gold += bounty;
+        game.score += 120 + game.wave * 30;
+        if (game.wave % 4 === 0) {
+          game.lives = Math.min(30, game.lives + 1);
+        }
       }
       const autoText = game.autoWaveEnabled ? " Auto next in 2.8s." : "";
       status(`Wave ${game.wave} (${game.waveTag}) cleared. Bonus +${bounty}g.${autoText}`);
       playSfx("clear");
+      syncActiveToLegacyIfDuel();
       saveRun(false);
     }
   }
@@ -2846,15 +3944,28 @@ function update(dt) {
 
     if (enemy.leaked) {
       enemies.splice(i, 1);
-      game.lives -= enemy.leakDamage;
-      status(`${enemy.name} leaked through. Lives: ${game.lives}`);
+      const defender = getEnemyDefenderState(enemy);
+      defender.lives -= enemy.leakDamage;
+      defender.income = Math.max(0, defender.income - enemy.leakDamage);
+      status(
+        game.duelMode
+          ? `${enemy.name} leaked vs P${getEnemyLane(enemy) + 1}. Lives: ${defender.lives}. Income: ${defender.income}`
+          : `${enemy.name} leaked through. Lives: ${defender.lives}. Income: ${defender.income}`
+      );
       playSfx("leak");
       game.shake = Math.max(game.shake, 5);
 
-      if (game.lives <= 0) {
-        game.lives = 0;
+      if (defender.lives <= 0) {
+        defender.lives = 0;
         game.gameOver = true;
-        status(`Defeat on wave ${game.wave}.`);
+        if (game.duelMode) {
+          const winner = getEnemyLane(enemy) === 0 ? 2 : 1;
+          status(`P${winner} wins on wave ${game.wave}.`);
+          game.score = game.players[0].score + game.players[1].score;
+        } else {
+          status(`Defeat on wave ${game.wave}.`);
+        }
+        syncActiveToLegacyIfDuel();
         recordHighScore();
       }
     }
@@ -2882,6 +3993,7 @@ function render() {
     const offsetY = (Math.random() * 2 - 1) * game.shake;
     ctx.translate(offsetX, offsetY);
   }
+  applyCameraTransform();
 
   drawBoard();
 
@@ -2905,11 +4017,21 @@ function render() {
     drawEffect(effect);
   }
 
-  drawOverlay();
   ctx.restore();
+
+  drawOverlay();
 }
 
 function syncUi() {
+  if (game.duelMode) {
+    syncLegacyEconomyFromActive();
+    game.score = game.players[0].score + game.players[1].score;
+    game.lives = getActivePlayerState().lives;
+    game.income = getActivePlayerState().income;
+    game.incomeTimer = getActivePlayerState().incomeTimer;
+    game.incomeInterval = getActivePlayerState().incomeInterval;
+  }
+
   goldEl.textContent = String(Math.floor(game.gold));
   livesEl.textContent = String(Math.floor(game.lives));
   waveEl.textContent = String(game.wave);
@@ -2920,15 +4042,35 @@ function syncUi() {
   bestEl.textContent = `W${bestWave}`;
 
   speedEl.textContent = `${SPEED_LEVELS[game.speedIndex]}x`;
+  incomeEl.textContent = String(Math.floor(game.income));
+  incomeTickEl.textContent = `${Math.max(0, game.incomeInterval - game.incomeTimer).toFixed(1)}s`;
   pauseGameBtn.textContent = game.paused ? "Resume (P)" : "Pause (P)";
   speedGameBtn.textContent = `Speed ${SPEED_LEVELS[game.speedIndex]}x (T)`;
   autoWaveBtn.textContent = game.autoWaveEnabled ? "Auto: On (A)" : "Auto: Off (A)";
   modeClassicBtn.classList.toggle("active", game.mode === "classic");
   modeMazeBtn.classList.toggle("active", game.mode === "maze");
+  modeDuelBtn.classList.toggle("active", game.mode === "duel");
   modeClassicBtn.textContent = game.mode === "classic" ? "Mode: Classic *" : "Mode: Classic";
   modeMazeBtn.textContent = game.mode === "maze" ? "Mode: Maze *" : "Mode: Maze";
+  modeDuelBtn.textContent = game.mode === "duel" ? "Mode: Duel *" : "Mode: Duel";
+
+  if (game.duelMode) {
+    duelStatsEl.classList.remove("hidden");
+    duelPlayerSwitchEl.classList.remove("hidden");
+    duelP1El.textContent = `G${Math.floor(game.players[0].gold)} | L${Math.floor(game.players[0].lives)} | I${Math.floor(game.players[0].income)} | S${Math.floor(game.players[0].score)}`;
+    duelP2El.textContent = `G${Math.floor(game.players[1].gold)} | L${Math.floor(game.players[1].lives)} | I${Math.floor(game.players[1].income)} | S${Math.floor(game.players[1].score)}`;
+    duelActiveEl.textContent = `P${game.activePlayer + 1}`;
+    duelP1Btn.classList.toggle("active", game.activePlayer === 0);
+    duelP2Btn.classList.toggle("active", game.activePlayer === 1);
+  } else {
+    duelStatsEl.classList.add("hidden");
+    duelPlayerSwitchEl.classList.add("hidden");
+    duelP1Btn.classList.remove("active");
+    duelP2Btn.classList.remove("active");
+  }
 
   updateSelectionPanel();
+  updateSendUi();
 }
 
 function initAudio() {
@@ -3045,11 +4187,24 @@ function handleBoardClick(event) {
   if (game.gameOver) {
     return;
   }
+  if (event.altKey) {
+    return;
+  }
+  if (panState.moved) {
+    panState.moved = false;
+    return;
+  }
 
-  const pos = getMousePos(event);
+  const screen = getScreenPos(event);
+  const pos = screenToWorld(screen.x, screen.y);
 
   const clickedTower = getTowerAtPoint(pos.x, pos.y);
   if (clickedTower) {
+    if (game.duelMode && clickedTower.owner !== game.activePlayer) {
+      status(`That tower belongs to P${clickedTower.owner + 1}. Switch active player to control it.`);
+      game.selectedTower = null;
+      return;
+    }
     game.selectedTower = clickedTower;
     status(`${clickedTower.data.name} selected.`);
     return;
@@ -3066,7 +4221,27 @@ function handleBoardClick(event) {
 }
 
 function handleCanvasMove(event) {
-  const pos = getMousePos(event);
+  const screen = getScreenPos(event);
+  if (panState.active) {
+    const dx = screen.x - panState.lastScreenX;
+    const dy = screen.y - panState.lastScreenY;
+    panState.lastScreenX = screen.x;
+    panState.lastScreenY = screen.y;
+
+    if (Math.abs(dx) + Math.abs(dy) > 1.5) {
+      panState.moved = true;
+    }
+
+    camera.x -= dx / camera.zoom;
+    camera.y -= dy / camera.zoom;
+    clampCamera();
+    game.hoverEnemy = null;
+    game.hoverCell = null;
+    setTooltip("Panning map.");
+    return;
+  }
+
+  const pos = screenToWorld(screen.x, screen.y);
   const { cx, cy } = getCellAt(pos.x, pos.y);
   game.hoverCell = inBounds(cx, cy) ? { cx, cy } : null;
 
@@ -3077,7 +4252,78 @@ function handleCanvasMove(event) {
     return;
   }
 
+  const tower = getTowerAtPoint(pos.x, pos.y);
+  if (tower) {
+    setTooltip(describeTower(tower));
+    return;
+  }
+
   setTooltip(defaultTooltip());
+}
+
+function updateCameraFromKeys(dt) {
+  let dx = 0;
+  let dy = 0;
+  if (keyState.left) {
+    dx -= 1;
+  }
+  if (keyState.right) {
+    dx += 1;
+  }
+  if (keyState.up) {
+    dy -= 1;
+  }
+  if (keyState.down) {
+    dy += 1;
+  }
+  if (dx === 0 && dy === 0) {
+    return;
+  }
+
+  const len = Math.hypot(dx, dy) || 1;
+  camera.x += (dx / len) * CAMERA_KEY_PAN_SPEED * dt;
+  camera.y += (dy / len) * CAMERA_KEY_PAN_SPEED * dt;
+  clampCamera();
+}
+
+function handleCanvasMouseDown(event) {
+  if (!(event.button === 1 || event.button === 2 || (event.button === 0 && event.altKey))) {
+    return;
+  }
+  event.preventDefault();
+  const screen = getScreenPos(event);
+  panState.active = true;
+  panState.moved = false;
+  panState.lastScreenX = screen.x;
+  panState.lastScreenY = screen.y;
+  canvas.style.cursor = "grabbing";
+}
+
+function handleCanvasMouseUp() {
+  if (!panState.active) {
+    return;
+  }
+  panState.active = false;
+  canvas.style.cursor = "default";
+}
+
+function handleCanvasWheel(event) {
+  event.preventDefault();
+  if (!event.ctrlKey && !event.metaKey) {
+    camera.x += event.deltaX / camera.zoom;
+    camera.y += event.deltaY / camera.zoom;
+    clampCamera();
+    return;
+  }
+
+  const screen = getScreenPos(event);
+  const worldBefore = screenToWorld(screen.x, screen.y);
+  const zoomFactor = Math.exp(-event.deltaY * 0.0015);
+  camera.zoom = clamp(camera.zoom * zoomFactor, camera.minZoom, camera.maxZoom);
+  const worldAfter = screenToWorld(screen.x, screen.y);
+  camera.x += worldBefore.x - worldAfter.x;
+  camera.y += worldBefore.y - worldAfter.y;
+  clampCamera();
 }
 
 let previousTime = performance.now();
@@ -3096,7 +4342,14 @@ function tick(now) {
 
 function bindEvents() {
   canvas.addEventListener("mousemove", handleCanvasMove);
+  canvas.addEventListener("mousedown", handleCanvasMouseDown);
+  canvas.addEventListener("mouseup", handleCanvasMouseUp);
+  canvas.addEventListener("wheel", handleCanvasWheel, { passive: false });
+  canvas.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
+  });
   canvas.addEventListener("mouseleave", () => {
+    handleCanvasMouseUp();
     game.hoverCell = null;
     game.hoverEnemy = null;
     setTooltip(defaultTooltip());
@@ -3126,6 +4379,47 @@ function bindEvents() {
   modeMazeBtn.addEventListener("click", () => {
     ensureAudioActive();
     setGameMode("maze");
+  });
+  modeDuelBtn.addEventListener("click", () => {
+    ensureAudioActive();
+    setGameMode("duel");
+  });
+  duelP1Btn.addEventListener("click", () => {
+    ensureAudioActive();
+    setActivePlayer(0);
+  });
+  duelP2Btn.addEventListener("click", () => {
+    ensureAudioActive();
+    setActivePlayer(1);
+  });
+
+  sendRunnerBtn.addEventListener("click", () => {
+    ensureAudioActive();
+    queueSend("runner");
+  });
+  sendArmorBtn.addEventListener("click", () => {
+    ensureAudioActive();
+    queueSend("armor");
+  });
+  sendAirBtn.addEventListener("click", () => {
+    ensureAudioActive();
+    queueSend("air");
+  });
+  sendBreakerBtn.addEventListener("click", () => {
+    ensureAudioActive();
+    queueSend("breaker");
+  });
+  sendSplitterBtn.addEventListener("click", () => {
+    ensureAudioActive();
+    queueSend("splitter");
+  });
+  sendMiniBossBtn.addEventListener("click", () => {
+    ensureAudioActive();
+    queueSend("miniboss");
+  });
+  clearSendsBtn.addEventListener("click", () => {
+    ensureAudioActive();
+    clearSendQueue();
   });
 
   upgradeTowerBtn.addEventListener("click", () => {
@@ -3166,16 +4460,42 @@ function bindEvents() {
       setSelectedType(button.dataset.type);
       status(`${TOWER_DATA[button.dataset.type].name} selected for building.`);
     });
+  }
+
+  const allButtons = [...document.querySelectorAll("button")];
+  for (const button of allButtons) {
     button.addEventListener("mouseenter", () => {
-      setTooltip(button.dataset.tip);
+      setTooltip(getButtonTooltip(button));
     });
     button.addEventListener("mouseleave", () => {
+      setTooltip(defaultTooltip());
+    });
+    button.addEventListener("focus", () => {
+      setTooltip(getButtonTooltip(button));
+    });
+    button.addEventListener("blur", () => {
       setTooltip(defaultTooltip());
     });
   }
 
   window.addEventListener("keydown", (event) => {
     const key = event.key.toLowerCase();
+    if (key === "arrowleft") {
+      keyState.left = true;
+      event.preventDefault();
+    }
+    if (key === "arrowright") {
+      keyState.right = true;
+      event.preventDefault();
+    }
+    if (key === "arrowup") {
+      keyState.up = true;
+      event.preventDefault();
+    }
+    if (key === "arrowdown") {
+      keyState.down = true;
+      event.preventDefault();
+    }
 
     if (key === "1") {
       setSelectedType("arrow");
@@ -3191,6 +4511,12 @@ function bindEvents() {
     }
     if (key === "5") {
       setSelectedType("venom");
+    }
+    if (key === "0") {
+      setSelectedType("mortar");
+    }
+    if (key === "-") {
+      setSelectedType("obelisk");
     }
     if (key === "u") {
       event.preventDefault();
@@ -3214,7 +4540,17 @@ function bindEvents() {
     }
     if (key === "m") {
       event.preventDefault();
-      setGameMode(game.mode === "classic" ? "maze" : "classic");
+      if (game.mode === "classic") {
+        setGameMode("maze");
+      } else if (game.mode === "maze") {
+        setGameMode("duel");
+      } else {
+        setGameMode("classic");
+      }
+    }
+    if (event.code === "Tab" && game.duelMode) {
+      event.preventDefault();
+      setActivePlayer(game.activePlayer === 0 ? 1 : 0);
     }
     if (event.code === "Space") {
       event.preventDefault();
@@ -3225,10 +4561,34 @@ function bindEvents() {
   window.addEventListener("pointerdown", () => {
     ensureAudioActive();
   });
+  window.addEventListener("mouseup", handleCanvasMouseUp);
+  window.addEventListener("blur", () => {
+    handleCanvasMouseUp();
+    keyState.left = false;
+    keyState.right = false;
+    keyState.up = false;
+    keyState.down = false;
+  });
+  window.addEventListener("keyup", (event) => {
+    const key = event.key.toLowerCase();
+    if (key === "arrowleft") {
+      keyState.left = false;
+    }
+    if (key === "arrowright") {
+      keyState.right = false;
+    }
+    if (key === "arrowup") {
+      keyState.up = false;
+    }
+    if (key === "arrowdown") {
+      keyState.down = false;
+    }
+  });
 }
 
 function boot() {
   bindEvents();
+  clampCamera();
   setSelectedType(game.selectedType);
   renderHighScores();
 
