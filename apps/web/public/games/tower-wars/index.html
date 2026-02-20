@@ -20,10 +20,19 @@
           <div class="card"><span>Lives</span><strong id="lives">0</strong></div>
           <div class="card"><span>Wave</span><strong id="wave">0</strong></div>
           <div class="card"><span>Score</span><strong id="score">0</strong></div>
-          <div class="card"><span>Best</span><strong id="best">0</strong></div>
-          <div class="card"><span>Speed</span><strong id="speed">1x</strong></div>
+          <button id="nextWaveBtn" class="card stat-btn" title="Start the next wave when ready." type="button">
+            <span>Next Wave</span>
+            <strong>Start</strong>
+          </button>
+          <button id="speedBtn" class="card stat-btn" title="Click to change game speed (1x-5x)." type="button">
+            <span>Speed</span>
+            <strong id="speed">1x</strong>
+          </button>
           <div class="card"><span>Income</span><strong id="income">0</strong></div>
-          <div class="card"><span>Tick</span><strong id="incomeTick">0.0s</strong></div>
+          <button id="menuBtn" class="card stat-btn" title="Pause and open menu." type="button">
+            <span>Menu</span>
+            <strong>Open</strong>
+          </button>
         </div>
         <div id="duelStats" class="duel-stats hidden">
           <div class="duel-row"><strong>P1</strong> <span id="duelP1">G0 | L0 | I0 | S0</span></div>
@@ -194,6 +203,20 @@
       </aside>
     </main>
 
+    <div id="menuOverlay" class="overlay hidden" aria-hidden="true">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
+        <h2 id="menuTitle">Menu</h2>
+        <div class="modal-actions">
+          <button id="menuResume" type="button">Resume</button>
+          <button id="menuRestart" type="button">Restart</button>
+          <button id="menuHome" type="button">Return Home</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      window.SPEEDRUN_HOME_URL = window.SPEEDRUN_HOME_URL || "/";
+    </script>
     <script src="game.js"></script>
   </body>
 </html>

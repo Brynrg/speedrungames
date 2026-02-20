@@ -11,8 +11,15 @@ const bestEl = document.getElementById("best");
 const speedEl = document.getElementById("speed");
 const incomeEl = document.getElementById("income");
 const incomeTickEl = document.getElementById("incomeTick");
+const nextWaveBtn = document.getElementById("nextWaveBtn");
+const speedBtn = document.getElementById("speedBtn");
+const menuBtn = document.getElementById("menuBtn");
 const waveStatusEl = document.getElementById("waveStatus");
 const tooltipBoxEl = document.getElementById("tooltipBox");
+const menuOverlayEl = document.getElementById("menuOverlay");
+const menuResumeBtn = document.getElementById("menuResume");
+const menuRestartBtn = document.getElementById("menuRestart");
+const menuHomeBtn = document.getElementById("menuHome");
 
 const startWaveBtn = document.getElementById("startWave");
 const pauseGameBtn = document.getElementById("pauseGame");
@@ -67,9 +74,12 @@ const sendButtons = {
   miniboss: sendMiniBossBtn,
 };
 const CONTROL_TOOLTIPS = {
+  nextWaveBtn: "Start the next wave when you are ready.",
+  speedBtn: "Cycle game speed: 1x, 2x, 3x, 4x, 5x.",
+  menuBtn: "Pause and open menu options.",
   startWave: "Start the next wave when you are ready.",
   pauseGame: "Pause or resume the game simulation.",
-  speedGame: "Cycle game speed: 1x, 2x, 3x.",
+  speedGame: "Cycle game speed: 1x, 2x, 3x, 4x, 5x.",
   autoWave: "Auto-start the next wave after a clear.",
   modeClassic: "Classic mode: fixed creep path.",
   modeMaze: "Maze mode: build towers to shape the path.",
@@ -90,6 +100,9 @@ const CONTROL_TOOLTIPS = {
   saveRun: "Save current run to local storage.",
   loadRun: "Load the last saved run.",
   newRun: "Start a fresh run.",
+  menuResume: "Close menu and resume the game.",
+  menuRestart: "Start a fresh run immediately.",
+  menuHome: "Return to the Speedrun Games home page.",
 };
 
 const TILE = 48;
@@ -101,7 +114,8 @@ const CAMERA_KEY_PAN_SPEED = 560;
 
 const RUN_SAVE_KEY = "green_circle_td_run_v2";
 const HIGH_SCORE_KEY = "green_circle_td_highscores_v2";
-const SPEED_LEVELS = [1, 2, 3];
+const SPEED_LEVELS = [1, 2, 3, 4, 5];
+const HOME_URL = window.SPEEDRUN_HOME_URL || "/";
 
 const DAMAGE_LABELS = {
   piercing: "Piercing",
@@ -610,6 +624,7 @@ const game = {
   gameOver: false,
   scoreRecorded: false,
   paused: false,
+  menuOpen: false,
   speedIndex: 0,
   autoWaveEnabled: true,
   autoWaveTimer: 0,
@@ -1721,7 +1736,7 @@ function saveHighScores() {
 }
 
 function defaultTooltip() {
-  return "Hover buttons, towers, and enemies for detail. Scroll pans, ctrl/cmd + wheel zooms.";
+  return "Hover buttons, towers, and enemies for detail. Wheel zooms, Shift+Wheel pans horizontally.";
 }
 
 function setTooltip(text) {
@@ -3073,6 +3088,7 @@ function loadRun(showMessage = true) {
     }
     game.activePlayer = parsed.game.activePlayer === 1 ? 1 : 0;
     game.paused = !!parsed.game.paused;
+    game.menuOpen = false;
     game.speedIndex = Math.max(0, Math.min(SPEED_LEVELS.length - 1, parsed.game.speedIndex || 0));
     game.autoWaveEnabled = parsed.game.autoWaveEnabled !== undefined ? !!parsed.game.autoWaveEnabled : true;
     game.autoWaveTimer = Math.max(0, parsed.game.autoWaveTimer || 0);
@@ -3119,6 +3135,10 @@ function loadRun(showMessage = true) {
     setSelectedType(game.selectedType);
     rebuildMazeDistances();
     clampCamera();
+    if (menuOverlayEl) {
+      menuOverlayEl.classList.add("hidden");
+      menuOverlayEl.setAttribute("aria-hidden", "true");
+    }
     status(showMessage ? "Run loaded." : game.message);
     return true;
   } catch {
@@ -3167,6 +3187,7 @@ function resetRun(options = {}) {
   game.gameOver = false;
   game.scoreRecorded = false;
   game.paused = false;
+  game.menuOpen = false;
   game.speedIndex = 0;
   game.autoWaveEnabled = autoWaveValue;
   game.autoWaveTimer = 0;
@@ -3178,13 +3199,54 @@ function resetRun(options = {}) {
   camera.y = HEIGHT / 2;
   camera.zoom = FIT_ZOOM;
   clampCamera();
+  if (menuOverlayEl) {
+    menuOverlayEl.classList.add("hidden");
+    menuOverlayEl.setAttribute("aria-hidden", "true");
+  }
 
   rebuildMazeDistances();
   setSelectedType(game.selectedType);
   status(game.message);
 }
 
+function openMenu() {
+  if (!menuOverlayEl || game.menuOpen) {
+    return;
+  }
+  game.menuOpen = true;
+  game.paused = true;
+  menuOverlayEl.classList.remove("hidden");
+  menuOverlayEl.setAttribute("aria-hidden", "false");
+  status("Menu opened.");
+}
+
+function closeMenu(options = {}) {
+  const resume = options.resume !== undefined ? !!options.resume : true;
+  const silent = !!options.silent;
+  if (!menuOverlayEl || !game.menuOpen) {
+    return;
+  }
+  game.menuOpen = false;
+  menuOverlayEl.classList.add("hidden");
+  menuOverlayEl.setAttribute("aria-hidden", "true");
+  if (resume && !game.gameOver) {
+    game.paused = false;
+  }
+  if (!silent) {
+    status(game.paused ? "Game paused." : "Game resumed.");
+  }
+}
+
+function restartRun() {
+  resetRun();
+  saveRun(false);
+  status("New run started.");
+}
+
 function togglePause() {
+  if (game.menuOpen) {
+    closeMenu({ resume: true, silent: true });
+  }
   if (game.gameOver) {
     return;
   }
@@ -4039,13 +4101,30 @@ function syncUi() {
 
   const bestWave = highScores[0]?.wave || game.bestWave || 0;
   game.bestWave = bestWave;
-  bestEl.textContent = `W${bestWave}`;
+  if (bestEl) {
+    bestEl.textContent = `W${bestWave}`;
+  }
 
-  speedEl.textContent = `${SPEED_LEVELS[game.speedIndex]}x`;
+  if (speedEl) {
+    speedEl.textContent = `${SPEED_LEVELS[game.speedIndex]}x`;
+  }
   incomeEl.textContent = String(Math.floor(game.income));
-  incomeTickEl.textContent = `${Math.max(0, game.incomeInterval - game.incomeTimer).toFixed(1)}s`;
+  if (incomeTickEl) {
+    incomeTickEl.textContent = `${Math.max(0, game.incomeInterval - game.incomeTimer).toFixed(1)}s`;
+  }
   pauseGameBtn.textContent = game.paused ? "Resume (P)" : "Pause (P)";
   speedGameBtn.textContent = `Speed ${SPEED_LEVELS[game.speedIndex]}x (T)`;
+  if (speedBtn) {
+    speedBtn.title = `Click to change game speed (1x-5x). Current: ${SPEED_LEVELS[game.speedIndex]}x.`;
+  }
+  if (nextWaveBtn) {
+    const nextWaveLocked = game.gameOver || game.waveActive || game.menuOpen;
+    nextWaveBtn.disabled = nextWaveLocked;
+    nextWaveBtn.querySelector("strong").textContent = nextWaveLocked ? "Locked" : "Start";
+  }
+  if (menuBtn) {
+    menuBtn.classList.toggle("active", game.menuOpen);
+  }
   autoWaveBtn.textContent = game.autoWaveEnabled ? "Auto: On (A)" : "Auto: Off (A)";
   modeClassicBtn.classList.toggle("active", game.mode === "classic");
   modeMazeBtn.classList.toggle("active", game.mode === "maze");
@@ -4308,32 +4387,36 @@ function handleCanvasMouseUp() {
 }
 
 function handleCanvasWheel(event) {
-  event.preventDefault();
-  if (!event.ctrlKey && !event.metaKey) {
-    camera.x += event.deltaX / camera.zoom;
-    camera.y += event.deltaY / camera.zoom;
+  if (event.shiftKey) {
+    const panDelta = Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX;
+    camera.x += (panDelta * 0.8) / camera.zoom;
     clampCamera();
+    event.preventDefault();
     return;
   }
 
   const screen = getScreenPos(event);
   const worldBefore = screenToWorld(screen.x, screen.y);
-  const zoomFactor = Math.exp(-event.deltaY * 0.0015);
+  const zoomFactor = Math.exp(-event.deltaY * 0.0012);
   camera.zoom = clamp(camera.zoom * zoomFactor, camera.minZoom, camera.maxZoom);
   const worldAfter = screenToWorld(screen.x, screen.y);
   camera.x += worldBefore.x - worldAfter.x;
   camera.y += worldBefore.y - worldAfter.y;
   clampCamera();
+  event.preventDefault();
 }
 
 let previousTime = performance.now();
 function tick(now) {
-  const dtRaw = Math.min(0.033, (now - previousTime) / 1000);
+  const dtRaw = (now - previousTime) / 1000;
   previousTime = now;
-
-  const dt = dtRaw * SPEED_LEVELS[game.speedIndex];
-
-  update(dt);
+  const dtFrame = Math.min(0.033, Math.max(0, dtRaw));
+  let dtScaled = dtFrame * SPEED_LEVELS[game.speedIndex];
+  while (dtScaled > 0.00001) {
+    const step = Math.min(0.033, dtScaled);
+    update(step);
+    dtScaled -= step;
+  }
   render();
   syncUi();
 
@@ -4355,6 +4438,25 @@ function bindEvents() {
     setTooltip(defaultTooltip());
   });
   canvas.addEventListener("click", handleBoardClick);
+
+  if (nextWaveBtn) {
+    nextWaveBtn.addEventListener("click", () => {
+      ensureAudioActive();
+      startWave();
+    });
+  }
+  if (speedBtn) {
+    speedBtn.addEventListener("click", () => {
+      ensureAudioActive();
+      cycleSpeed();
+    });
+  }
+  if (menuBtn) {
+    menuBtn.addEventListener("click", () => {
+      ensureAudioActive();
+      openMenu();
+    });
+  }
 
   startWaveBtn.addEventListener("click", () => {
     ensureAudioActive();
@@ -4449,10 +4551,33 @@ function bindEvents() {
   });
   newRunBtn.addEventListener("click", () => {
     ensureAudioActive();
-    resetRun();
-    saveRun(false);
-    status("New run started.");
+    restartRun();
   });
+  if (menuResumeBtn) {
+    menuResumeBtn.addEventListener("click", () => {
+      ensureAudioActive();
+      closeMenu({ resume: true });
+    });
+  }
+  if (menuRestartBtn) {
+    menuRestartBtn.addEventListener("click", () => {
+      ensureAudioActive();
+      closeMenu({ resume: false, silent: true });
+      restartRun();
+    });
+  }
+  if (menuHomeBtn) {
+    menuHomeBtn.addEventListener("click", () => {
+      window.location.href = HOME_URL;
+    });
+  }
+  if (menuOverlayEl) {
+    menuOverlayEl.addEventListener("click", (event) => {
+      if (event.target === menuOverlayEl) {
+        closeMenu({ resume: true });
+      }
+    });
+  }
 
   for (const button of towerButtons) {
     button.addEventListener("click", () => {
@@ -4480,6 +4605,13 @@ function bindEvents() {
 
   window.addEventListener("keydown", (event) => {
     const key = event.key.toLowerCase();
+    if (game.menuOpen) {
+      if (key === "escape" || key === "p") {
+        event.preventDefault();
+        closeMenu({ resume: true });
+      }
+      return;
+    }
     if (key === "arrowleft") {
       keyState.left = true;
       event.preventDefault();
