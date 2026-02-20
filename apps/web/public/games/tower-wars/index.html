@@ -14,13 +14,7 @@
   </head>
   <body>
     <main class="layout">
-      <section class="game-wrap">
-        <canvas id="game" width="960" height="576" aria-label="Green Circle TD board"></canvas>
-      </section>
-
-      <aside class="panel">
-        <h1>Green Circle TD</h1>
-
+      <section class="hud-bar">
         <div class="stats">
           <div class="card"><span>Gold</span><strong id="gold">0</strong></div>
           <div class="card"><span>Lives</span><strong id="lives">0</strong></div>
@@ -28,7 +22,22 @@
           <div class="card"><span>Score</span><strong id="score">0</strong></div>
           <div class="card"><span>Best</span><strong id="best">0</strong></div>
           <div class="card"><span>Speed</span><strong id="speed">1x</strong></div>
+          <div class="card"><span>Income</span><strong id="income">0</strong></div>
+          <div class="card"><span>Tick</span><strong id="incomeTick">0.0s</strong></div>
         </div>
+        <div id="duelStats" class="duel-stats hidden">
+          <div class="duel-row"><strong>P1</strong> <span id="duelP1">G0 | L0 | I0 | S0</span></div>
+          <div class="duel-row"><strong>P2</strong> <span id="duelP2">G0 | L0 | I0 | S0</span></div>
+          <div class="duel-row"><strong>Active:</strong> <span id="duelActive">P1</span></div>
+        </div>
+      </section>
+
+      <section class="game-wrap">
+        <canvas id="game" width="960" height="576" aria-label="Green Circle TD board"></canvas>
+      </section>
+
+      <aside class="panel">
+        <h1>Green Circle TD</h1>
 
         <div class="command-grid">
           <section class="shop section-card span-2">
@@ -79,6 +88,24 @@
                 <small>Poison Control</small>
                 <em>115g</em>
               </button>
+              <button
+                class="tower-btn"
+                data-type="mortar"
+                data-tip="Fire Mortar: Siege splash with Burn. Branches into Shrapnel or Incendiary fire patch."
+              >
+                <strong>Mortar (0)</strong>
+                <small>Fire AoE + Burn</small>
+                <em>155g</em>
+              </button>
+              <button
+                class="tower-btn"
+                data-type="obelisk"
+                data-tip="Frost Obelisk: Control magic with strong slow branches."
+              >
+                <strong>Obelisk (-)</strong>
+                <small>Frost Control</small>
+                <em>150g</em>
+              </button>
             </div>
           </section>
 
@@ -93,6 +120,7 @@
             <div class="row2 row-mode">
               <button id="modeClassic">Mode: Classic</button>
               <button id="modeMaze">Mode: Maze</button>
+              <button id="modeDuel">Mode: Duel</button>
             </div>
             <p id="waveStatus">Build towers and send wave 1.</p>
           </section>
@@ -122,6 +150,27 @@
             </div>
           </section>
 
+          <section class="send section-card span-2">
+            <h2>Send (Next Wave)</h2>
+            <p class="send-copy">Spend gold to add extra creeps to the next wave. Each send increases Income.</p>
+            <div id="duelPlayerSwitch" class="row2 row-mode hidden">
+              <button id="duelP1Btn">Active: P1</button>
+              <button id="duelP2Btn">Active: P2</button>
+            </div>
+            <div class="send-grid">
+              <button id="sendRunner" title="Runner Pack: 6 fast light creeps. Cost 60, Income +1">Runner Pack<br /><small>60g | +1 Income</small></button>
+              <button id="sendArmor" title="Armor Column: 4 heavy creeps. Cost 90, Income +1">Armor Column<br /><small>90g | +1 Income</small></button>
+              <button id="sendAir" title="Air Squad: 4 flying creeps. Cost 110, Income +2">Air Squad<br /><small>110g | +2 Income</small></button>
+              <button id="sendBreaker" title="Spellbreaker: 1 magic immune heavy creep. Cost 140, Income +2">Spellbreaker<br /><small>140g | +2 Income</small></button>
+              <button id="sendSplitter" title="Splitter Nest: 2 splitting creeps. Cost 160, Income +2">Splitter Nest<br /><small>160g | +2 Income</small></button>
+              <button id="sendMiniBoss" title="Mini-Boss: 1 powerful creep. Cost 220, Income +3">Mini-Boss<br /><small>220g | +3 Income</small></button>
+            </div>
+            <div class="send-foot">
+              <div id="sendQueue">No sends queued.</div>
+              <button id="clearSends">Clear Queue</button>
+            </div>
+          </section>
+
           <section class="persist section-card">
             <h2>Save</h2>
             <div class="row2">
@@ -134,12 +183,12 @@
 
           <section class="tip section-card">
             <h2>Tooltip</h2>
-            <p id="tooltipBox">Hover tower buttons and enemies for detail.</p>
+            <p id="tooltipBox">Hover buttons, towers, and enemies for detail. Scroll pans, ctrl/cmd + wheel zooms.</p>
           </section>
 
           <section class="help section-card span-2">
             <h2>Hotkeys</h2>
-            <p class="hotkeys"><code>1/2/3/4/5</code> Build, <code>U</code> Upgrade, <code>F</code> Ability, <code>P</code> Pause, <code>T</code> Speed, <code>A</code> Auto Wave, <code>M</code> Toggle Mode, <code>Space</code> Wave</p>
+            <p class="hotkeys"><code>1/2/3/4/5/0/-</code> Build, <code>U</code> Upgrade, <code>F</code> Ability, <code>P</code> Pause, <code>T</code> Speed, <code>A</code> Auto Wave, <code>M</code> Toggle Mode, <code>Tab</code> Switch Duel Player, <code>Space</code> Wave, <code>Arrows</code> Pan, <code>Scroll</code> Pan, <code>Ctrl/Cmd + Wheel</code> Zoom, <code>Right Drag / Alt+Drag</code> Pan</p>
           </section>
         </div>
       </aside>
