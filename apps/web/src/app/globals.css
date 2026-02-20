@@ -27,6 +27,13 @@ header {
   background: var(--surface);
 }
 
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
 .site-logo {
   font-size: 1.25rem;
   font-weight: 700;
@@ -36,6 +43,26 @@ header {
 }
 
 .site-logo:hover { color: var(--accent-hover); }
+
+.site-nav {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.site-nav a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+  border: 1px solid var(--border);
+  padding: 0.3rem 0.55rem;
+  border-radius: 8px;
+}
+
+.site-nav a:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
 
 main { min-height: calc(100vh - 60px); }
 
@@ -96,4 +123,16 @@ main { min-height: calc(100vh - 60px); }
   font-weight: 600;
   color: white;
   width: fit-content;
+}
+
+@media (max-width: 900px) {
+  header {
+    padding: 0.8rem 1rem;
+  }
+
+  .header-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.55rem;
+  }
 }

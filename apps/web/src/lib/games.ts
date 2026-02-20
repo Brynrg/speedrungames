@@ -8,6 +8,14 @@ export interface Game {
 
 export const games: Game[] = [
   {
+    slug: "tower-wars",
+    title: "Tower Wars",
+    description:
+      "Maze tower defense with income/sends, hero towers, and large-map pan/zoom control.",
+    href: "/games/tower-wars",
+    emoji: "🛡️",
+  },
+  {
     slug: "pokemonspeedrungen1",
     title: "Pokémon Speedrun Gen 1",
     description:
