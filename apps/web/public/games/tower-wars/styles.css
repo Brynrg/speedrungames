@@ -27,8 +27,11 @@ body {
 
 .layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 390px);
+  grid-template-columns: minmax(230px, 280px) minmax(560px, 1fr) minmax(320px, 410px);
   grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    "hud hud hud"
+    "utility board commands";
   justify-content: center;
   align-items: stretch;
   gap: 0.65rem;
@@ -36,12 +39,12 @@ body {
   min-height: 100dvh;
   height: 100dvh;
   width: 100%;
-  max-width: 1500px;
+  max-width: 1880px;
   margin: 0 auto;
 }
 
 .hud-bar {
-  grid-column: 1 / -1;
+  grid-area: hud;
   border: 2px solid var(--panel-edge);
   border-radius: 10px;
   padding: 0.42rem;
@@ -52,6 +55,7 @@ body {
 }
 
 .game-wrap {
+  grid-area: board;
   border: 2px solid #445f2d;
   box-shadow: 0 0 0 3px rgba(22, 34, 17, 0.9), 0 18px 28px rgba(0, 0, 0, 0.45);
   background: #0c1a0c;
@@ -71,6 +75,7 @@ canvas {
   max-height: calc(100dvh - 2rem);
 }
 
+.utility-panel,
 .panel {
   background: linear-gradient(180deg, rgba(40, 56, 34, 0.97), rgba(24, 35, 21, 0.98));
   border: 2px solid var(--panel-edge);
@@ -88,6 +93,16 @@ canvas {
   min-height: 0;
 }
 
+.utility-panel {
+  grid-area: utility;
+}
+
+.panel {
+  grid-area: commands;
+}
+
+.utility-panel h1,
+.utility-panel h2,
 .panel h1,
 .panel h2 {
   margin: 0;
@@ -95,11 +110,13 @@ canvas {
   letter-spacing: 0.04em;
 }
 
+.utility-panel h1,
 .panel h1 {
   font-size: 0.98rem;
   margin-bottom: 0.28rem;
 }
 
+.utility-panel h2,
 .panel h2 {
   font-size: 0.72rem;
   margin-bottom: 0.2rem;
@@ -169,7 +186,7 @@ canvas {
 .command-grid {
   margin-top: 0.3rem;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 0.26rem;
   align-content: start;
   min-height: 0;
@@ -194,6 +211,56 @@ canvas {
 .tip,
 .help {
   margin-top: 0;
+}
+
+.minimap-shell {
+  height: 178px;
+  border: 1px solid rgba(184, 207, 143, 0.34);
+  border-radius: 6px;
+  background: rgba(9, 17, 8, 0.42);
+  padding: 0.24rem;
+}
+
+.minimap-grid {
+  width: 100%;
+  height: 100%;
+  border-radius: 4px;
+  background:
+    linear-gradient(90deg, rgba(120, 174, 90, 0.22) 1px, transparent 1px) 0 0 / 14px 14px,
+    linear-gradient(rgba(120, 174, 90, 0.22) 1px, transparent 1px) 0 0 / 14px 14px,
+    radial-gradient(circle at 30% 40%, rgba(75, 129, 58, 0.65), rgba(32, 60, 28, 0.88));
+}
+
+.mini-copy {
+  margin: 0.24rem 0 0;
+  color: var(--subtle);
+  font-size: 0.62rem;
+}
+
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.22rem;
+  margin-bottom: 0.22rem;
+}
+
+.quick-grid p {
+  margin: 0;
+  border: 1px solid rgba(184, 207, 143, 0.3);
+  border-radius: 6px;
+  background: rgba(9, 17, 8, 0.35);
+  padding: 0.2rem 0.24rem;
+}
+
+.quick-grid span {
+  display: block;
+  color: var(--subtle);
+  font-size: 0.58rem;
+}
+
+.quick-grid strong {
+  color: var(--gold);
+  font-size: 0.74rem;
 }
 
 .tower-grid {
@@ -482,10 +549,12 @@ button:active:not(:disabled) {
   line-height: 1.25;
 }
 
+.utility-panel::-webkit-scrollbar,
 .panel::-webkit-scrollbar {
   width: 8px;
 }
 
+.utility-panel::-webkit-scrollbar-thumb,
 .panel::-webkit-scrollbar-thumb {
   background: rgba(153, 193, 102, 0.45);
   border-radius: 999px;
@@ -494,6 +563,24 @@ button:active:not(:disabled) {
 code {
   color: var(--gold);
   font-size: 0.9em;
+}
+
+@media (max-width: 1720px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 410px);
+    grid-template-areas:
+      "hud hud"
+      "board commands"
+      "utility commands";
+    height: auto;
+    min-height: 100dvh;
+    max-width: 1440px;
+  }
+
+  .utility-panel,
+  .panel {
+    max-height: calc(100dvh - 7.1rem);
+  }
 }
 
 @media (max-width: 1360px) {
@@ -505,7 +592,12 @@ code {
 
   .layout {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
+    grid-template-rows: auto auto auto auto;
+    grid-template-areas:
+      "hud"
+      "board"
+      "utility"
+      "commands";
     height: auto;
     max-width: 1000px;
     margin: 0 auto;
@@ -524,6 +616,7 @@ code {
     max-height: none;
   }
 
+  .utility-panel,
   .panel {
     max-width: 1000px;
     height: auto;

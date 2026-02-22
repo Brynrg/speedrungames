@@ -41,12 +41,56 @@
         </div>
       </section>
 
+      <aside class="utility-panel">
+        <h1>Green Circle TD</h1>
+
+        <section class="section-card minimap-card">
+          <h2>Minimap</h2>
+          <div class="minimap-shell" aria-label="Minimap shell">
+            <div class="minimap-grid" aria-hidden="true"></div>
+          </div>
+          <p class="mini-copy">Phase 2 shell: lane/camera preview panel.</p>
+        </section>
+
+        <section class="section-card quick-card">
+          <h2>Quick Info</h2>
+          <div class="quick-grid">
+            <p><span>Mode</span><strong id="quickMode">Classic</strong></p>
+            <p><span>State</span><strong id="quickState">Build</strong></p>
+            <p><span>Wave Tag</span><strong id="quickWaveTag">-</strong></p>
+            <p><span>Queued Sends</span><strong id="quickSends">0</strong></p>
+          </div>
+          <p>Modes: Classic, Maze, Duel. Keep the route open in Maze mode.</p>
+          <p>Controls: <code>Space</code> wave, <code>T</code> speed, <code>P</code> pause, <code>M</code> mode.</p>
+        </section>
+
+        <section class="persist section-card">
+          <h2>Save</h2>
+          <div class="row2">
+            <button id="saveRun">Save</button>
+            <button id="loadRun">Load</button>
+            <button id="newRun">New</button>
+          </div>
+          <ol id="highScores"></ol>
+        </section>
+
+        <section class="tip section-card">
+          <h2>Tooltip</h2>
+          <p id="tooltipBox">Hover buttons, towers, and enemies for detail. Scroll pans, ctrl/cmd + wheel zooms.</p>
+        </section>
+
+        <section class="help section-card">
+          <h2>Hotkeys</h2>
+          <p class="hotkeys"><code>1/2/3/4/5/0/-</code> Build, <code>U</code> Upgrade, <code>F</code> Ability, <code>P</code> Pause, <code>T</code> Speed, <code>A</code> Auto Wave, <code>M</code> Toggle Mode, <code>Tab</code> Switch Duel Player, <code>Space</code> Wave, <code>Arrows</code> Pan, <code>Scroll</code> Pan, <code>Ctrl/Cmd + Wheel</code> Zoom, <code>Right Drag / Alt+Drag</code> Pan</p>
+        </section>
+      </aside>
+
       <section class="game-wrap">
         <canvas id="game" width="960" height="576" aria-label="Green Circle TD board"></canvas>
       </section>
 
       <aside class="panel">
-        <h1>Green Circle TD</h1>
+        <h1>Command Card</h1>
 
         <div class="command-grid">
           <section class="shop section-card span-2">
@@ -178,26 +222,6 @@
               <div id="sendQueue">No sends queued.</div>
               <button id="clearSends">Clear Queue</button>
             </div>
-          </section>
-
-          <section class="persist section-card">
-            <h2>Save</h2>
-            <div class="row2">
-              <button id="saveRun">Save</button>
-              <button id="loadRun">Load</button>
-              <button id="newRun">New</button>
-            </div>
-            <ol id="highScores"></ol>
-          </section>
-
-          <section class="tip section-card">
-            <h2>Tooltip</h2>
-            <p id="tooltipBox">Hover buttons, towers, and enemies for detail. Scroll pans, ctrl/cmd + wheel zooms.</p>
-          </section>
-
-          <section class="help section-card span-2">
-            <h2>Hotkeys</h2>
-            <p class="hotkeys"><code>1/2/3/4/5/0/-</code> Build, <code>U</code> Upgrade, <code>F</code> Ability, <code>P</code> Pause, <code>T</code> Speed, <code>A</code> Auto Wave, <code>M</code> Toggle Mode, <code>Tab</code> Switch Duel Player, <code>Space</code> Wave, <code>Arrows</code> Pan, <code>Scroll</code> Pan, <code>Ctrl/Cmd + Wheel</code> Zoom, <code>Right Drag / Alt+Drag</code> Pan</p>
           </section>
         </div>
       </aside>

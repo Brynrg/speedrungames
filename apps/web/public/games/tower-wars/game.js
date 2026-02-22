@@ -20,6 +20,10 @@ const menuOverlayEl = document.getElementById("menuOverlay");
 const menuResumeBtn = document.getElementById("menuResume");
 const menuRestartBtn = document.getElementById("menuRestart");
 const menuHomeBtn = document.getElementById("menuHome");
+const quickModeEl = document.getElementById("quickMode");
+const quickStateEl = document.getElementById("quickState");
+const quickWaveTagEl = document.getElementById("quickWaveTag");
+const quickSendsEl = document.getElementById("quickSends");
 
 const startWaveBtn = document.getElementById("startWave");
 const pauseGameBtn = document.getElementById("pauseGame");
@@ -116,6 +120,52 @@ const RUN_SAVE_KEY = "green_circle_td_run_v2";
 const HIGH_SCORE_KEY = "green_circle_td_highscores_v2";
 const SPEED_LEVELS = [1, 2, 3, 4, 5];
 const HOME_URL = window.SPEEDRUN_HOME_URL || "/";
+const REQUIRED_DOM_REFS = [
+  ["game", canvas],
+  ["waveStatus", waveStatusEl],
+  ["tooltipBox", tooltipBoxEl],
+  ["startWave", startWaveBtn],
+  ["pauseGame", pauseGameBtn],
+  ["speedGame", speedGameBtn],
+  ["autoWave", autoWaveBtn],
+  ["modeClassic", modeClassicBtn],
+  ["modeMaze", modeMazeBtn],
+  ["modeDuel", modeDuelBtn],
+  ["saveRun", saveRunBtn],
+  ["loadRun", loadRunBtn],
+  ["newRun", newRunBtn],
+  ["upgradeTower", upgradeTowerBtn],
+  ["castAbility", castAbilityBtn],
+  ["branchA", branchAButton],
+  ["branchB", branchBButton],
+  ["sendRunner", sendRunnerBtn],
+  ["sendArmor", sendArmorBtn],
+  ["sendAir", sendAirBtn],
+  ["sendBreaker", sendBreakerBtn],
+  ["sendSplitter", sendSplitterBtn],
+  ["sendMiniBoss", sendMiniBossBtn],
+  ["clearSends", clearSendsBtn],
+];
+
+function runStartupGuardrails() {
+  const missing = REQUIRED_DOM_REFS.filter(([, ref]) => !ref).map(([id]) => id);
+  if (!ctx) {
+    missing.push("2d-canvas-context");
+  }
+  if (missing.length > 0) {
+    const msg = `[Guardrail] Missing required DOM hooks: ${missing.join(", ")}`;
+    console.error(msg);
+    throw new Error(msg);
+  }
+  if (!Array.isArray(SPEED_LEVELS) || SPEED_LEVELS[0] !== 1 || SPEED_LEVELS[SPEED_LEVELS.length - 1] < 5) {
+    const msg = `[Guardrail] SPEED_LEVELS must start at 1 and include 5x. Got: ${JSON.stringify(SPEED_LEVELS)}`;
+    console.error(msg);
+    throw new Error(msg);
+  }
+  if (!RUN_SAVE_KEY.endsWith("_v2") || !HIGH_SCORE_KEY.endsWith("_v2")) {
+    console.warn(`[Guardrail] Save keys changed: run=${RUN_SAVE_KEY}, highscores=${HIGH_SCORE_KEY}`);
+  }
+}
 
 const DAMAGE_LABELS = {
   piercing: "Piercing",
@@ -4127,6 +4177,29 @@ function syncUi() {
   if (menuBtn) {
     menuBtn.classList.toggle("active", game.menuOpen);
   }
+  if (quickModeEl) {
+    const modeLabel = game.mode === "maze" ? "Maze" : game.mode === "duel" ? "Duel" : "Classic";
+    quickModeEl.textContent = modeLabel;
+  }
+  if (quickStateEl) {
+    let stateLabel = "Build";
+    if (game.gameOver) {
+      stateLabel = game.duelMode ? "Match End" : "Defeat";
+    } else if (game.menuOpen || game.paused) {
+      stateLabel = "Paused";
+    } else if (game.waveActive) {
+      stateLabel = "Combat";
+    }
+    quickStateEl.textContent = stateLabel;
+  }
+  if (quickWaveTagEl) {
+    quickWaveTagEl.textContent = game.waveTag || "-";
+  }
+  if (quickSendsEl) {
+    const queueState = game.duelMode ? getActivePlayerState() : game;
+    const queued = Array.isArray(queueState.sendQueue) ? queueState.sendQueue.length : 0;
+    quickSendsEl.textContent = String(queued);
+  }
   autoWaveBtn.textContent = game.autoWaveEnabled ? "Auto: On (A)" : "Auto: Off (A)";
   modeClassicBtn.classList.toggle("active", game.mode === "classic");
   modeMazeBtn.classList.toggle("active", game.mode === "maze");
@@ -4734,6 +4807,7 @@ function bindEvents() {
 }
 
 function boot() {
+  runStartupGuardrails();
   bindEvents();
   clampCamera();
   setSelectedType(game.selectedType);
