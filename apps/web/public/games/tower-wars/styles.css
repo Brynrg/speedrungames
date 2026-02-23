@@ -16,7 +16,8 @@
 body {
   margin: 0;
   min-height: 100dvh;
-  overflow: auto;
+  height: 100dvh;
+  overflow: hidden;
   background:
     radial-gradient(circle at 15% 20%, rgba(104, 171, 72, 0.14), transparent 32%),
     radial-gradient(circle at 85% 10%, rgba(143, 206, 92, 0.16), transparent 26%),
@@ -26,79 +27,69 @@ body {
 }
 
 .layout {
-  display: grid;
-  grid-template-columns: minmax(230px, 280px) minmax(560px, 1fr) minmax(320px, 410px);
-  grid-template-rows: auto minmax(0, 1fr);
-  grid-template-areas:
-    "hud hud hud"
-    "utility board commands";
-  justify-content: center;
-  align-items: stretch;
-  gap: 0.65rem;
-  padding: 0.65rem;
-  min-height: 100dvh;
+  position: relative;
+  width: 100vw;
   height: 100dvh;
-  width: 100%;
-  max-width: 1880px;
-  margin: 0 auto;
 }
 
 .hud-bar {
-  grid-area: hud;
+  position: fixed;
+  top: 0.65rem;
+  left: 0.65rem;
+  right: 0.65rem;
   border: 2px solid var(--panel-edge);
   border-radius: 10px;
   padding: 0.42rem;
   background: linear-gradient(180deg, rgba(40, 56, 34, 0.94), rgba(24, 35, 21, 0.95));
   box-shadow: inset 0 0 0 1px rgba(193, 224, 148, 0.15), 0 12px 18px rgba(0, 0, 0, 0.35);
-  position: relative;
-  z-index: 10;
+  z-index: 40;
 }
 
 .game-wrap {
-  grid-area: board;
-  border: 2px solid #445f2d;
-  box-shadow: 0 0 0 3px rgba(22, 34, 17, 0.9), 0 18px 28px rgba(0, 0, 0, 0.45);
+  position: fixed;
+  inset: 0;
+  border: 0;
   background: #0c1a0c;
-  border-radius: 8px;
   overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  min-height: 0;
+  z-index: 1;
 }
 
 canvas {
   display: block;
-  width: min(100%, calc((100dvh - 2rem) * 1.6667));
-  height: auto;
-  max-height: calc(100dvh - 2rem);
+  width: 100%;
+  height: 100%;
+  max-height: none;
 }
 
 .utility-panel,
 .panel {
+  position: fixed;
+  top: 7.05rem;
+  bottom: 0.65rem;
   background: linear-gradient(180deg, rgba(40, 56, 34, 0.97), rgba(24, 35, 21, 0.98));
   border: 2px solid var(--panel-edge);
   border-radius: 10px;
   padding: 0.45rem;
   box-shadow: inset 0 0 0 1px rgba(193, 224, 148, 0.15), 0 16px 24px rgba(0, 0, 0, 0.42);
-  height: 100%;
-  max-height: calc(100dvh - 6.4rem);
+  backdrop-filter: blur(2px);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
-  min-height: 0;
+  min-height: 220px;
+  z-index: 30;
 }
 
 .utility-panel {
-  grid-area: utility;
+  left: 0.65rem;
+  width: min(286px, 24vw);
 }
 
 .panel {
-  grid-area: commands;
+  right: 0.65rem;
+  width: min(420px, 34vw);
 }
 
 .utility-panel h1,
@@ -192,6 +183,11 @@ canvas {
   min-height: 0;
 }
 
+.command-card-grid .section-card {
+  border-color: rgba(173, 203, 126, 0.38);
+  background: rgba(12, 21, 10, 0.6);
+}
+
 .section-card {
   border: 1px solid rgba(188, 215, 148, 0.26);
   border-radius: 6px;
@@ -221,14 +217,14 @@ canvas {
   padding: 0.24rem;
 }
 
-.minimap-grid {
+#miniMap {
   width: 100%;
   height: 100%;
+  display: block;
   border-radius: 4px;
-  background:
-    linear-gradient(90deg, rgba(120, 174, 90, 0.22) 1px, transparent 1px) 0 0 / 14px 14px,
-    linear-gradient(rgba(120, 174, 90, 0.22) 1px, transparent 1px) 0 0 / 14px 14px,
-    radial-gradient(circle at 30% 40%, rgba(75, 129, 58, 0.65), rgba(32, 60, 28, 0.88));
+  border: 1px solid rgba(170, 201, 127, 0.35);
+  background: radial-gradient(circle at 30% 40%, rgba(75, 129, 58, 0.65), rgba(32, 60, 28, 0.88));
+  cursor: crosshair;
 }
 
 .mini-copy {
@@ -263,10 +259,58 @@ canvas {
   font-size: 0.74rem;
 }
 
+.duel-board {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.62rem;
+}
+
+.duel-board th,
+.duel-board td {
+  border: 1px solid rgba(170, 199, 126, 0.25);
+  padding: 0.14rem 0.22rem;
+  text-align: center;
+}
+
+.duel-board th {
+  color: var(--subtle);
+  font-weight: 700;
+  background: rgba(10, 19, 9, 0.45);
+}
+
+.duel-board td:first-child {
+  color: var(--gold);
+  font-weight: 700;
+}
+
 .tower-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.24rem;
+}
+
+.panel .tower-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.22rem;
+}
+
+.command-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.2rem;
+  margin-bottom: 0.24rem;
+}
+
+.command-tab {
+  text-align: center;
+  font-size: 0.66rem;
+  padding: 0.18rem 0.2rem;
+  min-height: 1.9rem;
+}
+
+.command-tab.active {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px rgba(225, 197, 110, 0.4);
 }
 
 .tower-btn,
@@ -315,6 +359,58 @@ canvas {
   -webkit-tap-highlight-color: transparent;
 }
 
+.panel button[data-icon] {
+  position: relative;
+  min-height: 2.3rem;
+  padding-left: 2.05rem;
+}
+
+.panel button[data-icon]::before {
+  content: attr(data-icon);
+  position: absolute;
+  left: 0.35rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 4px;
+  border: 1px solid rgba(182, 208, 138, 0.46);
+  background: rgba(35, 57, 29, 0.78);
+  color: var(--gold);
+  font-size: 0.56rem;
+  font-weight: 700;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.05em;
+}
+
+.panel .tower-btn {
+  min-height: 3.2rem;
+}
+
+.selection-hero {
+  margin-bottom: 0.2rem;
+  border: 1px solid rgba(176, 206, 132, 0.32);
+  border-radius: 6px;
+  background: rgba(9, 17, 8, 0.35);
+  padding: 0.2rem 0.26rem;
+}
+
+#selTitle {
+  margin: 0;
+  color: var(--gold);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+#selSub {
+  margin: 0.04rem 0 0;
+  color: var(--subtle);
+  font-size: 0.6rem;
+}
+
 button > * {
   pointer-events: none;
 }
@@ -361,6 +457,10 @@ button > * {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.28rem;
+}
+
+.panel .send-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .send-grid button {
@@ -566,73 +666,41 @@ code {
 }
 
 @media (max-width: 1720px) {
-  .layout {
-    grid-template-columns: minmax(0, 1fr) minmax(320px, 410px);
-    grid-template-areas:
-      "hud hud"
-      "board commands"
-      "utility commands";
-    height: auto;
-    min-height: 100dvh;
-    max-width: 1440px;
+  .utility-panel {
+    width: min(260px, 23vw);
   }
 
-  .utility-panel,
   .panel {
-    max-height: calc(100dvh - 7.1rem);
+    width: min(370px, 32vw);
   }
 }
 
-@media (max-width: 1360px) {
-  body {
-    height: auto;
-    min-height: 100vh;
-    overflow: auto;
-  }
-
-  .layout {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto auto;
-    grid-template-areas:
-      "hud"
-      "board"
-      "utility"
-      "commands";
-    height: auto;
-    max-width: 1000px;
-    margin: 0 auto;
-  }
-
+@media (max-width: 1320px) {
   .hud-bar .stats {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
-  .game-wrap {
-    height: auto;
-  }
-
-  canvas {
-    width: 100%;
-    max-height: none;
-  }
-
   .utility-panel,
   .panel {
-    max-width: 1000px;
-    height: auto;
-    max-height: none;
-    overflow-y: auto;
+    top: 6.55rem;
+    width: min(46vw, 360px);
+    max-height: calc(100dvh - 7.2rem);
   }
 
-  .command-grid {
-    grid-template-columns: 1fr;
+  .utility-panel {
+    left: 0.55rem;
   }
 
-  .span-2 {
-    grid-column: auto;
+  .panel {
+    right: 0.55rem;
   }
 
   .tower-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .panel .tower-grid,
+  .panel .send-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -640,18 +708,38 @@ code {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .row2 {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
   .row-wave {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
 
-  .row-mode {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+@media (max-width: 920px) {
+  .hud-bar {
+    left: 0.4rem;
+    right: 0.4rem;
+    top: 0.4rem;
   }
 
+  .utility-panel,
+  .panel {
+    width: calc(100vw - 0.8rem);
+    left: 0.4rem;
+    right: 0.4rem;
+    max-height: 34vh;
+  }
+
+  .utility-panel {
+    top: auto;
+    bottom: 35.8vh;
+  }
+
+  .panel {
+    top: auto;
+    bottom: 0.4rem;
+  }
+
+  .row2,
+  .row-mode,
   .row2-tower {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
