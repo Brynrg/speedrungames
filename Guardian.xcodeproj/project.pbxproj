@@ -6,7 +6,18 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		CD4F44952FAECE2D00A3FE7E /* GuardianHelper.xpc in Embed XPC Services */ = {isa = PBXBuildFile; fileRef = CD4F448A2FAECE2D00A3FE7E /* GuardianHelper.xpc */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
+		CD4F44932FAECE2D00A3FE7E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CDB108412FAD8C1400F05EE1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CD4F44892FAECE2D00A3FE7E;
+			remoteInfo = GuardianHelper;
+		};
 		CDB108572FAD8C1500F05EE1 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = CDB108412FAD8C1400F05EE1 /* Project object */;
@@ -23,13 +34,46 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		CD4F449A2FAECE2D00A3FE7E /* Embed XPC Services */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/XPCServices";
+			dstSubfolderSpec = 16;
+			files = (
+				CD4F44952FAECE2D00A3FE7E /* GuardianHelper.xpc in Embed XPC Services */,
+			);
+			name = "Embed XPC Services";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		CD4F448A2FAECE2D00A3FE7E /* GuardianHelper.xpc */ = {isa = PBXFileReference; explicitFileType = "wrapper.xpc-service"; includeInIndex = 0; path = GuardianHelper.xpc; sourceTree = BUILT_PRODUCTS_DIR; };
 		CDB108492FAD8C1400F05EE1 /* Guardian.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Guardian.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CDB108562FAD8C1500F05EE1 /* GuardianTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GuardianTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CDB108602FAD8C1500F05EE1 /* GuardianUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GuardianUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		CD4F44962FAECE2D00A3FE7E /* Exceptions for "GuardianHelper" folder in "GuardianHelper" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = CD4F44892FAECE2D00A3FE7E /* GuardianHelper */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		CD4F448B2FAECE2D00A3FE7E /* GuardianHelper */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				CD4F44962FAECE2D00A3FE7E /* Exceptions for "GuardianHelper" folder in "GuardianHelper" target */,
+			);
+			path = GuardianHelper;
+			sourceTree = "<group>";
+		};
 		CDB1084B2FAD8C1400F05EE1 /* Guardian */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Guardian;
@@ -48,6 +92,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		CD4F44872FAECE2D00A3FE7E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CDB108462FAD8C1400F05EE1 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -78,6 +129,7 @@
 				CDB1084B2FAD8C1400F05EE1 /* Guardian */,
 				CDB108592FAD8C1500F05EE1 /* GuardianTests */,
 				CDB108632FAD8C1500F05EE1 /* GuardianUITests */,
+				CD4F448B2FAECE2D00A3FE7E /* GuardianHelper */,
 				CDB1084A2FAD8C1400F05EE1 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -88,6 +140,7 @@
 				CDB108492FAD8C1400F05EE1 /* Guardian.app */,
 				CDB108562FAD8C1500F05EE1 /* GuardianTests.xctest */,
 				CDB108602FAD8C1500F05EE1 /* GuardianUITests.xctest */,
+				CD4F448A2FAECE2D00A3FE7E /* GuardianHelper.xpc */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -95,6 +148,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		CD4F44892FAECE2D00A3FE7E /* GuardianHelper */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CD4F44972FAECE2D00A3FE7E /* Build configuration list for PBXNativeTarget "GuardianHelper" */;
+			buildPhases = (
+				CD4F44862FAECE2D00A3FE7E /* Sources */,
+				CD4F44872FAECE2D00A3FE7E /* Frameworks */,
+				CD4F44882FAECE2D00A3FE7E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				CD4F448B2FAECE2D00A3FE7E /* GuardianHelper */,
+			);
+			name = GuardianHelper;
+			packageProductDependencies = (
+			);
+			productName = GuardianHelper;
+			productReference = CD4F448A2FAECE2D00A3FE7E /* GuardianHelper.xpc */;
+			productType = "com.apple.product-type.xpc-service";
+		};
 		CDB108482FAD8C1400F05EE1 /* Guardian */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = CDB1086A2FAD8C1500F05EE1 /* Build configuration list for PBXNativeTarget "Guardian" */;
@@ -102,10 +177,12 @@
 				CDB108452FAD8C1400F05EE1 /* Sources */,
 				CDB108462FAD8C1400F05EE1 /* Frameworks */,
 				CDB108472FAD8C1400F05EE1 /* Resources */,
+				CD4F449A2FAECE2D00A3FE7E /* Embed XPC Services */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				CD4F44942FAECE2D00A3FE7E /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				CDB1084B2FAD8C1400F05EE1 /* Guardian */,
@@ -173,6 +250,9 @@
 				LastSwiftUpdateCheck = 2640;
 				LastUpgradeCheck = 2640;
 				TargetAttributes = {
+					CD4F44892FAECE2D00A3FE7E = {
+						CreatedOnToolsVersion = 26.4;
+					};
 					CDB108482FAD8C1400F05EE1 = {
 						CreatedOnToolsVersion = 26.4;
 					};
@@ -203,11 +283,19 @@
 				CDB108482FAD8C1400F05EE1 /* Guardian */,
 				CDB108552FAD8C1500F05EE1 /* GuardianTests */,
 				CDB1085F2FAD8C1500F05EE1 /* GuardianUITests */,
+				CD4F44892FAECE2D00A3FE7E /* GuardianHelper */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		CD4F44882FAECE2D00A3FE7E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CDB108472FAD8C1400F05EE1 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -232,6 +320,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		CD4F44862FAECE2D00A3FE7E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CDB108452FAD8C1400F05EE1 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -256,6 +351,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		CD4F44942FAECE2D00A3FE7E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CD4F44892FAECE2D00A3FE7E /* GuardianHelper */;
+			targetProxy = CD4F44932FAECE2D00A3FE7E /* PBXContainerItemProxy */;
+		};
 		CDB108582FAD8C1500F05EE1 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = CDB108482FAD8C1400F05EE1 /* Guardian */;
@@ -269,6 +369,58 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		CD4F44982FAECE2D00A3FE7E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5L9A27PC62;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = GuardianHelper/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = GuardianHelper;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.garnettlabs.GuardianHelper;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		CD4F44992FAECE2D00A3FE7E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5L9A27PC62;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = GuardianHelper/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = GuardianHelper;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.garnettlabs.GuardianHelper;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 		CDB108682FAD8C1500F05EE1 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -536,6 +688,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		CD4F44972FAECE2D00A3FE7E /* Build configuration list for PBXNativeTarget "GuardianHelper" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CD4F44982FAECE2D00A3FE7E /* Debug */,
+				CD4F44992FAECE2D00A3FE7E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		CDB108442FAD8C1400F05EE1 /* Build configuration list for PBXProject "Guardian" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

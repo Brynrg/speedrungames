@@ -11,7 +11,9 @@ import SwiftUI
 struct GuardianApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            GuardianRootView()
         }
+        .windowStyle(.hiddenTitleBar)
+        .windowResizability(.contentSize)
     }
 }
