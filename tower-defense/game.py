@@ -1412,7 +1412,7 @@ class Game(arcade.Window):
             arcade.draw_text(f"{key}", x + 10, button_y + 5, UI_TEXT, 10)
             arcade.draw_text(f"{name}", x + 5, button_y - 5, UI_TEXT_WHITE, 7)
 
-        help_text = "N next wave  P pause  U upgrade  S/right-click sell  R restart"
+        help_text = "N next wave  P pause  U upgrade  S/right-click sell  F5 save  F9 load  R restart"
         arcade.draw_text(help_text, 430, panel_y + 50, UI_TEXT_WHITE, 11)
         selected = self.get_tower_at_grid(*self.selected_grid) if self.selected_grid else None
         if selected:
@@ -1602,6 +1602,10 @@ class Game(arcade.Window):
         elif self._key_matches(key, "T"):
             self.sound_enabled = not self.sound_enabled
             self.set_status("Sound ON" if self.sound_enabled else "Sound OFF", 60)
+        elif self._key_matches(key, "F5"):
+            self.save_game()
+        elif self._key_matches(key, "F9"):
+            self.load_game()
 
     def on_mouse_motion(self, x, y, dx, dy):
         self.mouse_x = x
@@ -1686,6 +1690,93 @@ class Game(arcade.Window):
         self.selected_grid = None
         self.set_status(f"Sold {tower.name} for {refund} gold", 100)
         self.play_sound("sell")
+
+    def save_game(self, filename="savegame.json"):
+        import json
+        save_data = {
+            "health": self.health,
+            "score": self.score,
+            "wave": self.wave,
+            "enemies": [{"x": e.x, "y": e.y, "current_point": e.current_point,
+                         "health": e.health, "max_health": e.max_health,
+                         "slow_timer": e.slow_timer, "slow_factor": e.slow_factor,
+                         "poison_timer": e.poison_timer, "poison_damage": e.poison_damage,
+                         "revealed_timer": e.revealed_timer, "trait_name": e.trait["name"]}
+                        for e in self.enemies],
+            "towers": [{"grid_x": t.grid_x, "grid_y": t.grid_y, "tower_type": t.tower_type,
+                        "level": t.level, "total_spent": t.total_spent,
+                        "damage": t.damage, "range": t.range, "cooldown": t.cooldown,
+                        "splash_radius": t.splash_radius, "slow": t.slow,
+                        "slow_duration": t.slow_duration, "poison_damage": t.poison_damage,
+                        "poison_duration": t.poison_duration}
+                       for t in self.towers],
+            "build_phase": self.build_phase,
+            "build_timer": self.build_timer,
+            "income": self.income,
+            "current_wave_trait": self.current_wave_trait["name"],
+            "next_wave_trait": self.next_wave_trait["name"],
+            "leaks": self.leaks,
+        }
+        with open(filename, "w") as f:
+            json.dump(save_data, f)
+        self.set_status(f"Game saved to {filename}", 120)
+
+    def load_game(self, filename="savegame.json"):
+        import json
+        try:
+            with open(filename, "r") as f:
+                save_data = json.load(f)
+            self.health = save_data["health"]
+            self.score = save_data["score"]
+            self.wave = save_data["wave"]
+            self.build_phase = save_data["build_phase"]
+            self.build_timer = save_data["build_timer"]
+            self.income = save_data["income"]
+            self.leaks = save_data["leaks"]
+            self.current_wave_trait = next(
+                (t for t in WAVE_TRAITS if t["name"] == save_data["current_wave_trait"]),
+                WAVE_TRAITS[0]
+            )
+            self.next_wave_trait = next(
+                (t for t in WAVE_TRAITS if t["name"] == save_data["next_wave_trait"]),
+                WAVE_TRAITS[0]
+            )
+            self.enemies = []
+            for ed in save_data["enemies"]:
+                e = Enemy(self.path_points, wave=self.wave, trait=self.current_wave_trait)
+                e.x = ed["x"]
+                e.y = ed["y"]
+                e.current_point = ed["current_point"]
+                e.health = ed["health"]
+                e.max_health = ed["max_health"]
+                e.slow_timer = ed["slow_timer"]
+                e.slow_factor = ed["slow_factor"]
+                e.poison_timer = ed["poison_timer"]
+                e.poison_damage = ed["poison_damage"]
+                e.revealed_timer = ed["revealed_timer"]
+                self.enemies.append(e)
+            self.towers = []
+            for td in save_data["towers"]:
+                t = Tower(td["grid_x"], td["grid_y"], td["tower_type"])
+                t.level = td["level"]
+                t.total_spent = td["total_spent"]
+                t.damage = td["damage"]
+                t.range = td["range"]
+                t.cooldown = td["cooldown"]
+                t.splash_radius = td["splash_radius"]
+                t.slow = td["slow"]
+                t.slow_duration = td["slow_duration"]
+                t.poison_damage = td["poison_damage"]
+                t.poison_duration = td["poison_duration"]
+                self.towers.append(t)
+            self.bullets = []
+            self.explosions = []
+            self.game_state = PLAYING
+            self.set_status("Game loaded", 120)
+        except FileNotFoundError:
+            self.set_status(f"Save file {filename} not found", 90)
+        except Exception as e:
+            self.set_status(f"Error loading save: {e}", 90)
                 
     def update(self, delta_time):
         if self.game_state != PLAYING:
