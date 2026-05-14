@@ -287,6 +287,14 @@ PLAYING = 1
 GAME_OVER = 2
 VICTORY = 3
 
+# Difficulty settings
+DIFFICULTIES = {
+    "easy": {"health_mult": 0.7, "enemy_health_mult": 0.8, "enemy_speed_mult": 0.85, "gold_mult": 1.5, "name": "Easy"},
+    "normal": {"health_mult": 1.0, "enemy_health_mult": 1.0, "enemy_speed_mult": 1.0, "gold_mult": 1.0, "name": "Normal"},
+    "hard": {"health_mult": 1.3, "enemy_health_mult": 1.4, "enemy_speed_mult": 1.15, "gold_mult": 0.8, "name": "Hard"},
+}
+DEFAULT_DIFFICULTY = "normal"
+
 
 class Particle:
     """Particle for visual effects - green/yellow sparks."""
@@ -998,6 +1006,10 @@ class Game(arcade.Window):
                 self.sounds[name] = None
         self.sound_enabled = True
 
+        # Difficulty
+        self.difficulty = DEFAULT_DIFFICULTY
+        self.difficulty_index = list(DIFFICULTIES.keys()).index(DEFAULT_DIFFICULTY)
+
         self.path_points = self.make_green_circle_path()
         self.terrain_marks = []
         self.path_stones = []
@@ -1118,8 +1130,9 @@ class Game(arcade.Window):
         self.towers = []
         self.bullets = []
         self.explosions = []
-        self.health = 20
-        self.score = 500
+        diff = DIFFICULTIES[self.difficulty]
+        self.health = int(20 * diff["health_mult"])
+        self.score = int(500 * diff["gold_mult"])
         self.wave = 1
         self.wave_timer = 0
         self.enemies_to_spawn = 5
@@ -1148,7 +1161,7 @@ class Game(arcade.Window):
         self.build_phase = False
         self.build_timer = 0
         self.next_wave_trait = self.get_wave_trait(min(self.wave + 1, self.max_wave))
-        self.wave_announcement = f"Wave {self.wave}: {self.current_wave_trait['name']}"
+        self.wave_announcement = f"Wave {self.wave}: {self.current_wave_trait['name']} [{diff['name']}]"
         self.announcement_timer = 120
         self.set_status(f"{self.current_wave_trait['name']} wave incoming", 110)
         self.play_sound("wave_start")
@@ -1471,6 +1484,10 @@ class Game(arcade.Window):
         arcade.draw_text("Warcraft 3 Style Tower Defense", SCREEN_WIDTH // 2, 
                         SCREEN_HEIGHT // 2 + 50,
                         UI_TEXT_GREEN, 24, anchor_x="center")
+        # Difficulty indicator
+        diff = DIFFICULTIES[self.difficulty]
+        arcade.draw_text(f"Difficulty: {diff['name']} (M to change)", SCREEN_WIDTH // 2,
+                        SCREEN_HEIGHT // 2 - 15, UI_TEXT, 16, anchor_x="center")
         # Instructions
         arcade.draw_rectangle_filled(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 2,
                                     260, 44, PANEL_BG)
@@ -1548,6 +1565,12 @@ class Game(arcade.Window):
         if self._key_matches(key, "R"):
             self.game_state = PLAYING
             self.setup()
+            return
+
+        if self._key_matches(key, "M"):
+            self.difficulty_index = (self.difficulty_index + 1) % len(DIFFICULTIES)
+            self.difficulty = list(DIFFICULTIES.keys())[self.difficulty_index]
+            self.set_status(f"Difficulty: {DIFFICULTIES[self.difficulty]['name']}", 90)
             return
 
         if self.game_state != PLAYING:
