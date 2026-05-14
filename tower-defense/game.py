@@ -300,6 +300,11 @@ COMBO_TIMEOUT = 90
 COMBO_GOLD_BONUS_BASE = 5
 COMBO_GOLD_BONUS_SCALE = 3
 
+# Minimap
+MINIMAP_X = SCREEN_WIDTH - 160
+MINIMAP_Y = SCREEN_HEIGHT - 160
+MINIMAP_SIZE = 140
+
 
 class Particle:
     """Particle for visual effects - green/yellow sparks."""
@@ -1263,6 +1268,8 @@ class Game(arcade.Window):
         for explosion in self.explosions:
             explosion.draw()
 
+        self.draw_minimap()
+
         if self.game_state == PLAYING:
             self.draw_placement_preview()
             
@@ -1341,6 +1348,45 @@ class Game(arcade.Window):
                                          rgba(VIGNETTE_COLOR, 58))
         arcade.draw_lrbt_rectangle_filled(SCREEN_WIDTH - 90, SCREEN_WIDTH, 0,
                                          SCREEN_HEIGHT, rgba(VIGNETTE_COLOR, 58))
+
+    def draw_minimap(self):
+        # Background
+        arcade.draw_rectangle_filled(
+            MINIMAP_X + MINIMAP_SIZE // 2,
+            MINIMAP_Y + MINIMAP_SIZE // 2,
+            MINIMAP_SIZE, MINIMAP_SIZE,
+            rgba(PANEL_BG, 200)
+        )
+        arcade.draw_rectangle_outline(
+            MINIMAP_X + MINIMAP_SIZE // 2,
+            MINIMAP_Y + MINIMAP_SIZE // 2,
+            MINIMAP_SIZE, MINIMAP_SIZE,
+            UI_BORDER, 2
+        )
+        # Scale factors
+        scale_x = MINIMAP_SIZE / SCREEN_WIDTH
+        scale_y = MINIMAP_SIZE / SCREEN_HEIGHT
+        # Draw path
+        if self.path_points:
+            mini_points = [(p[0] * scale_x + MINIMAP_X, p[1] * scale_y + MINIMAP_Y)
+                          for p in self.path_points]
+            if len(mini_points) >= 2:
+                arcade.draw_line_strip(point_list=mini_points, color=PATH_COLOR, line_width=3)
+        # Draw towers
+        for tower in self.towers:
+            tx = tower.center_x * scale_x + MINIMAP_X
+            ty = tower.center_y * scale_y + MINIMAP_Y
+            arcade.draw_circle_filled(tx, ty, 2, tower.color)
+        # Draw enemies
+        for enemy in self.enemies:
+            ex = enemy.center_x * scale_x + MINIMAP_X
+            ey = enemy.center_y * scale_y + MINIMAP_Y
+            arcade.draw_circle_filled(ex, ey, 2, ENEMY_COLOR)
+        # Draw build pads
+        for x, y, radius, angle in self.build_pads:
+            mx = x * scale_x + MINIMAP_X
+            my = y * scale_y + MINIMAP_Y
+            arcade.draw_circle_outline(mx, my, 3, rgba((116, 255, 136), 80), 1)
             
     def draw_path(self):
         if len(self.path_points) >= 2:
