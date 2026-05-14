@@ -1320,6 +1320,17 @@ class Game(arcade.Window):
             arcade.draw_ellipse_filled(x, y, radius * 2.2, radius,
                                       rgba((46, 156, 76), 52), math.degrees(angle))
             arcade.draw_circle_outline(x, y, radius, rgba((116, 255, 136), 55), 1)
+        # Highlight build pads during build phase
+        if self.build_phase:
+            for x, y, radius, angle in self.build_pads:
+                is_occupied = any(
+                    math.sqrt((t.center_x - x)**2 + (t.center_y - y)**2) < 20
+                    for t in self.towers
+                )
+                if not is_occupied:
+                    pulse = 30 + math.sin(self.wave * 0.5) * 10
+                    arcade.draw_circle_outline(x, y, radius + 3,
+                                              rgba((116, 255, 136), pulse), 1)
         arcade.draw_text("GREEN CIRCLE", arena_x, arena_y - 6,
                         rgba((96, 255, 126), 42), 24, anchor_x="center")
 
@@ -1431,18 +1442,31 @@ class Game(arcade.Window):
         if not self.is_valid_grid(grid_x, grid_y):
             return
 
+        tower = self.get_tower_at_grid(grid_x, grid_y)
+        if tower:
+            # Show range and info for hovered tower
+            arcade.draw_circle_outline(tower.center_x, tower.center_y, tower.range,
+                                      SELECTED_COLOR, 2)
+            arcade.draw_rectangle_outline(tower.center_x, tower.center_y,
+                                         TILE_SIZE - 6, TILE_SIZE - 6,
+                                         SELECTED_COLOR, 2)
+            # Show tower info tooltip
+            upgrade_cost = tower.upgrade_cost()
+            info_y = tower.center_y + tower.range + 20
+            info_text = f"{tower.name} L{tower.level} Dmg:{tower.damage} Rng:{tower.range}"
+            if upgrade_cost is not None:
+                info_text += f" Upg:{upgrade_cost}g"
+            else:
+                info_text += " MAX"
+            arcade.draw_text(info_text, tower.center_x, info_y,
+                            UI_TEXT_GREEN, 10, anchor_x="center")
+            return
+
+        # Build preview logic
         center_x, center_y = self.tower_center_for_grid(grid_x, grid_y)
         existing = self.get_tower_at_grid(grid_x, grid_y)
         valid, _ = self.can_build_at(grid_x, grid_y)
         preview_color = VALID_BUILD_COLOR if valid else INVALID_BUILD_COLOR
-
-        if existing:
-            arcade.draw_circle_outline(center_x, center_y, existing.range,
-                                      SELECTED_COLOR, 2)
-            arcade.draw_rectangle_outline(center_x, center_y,
-                                         TILE_SIZE - 6, TILE_SIZE - 6,
-                                         SELECTED_COLOR, 2)
-            return
 
         arcade.draw_rectangle_filled(center_x, center_y, TILE_SIZE - 8,
                                     TILE_SIZE - 8, preview_color)
