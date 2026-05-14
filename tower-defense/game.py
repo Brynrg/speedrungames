@@ -345,11 +345,24 @@ class ExplosionEffect:
         self.particles = []
         
         # Create particles
-        for _ in range(12):
+        for _ in range(20):
             p = Particle(x, y, random.choice(EXPLOSION_COLORS), 
                         size=random.uniform(2, 5),
                         speed=random.uniform(1, 4),
                         lifetime=random.randint(15, 30))
+            self.particles.append(p)
+
+        # Create ring particles
+        for i in range(8):
+            angle = math.radians(i * 45)
+            p = Particle(
+                x + math.cos(angle) * 5,
+                y + math.sin(angle) * 5,
+                random.choice(EXPLOSION_COLORS),
+                size=random.uniform(1, 3),
+                speed=random.uniform(3, 6),
+                lifetime=random.randint(10, 20)
+            )
             self.particles.append(p)
             
     def update(self):
@@ -1222,10 +1235,19 @@ class Game(arcade.Window):
         
     def on_draw(self):
         self.clear()
-        
+
         # Update game logic
         self.update(1/60)
-        
+
+        # Apply screen shake
+        if self.screen_shake > 0:
+            shake_x = random.randint(-self.screen_shake, self.screen_shake)
+            shake_y = random.randint(-self.screen_shake, self.screen_shake)
+            arcade.set_viewport(
+                -shake_x, SCREEN_WIDTH - shake_x,
+                -shake_y, SCREEN_HEIGHT - shake_y
+            )
+
         self.draw_background()
         
         # Draw path
@@ -1261,6 +1283,10 @@ class Game(arcade.Window):
             self.draw_game_over()
         elif self.game_state == VICTORY:
             self.draw_victory()
+
+        # Reset viewport after screen shake
+        if self.screen_shake > 0:
+            arcade.set_viewport(0, SCREEN_WIDTH, 0, SCREEN_HEIGHT)
             
     def draw_background(self):
         arcade.draw_rectangle_filled(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2,
@@ -1862,6 +1888,12 @@ class Game(arcade.Window):
                 return
             self.score += 50 + self.wave * 20
             self.wave += 1
+            # Celebration particles
+            for _ in range(15):
+                ex = random.uniform(0, SCREEN_WIDTH)
+                ey = random.uniform(0, SCREEN_HEIGHT)
+                explosion = ExplosionEffect(ex, ey, 30, random.choice(EXPLOSION_COLORS))
+                self.explosions.append(explosion)
             self.begin_build_phase()
             return
             
