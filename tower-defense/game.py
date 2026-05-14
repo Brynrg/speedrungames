@@ -295,6 +295,11 @@ DIFFICULTIES = {
 }
 DEFAULT_DIFFICULTY = "normal"
 
+# Combo system
+COMBO_TIMEOUT = 90
+COMBO_GOLD_BONUS_BASE = 5
+COMBO_GOLD_BONUS_SCALE = 3
+
 
 class Particle:
     """Particle for visual effects - green/yellow sparks."""
@@ -1010,6 +1015,11 @@ class Game(arcade.Window):
         self.difficulty = DEFAULT_DIFFICULTY
         self.difficulty_index = list(DIFFICULTIES.keys()).index(DEFAULT_DIFFICULTY)
 
+        # Combo system
+        self.combo_count = 0
+        self.combo_timer = 0
+        self.combo_gold_bonus = 0
+
         self.path_points = self.make_green_circle_path()
         self.terrain_marks = []
         self.path_stones = []
@@ -1152,6 +1162,9 @@ class Game(arcade.Window):
         self.wave_announcement = "Build Phase"
         self.announcement_timer = 120
         self.tower_selection_timer = 0
+        self.combo_count = 0
+        self.combo_timer = 0
+        self.combo_gold_bonus = 0
         
     def start_wave(self):
         self.current_wave_trait = self.get_wave_trait(self.wave)
@@ -1452,6 +1465,13 @@ class Game(arcade.Window):
                 self.next_wave_trait["color"] if self.build_phase else UI_TEXT_GREEN,
                 11,
             )
+
+        # Combo display
+        if self.combo_count > 1:
+            combo_alpha = min(255, self.combo_timer * 5)
+            combo_text = f"COMBO x{self.combo_count}! +{self.combo_gold_bonus}g"
+            arcade.draw_text(combo_text, SCREEN_WIDTH // 2, SCREEN_HEIGHT - 120,
+                            rgba(UI_TEXT, int(combo_alpha)), 18, anchor_x="center")
 
         if self.status_timer > 0 and self.status_message:
             color = UI_TEXT_RED if "Cannot" in self.status_message or "Need" in self.status_message else UI_TEXT
@@ -1862,10 +1882,16 @@ class Game(arcade.Window):
         for enemy in self.enemies:
             if not enemy.active:
                 if enemy.health <= 0:
+                    # Combo tracking
+                    self.combo_count += 1
+                    self.combo_timer = COMBO_TIMEOUT
+                    combo_bonus = COMBO_GOLD_BONUS_BASE + (self.combo_count - 1) * COMBO_GOLD_BONUS_SCALE
                     self.score += (
                         12 + self.wave * 3 +
-                        self.current_wave_trait["bounty_bonus"]
+                        self.current_wave_trait["bounty_bonus"] +
+                        combo_bonus
                     )
+                    self.combo_gold_bonus = combo_bonus
                     self.play_sound("kill")
                     # Create small death effect
                     explosion = ExplosionEffect(enemy.center_x, enemy.center_y, 20, ENEMY_COLOR)
@@ -1894,7 +1920,14 @@ class Game(arcade.Window):
         # Screen shake decay
         if self.screen_shake > 0:
             self.screen_shake -= 1
-            
+
+        # Combo decay
+        if self.combo_timer > 0:
+            self.combo_timer -= 1
+        else:
+            self.combo_count = 0
+            self.combo_gold_bonus = 0
+
         # Announcement timer
         if self.announcement_timer > 0:
             self.announcement_timer -= 1
