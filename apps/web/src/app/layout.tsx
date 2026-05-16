@@ -23,6 +23,7 @@ export default function RootLayout({
             <nav className="site-nav" aria-label="Primary">
               <Link href="/">Home</Link>
               <Link href="/games/tower-wars">Tower Wars</Link>
+              <Link href="/games/tower-wars-2">Tower Wars II</Link>
               <Link href="/pokemonspeedrungen1">Pokémon Gen 1</Link>
             </nav>
           </div>
