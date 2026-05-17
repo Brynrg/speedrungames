@@ -16,6 +16,14 @@ export const games: Game[] = [
     emoji: "🛡️",
   },
   {
+    slug: "tower-wars-2",
+    title: "Tower Wars II",
+    description:
+      "Branching tower upgrades, balanced enemy waves, and a fresh take on maze TD.",
+    href: "/games/tower-wars-2",
+    emoji: "🏰",
+  },
+  {
     slug: "pokemonspeedrungen1",
     title: "Pokémon Speedrun Gen 1",
     description:

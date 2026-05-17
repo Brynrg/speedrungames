@@ -11,8 +11,23 @@ const bestEl = document.getElementById("best");
 const speedEl = document.getElementById("speed");
 const incomeEl = document.getElementById("income");
 const incomeTickEl = document.getElementById("incomeTick");
+const nextWaveBtn = document.getElementById("nextWaveBtn");
+const speedBtn = document.getElementById("speedBtn");
+const menuBtn = document.getElementById("menuBtn");
 const waveStatusEl = document.getElementById("waveStatus");
 const tooltipBoxEl = document.getElementById("tooltipBox");
+const menuOverlayEl = document.getElementById("menuOverlay");
+const menuResumeBtn = document.getElementById("menuResume");
+const menuRestartBtn = document.getElementById("menuRestart");
+const menuHomeBtn = document.getElementById("menuHome");
+const quickModeEl = document.getElementById("quickMode");
+const quickStateEl = document.getElementById("quickState");
+const quickWaveTagEl = document.getElementById("quickWaveTag");
+const quickSendsEl = document.getElementById("quickSends");
+const miniMapEl = document.getElementById("miniMap");
+const miniMapCtx = miniMapEl ? miniMapEl.getContext("2d") : null;
+const duelBoardCardEl = document.getElementById("duelBoardCard");
+const duelBoardBodyEl = document.getElementById("duelBoardBody");
 
 const startWaveBtn = document.getElementById("startWave");
 const pauseGameBtn = document.getElementById("pauseGame");
@@ -57,7 +72,11 @@ const selRangeEl = document.getElementById("selRange");
 const selRateEl = document.getElementById("selRate");
 const selBranchEl = document.getElementById("selBranch");
 const selAuraEl = document.getElementById("selAura");
+const selTitleEl = document.getElementById("selTitle");
+const selSubEl = document.getElementById("selSub");
 const towerButtons = [...document.querySelectorAll(".tower-btn")];
+const commandTabButtons = [...document.querySelectorAll(".command-tab")];
+const commandPanels = [...document.querySelectorAll(".command-panel")];
 const sendButtons = {
   runner: sendRunnerBtn,
   armor: sendArmorBtn,
@@ -67,9 +86,12 @@ const sendButtons = {
   miniboss: sendMiniBossBtn,
 };
 const CONTROL_TOOLTIPS = {
+  nextWaveBtn: "Start the next wave when you are ready.",
+  speedBtn: "Cycle game speed: 1x, 2x, 3x, 4x, 5x.",
+  menuBtn: "Pause and open menu options.",
   startWave: "Start the next wave when you are ready.",
   pauseGame: "Pause or resume the game simulation.",
-  speedGame: "Cycle game speed: 1x, 2x, 3x.",
+  speedGame: "Cycle game speed: 1x, 2x, 3x, 4x, 5x.",
   autoWave: "Auto-start the next wave after a clear.",
   modeClassic: "Classic mode: fixed creep path.",
   modeMaze: "Maze mode: build towers to shape the path.",
@@ -90,6 +112,9 @@ const CONTROL_TOOLTIPS = {
   saveRun: "Save current run to local storage.",
   loadRun: "Load the last saved run.",
   newRun: "Start a fresh run.",
+  menuResume: "Close menu and resume the game.",
+  menuRestart: "Start a fresh run immediately.",
+  menuHome: "Return to the Speedrun Games home page.",
 };
 
 const TILE = 48;
@@ -101,7 +126,55 @@ const CAMERA_KEY_PAN_SPEED = 560;
 
 const RUN_SAVE_KEY = "green_circle_td_run_v2";
 const HIGH_SCORE_KEY = "green_circle_td_highscores_v2";
-const SPEED_LEVELS = [1, 2, 3];
+const SPEED_LEVELS = [1, 2, 3, 4, 5];
+const HOME_URL = window.SPEEDRUN_HOME_URL || "/";
+const COMMAND_TABS = ["build", "wave", "selection", "send"];
+const REQUIRED_DOM_REFS = [
+  ["game", canvas],
+  ["waveStatus", waveStatusEl],
+  ["tooltipBox", tooltipBoxEl],
+  ["startWave", startWaveBtn],
+  ["pauseGame", pauseGameBtn],
+  ["speedGame", speedGameBtn],
+  ["autoWave", autoWaveBtn],
+  ["modeClassic", modeClassicBtn],
+  ["modeMaze", modeMazeBtn],
+  ["modeDuel", modeDuelBtn],
+  ["saveRun", saveRunBtn],
+  ["loadRun", loadRunBtn],
+  ["newRun", newRunBtn],
+  ["upgradeTower", upgradeTowerBtn],
+  ["castAbility", castAbilityBtn],
+  ["branchA", branchAButton],
+  ["branchB", branchBButton],
+  ["sendRunner", sendRunnerBtn],
+  ["sendArmor", sendArmorBtn],
+  ["sendAir", sendAirBtn],
+  ["sendBreaker", sendBreakerBtn],
+  ["sendSplitter", sendSplitterBtn],
+  ["sendMiniBoss", sendMiniBossBtn],
+  ["clearSends", clearSendsBtn],
+];
+
+function runStartupGuardrails() {
+  const missing = REQUIRED_DOM_REFS.filter(([, ref]) => !ref).map(([id]) => id);
+  if (!ctx) {
+    missing.push("2d-canvas-context");
+  }
+  if (missing.length > 0) {
+    const msg = `[Guardrail] Missing required DOM hooks: ${missing.join(", ")}`;
+    console.error(msg);
+    throw new Error(msg);
+  }
+  if (!Array.isArray(SPEED_LEVELS) || SPEED_LEVELS[0] !== 1 || SPEED_LEVELS[SPEED_LEVELS.length - 1] < 5) {
+    const msg = `[Guardrail] SPEED_LEVELS must start at 1 and include 5x. Got: ${JSON.stringify(SPEED_LEVELS)}`;
+    console.error(msg);
+    throw new Error(msg);
+  }
+  if (!RUN_SAVE_KEY.endsWith("_v2") || !HIGH_SCORE_KEY.endsWith("_v2")) {
+    console.warn(`[Guardrail] Save keys changed: run=${RUN_SAVE_KEY}, highscores=${HIGH_SCORE_KEY}`);
+  }
+}
 
 const DAMAGE_LABELS = {
   piercing: "Piercing",
@@ -226,13 +299,16 @@ const DIR4 = [
   [-1, 0],
   [0, -1],
 ];
-const FIT_ZOOM = Math.max(canvas.width / WIDTH, canvas.height / HEIGHT);
+function getFitZoom() {
+  return Math.max(canvas.width / WIDTH, canvas.height / HEIGHT);
+}
+
 const camera = {
   x: WIDTH / 2,
   y: HEIGHT / 2,
-  zoom: FIT_ZOOM,
-  minZoom: Math.max(0.45, FIT_ZOOM * 0.85),
-  maxZoom: 2,
+  zoom: getFitZoom(),
+  minZoom: getFitZoom(),
+  maxZoom: 5,
 };
 const keyState = {
   left: false,
@@ -610,9 +686,11 @@ const game = {
   gameOver: false,
   scoreRecorded: false,
   paused: false,
+  menuOpen: false,
   speedIndex: 0,
   autoWaveEnabled: true,
   autoWaveTimer: 0,
+  commandTab: "build",
   income: 2,
   incomeTimer: 0,
   incomeInterval: 10,
@@ -629,6 +707,79 @@ const projectiles = [];
 const effects = [];
 const areaEffects = [];
 const buffZones = [];
+const statusBanners = [];
+
+function createPlayerState(id) {
+  return {
+    id,
+    gold: 230,
+    lives: 20,
+    score: 0,
+    income: 2,
+    incomeTimer: 0,
+    incomeInterval: 10,
+    sendQueue: [],
+  };
+}
+
+function getPlayerState(id) {
+  if (!game.duelMode) {
+    return game;
+  }
+  return game.players[id] || game.players[0];
+}
+
+function getActivePlayerState() {
+  return getPlayerState(game.activePlayer);
+}
+
+function getEnemyDefenderState(enemy) {
+  if (!game.duelMode) {
+    return game;
+  }
+  if (enemy.targetPlayer !== undefined) {
+    return getPlayerState(enemy.targetPlayer);
+  }
+  return getPlayerState(enemy.lane || 0);
+}
+
+function getEnemyLane(enemy) {
+  if (!game.duelMode) {
+    return 0;
+  }
+  if (enemy.targetPlayer !== undefined) {
+    return enemy.targetPlayer;
+  }
+  return enemy.lane || 0;
+}
+
+function getLaneOwnerForCell(cx, cy) {
+  if (!game.duelMode) {
+    return game.activePlayer || 0;
+  }
+  return cy < Math.floor(ROWS / 2) ? 0 : 1;
+}
+
+function syncLegacyEconomyFromActive() {
+  if (!game.duelMode) {
+    return;
+  }
+  const active = getActivePlayerState();
+  game.gold = active.gold;
+  game.lives = active.lives;
+  game.score = active.score;
+  game.income = active.income;
+  game.incomeTimer = active.incomeTimer;
+  game.incomeInterval = active.incomeInterval;
+  game.sendQueue = active.sendQueue;
+}
+
+function syncActiveToLegacyIfDuel() {
+  if (!game.duelMode) {
+    return;
+  }
+  syncLegacyEconomyFromActive();
+}
 
 function createPlayerState(id) {
   return {
@@ -1721,11 +1872,26 @@ function saveHighScores() {
 }
 
 function defaultTooltip() {
-  return "Hover buttons, towers, and enemies for detail. Scroll pans, ctrl/cmd + wheel zooms.";
+  return "Hover buttons, towers, and enemies for detail. Wheel zooms, Shift+Wheel pans horizontally.";
 }
 
 function setTooltip(text) {
   tooltipBoxEl.textContent = text || defaultTooltip();
+}
+
+function setCommandTab(tab, force = false) {
+  const next = COMMAND_TABS.includes(tab) ? tab : "build";
+  if (!force && game.commandTab === next) {
+    return;
+  }
+  game.commandTab = next;
+  for (const button of commandTabButtons) {
+    button.classList.toggle("active", button.dataset.commandTab === next);
+  }
+  for (const panel of commandPanels) {
+    const panelTab = panel.dataset.commandPanel;
+    panel.classList.toggle("hidden", panelTab !== next);
+  }
 }
 
 function getButtonTooltip(button) {
@@ -1742,8 +1908,306 @@ function getButtonTooltip(button) {
 }
 
 function status(text) {
+  if (!text) {
+    return;
+  }
   game.message = text;
   waveStatusEl.textContent = text;
+  statusBanners.unshift({ text, life: 3.2 });
+  if (statusBanners.length > 4) {
+    statusBanners.length = 4;
+  }
+}
+
+function isSendLocked() {
+  return game.waveActive || game.gameOver;
+}
+
+function getIncomePayout(state = game) {
+  return Math.max(0, Math.floor(state.income));
+}
+
+function buildRunnerSendUnits(wave) {
+  const w = Math.max(1, wave);
+  const units = [];
+  for (let i = 0; i < 6; i += 1) {
+    units.push({
+      name: "Runner",
+      armorType: "light",
+      hp: 28 + w * 8,
+      speed: 110 + w * 2 + (i % 2 === 0 ? 0 : 4),
+      reward: 4 + Math.floor(w * 0.7),
+      leakDamage: 1,
+      color: "#d8897a",
+      rim: "#f3c9b4",
+    });
+  }
+  return units;
+}
+
+function buildArmorSendUnits(wave) {
+  const w = Math.max(1, wave);
+  const units = [];
+  for (let i = 0; i < 4; i += 1) {
+    units.push({
+      name: "Armor Guard",
+      armorType: "heavy",
+      hp: 95 + w * 20,
+      speed: 52 + w,
+      reward: 7 + w,
+      leakDamage: 2,
+      color: "#8f6558",
+      rim: "#e1c49c",
+    });
+  }
+  return units;
+}
+
+function buildAirSendUnits(wave) {
+  const w = Math.max(1, wave);
+  const units = [];
+  for (let i = 0; i < 4; i += 1) {
+    units.push({
+      name: "Harpy Scout",
+      armorType: "light",
+      hp: 70 + w * 16,
+      speed: 96 + w * 2,
+      reward: 8 + w,
+      leakDamage: 1,
+      flying: true,
+      color: "#76a4d6",
+      rim: "#d5ebff",
+    });
+  }
+  return units;
+}
+
+function buildBreakerSendUnits(wave) {
+  const w = Math.max(1, wave);
+  return [
+    {
+      name: "Send Spellbreaker",
+      armorType: "heavy",
+      hp: 220 + w * 28,
+      speed: 64 + Math.floor(w * 1.2),
+      reward: 18 + w,
+      leakDamage: 2,
+      magicImmune: true,
+      color: "#7e7b8f",
+      rim: "#d9d5ff",
+    },
+  ];
+}
+
+function buildSplitterSendUnits(wave) {
+  const w = Math.max(1, wave);
+  const depth = w >= 12 ? 2 : 1;
+  return [
+    {
+      name: "Send Broodling",
+      armorType: "medium",
+      hp: 110 + w * 20,
+      speed: 72 + w,
+      reward: 12 + w,
+      leakDamage: 1,
+      splitter: true,
+      splitDepth: depth,
+      color: "#cf8a67",
+      rim: "#f8d8b6",
+    },
+    {
+      name: "Send Broodling",
+      armorType: "medium",
+      hp: 110 + w * 20,
+      speed: 72 + w,
+      reward: 12 + w,
+      leakDamage: 1,
+      splitter: true,
+      splitDepth: depth,
+      color: "#cf8a67",
+      rim: "#f8d8b6",
+    },
+  ];
+}
+
+function buildMiniBossSendUnits(wave) {
+  const w = Math.max(1, wave);
+  return [
+    {
+      name: "Mini Tyrant",
+      armorType: "fortified",
+      hp: 520 + w * 110,
+      speed: 48 + w * 0.6,
+      reward: 60 + w * 8,
+      leakDamage: 3,
+      radius: 19,
+      color: "#764940",
+      rim: "#f2c894",
+      slowImmune: w >= 16,
+    },
+  ];
+}
+
+function makeSendUnits(key, wave) {
+  if (key === "runner") {
+    return buildRunnerSendUnits(wave);
+  }
+  if (key === "armor") {
+    return buildArmorSendUnits(wave);
+  }
+  if (key === "air") {
+    return buildAirSendUnits(wave);
+  }
+  if (key === "breaker") {
+    return buildBreakerSendUnits(wave);
+  }
+  if (key === "splitter") {
+    return buildSplitterSendUnits(wave);
+  }
+  if (key === "miniboss") {
+    return buildMiniBossSendUnits(wave);
+  }
+  return [];
+}
+
+function queueSend(key) {
+  const option = SEND_OPTIONS[key];
+  if (!option) {
+    return;
+  }
+
+  if (isSendLocked()) {
+    status("Sends can only be managed between waves.");
+    return;
+  }
+
+  const player = getActivePlayerState();
+
+  if (player.gold < option.cost) {
+    status(`Not enough gold for ${option.label}.`);
+    return;
+  }
+
+  player.gold -= option.cost;
+  player.income += option.incomeGain;
+  player.sendQueue.push({
+    key: option.id,
+    label: option.label,
+    cost: option.cost,
+    incomeGain: option.incomeGain,
+    wavePurchased: game.wave,
+  });
+
+  status(
+    game.duelMode
+      ? `${option.label} queued by P${game.activePlayer + 1}. Income +${option.incomeGain}.`
+      : `${option.label} queued for next wave. Income +${option.incomeGain}.`
+  );
+  syncActiveToLegacyIfDuel();
+  saveRun(false);
+}
+
+function clearSendQueue() {
+  if (isSendLocked()) {
+    status("Cannot clear sends during an active wave.");
+    return;
+  }
+
+  const player = getActivePlayerState();
+  if (player.sendQueue.length === 0) {
+    status("No sends queued.");
+    return;
+  }
+
+  let refund = 0;
+  let incomeBack = 0;
+  for (const entry of player.sendQueue) {
+    refund += entry.cost || 0;
+    incomeBack += entry.incomeGain || 0;
+  }
+
+  player.gold += refund;
+  player.income = Math.max(0, player.income - incomeBack);
+  player.sendQueue = [];
+  status(
+    game.duelMode
+      ? `P${game.activePlayer + 1} queue cleared. Refunded ${refund}g and removed ${incomeBack} income.`
+      : `Send queue cleared. Refunded ${refund}g and removed ${incomeBack} income.`
+  );
+  syncActiveToLegacyIfDuel();
+  saveRun(false);
+}
+
+function consumeSendQueueForWave(state, wave, laneTarget = 0) {
+  if (!state.sendQueue || state.sendQueue.length === 0) {
+    return { units: [], summary: "" };
+  }
+
+  const units = [];
+  const counts = {};
+
+  for (const entry of state.sendQueue) {
+    const option = SEND_OPTIONS[entry.key];
+    if (!option) {
+      continue;
+    }
+    counts[option.label] = (counts[option.label] || 0) + 1;
+    const pack = makeSendUnits(option.id, wave);
+    for (const unit of pack) {
+      units.push({ ...unit, lane: laneTarget, targetPlayer: laneTarget });
+    }
+  }
+
+  state.sendQueue = [];
+  const summary = Object.entries(counts)
+    .map(([label, count]) => `${label} x${count}`)
+    .join(", ");
+
+  return { units, summary };
+}
+
+function updateSendUi() {
+  const locked = isSendLocked();
+  const player = getActivePlayerState();
+
+  for (const [key, button] of Object.entries(sendButtons)) {
+    if (!button) {
+      continue;
+    }
+    const option = SEND_OPTIONS[key];
+    const cannotAfford = player.gold < option.cost;
+    button.disabled = locked || cannotAfford;
+  }
+
+  if (clearSendsBtn) {
+    clearSendsBtn.disabled = locked || player.sendQueue.length === 0;
+  }
+
+  if (!sendQueueEl) {
+    return;
+  }
+
+  if (player.sendQueue.length === 0) {
+    sendQueueEl.textContent = "No sends queued.";
+    return;
+  }
+
+  const grouped = {};
+  for (const entry of player.sendQueue) {
+    const key = entry.key;
+    if (!grouped[key]) {
+      grouped[key] = { label: entry.label, count: 0, income: 0 };
+    }
+    grouped[key].count += 1;
+    grouped[key].income += entry.incomeGain || 0;
+  }
+
+  const parts = [];
+  for (const key of Object.keys(grouped)) {
+    const g = grouped[key];
+    parts.push(`<span class="send-chip">${g.label} x${g.count} (+${g.income})</span>`);
+  }
+  sendQueueEl.innerHTML = parts.join("");
 }
 
 function isSendLocked() {
@@ -2167,6 +2631,9 @@ function clamp(value, min, max) {
 }
 
 function clampCamera() {
+  camera.minZoom = Math.max(canvas.width / WIDTH, canvas.height / HEIGHT);
+  camera.maxZoom = Math.max(2.8, camera.minZoom * 2.1);
+  camera.zoom = clamp(camera.zoom, camera.minZoom, camera.maxZoom);
   const halfW = canvas.width / (2 * camera.zoom);
   const halfH = canvas.height / (2 * camera.zoom);
 
@@ -2204,6 +2671,149 @@ function getScreenPos(event) {
     x: (event.clientX - rect.left) * scaleX,
     y: (event.clientY - rect.top) * scaleY,
   };
+}
+
+function resizeCanvasToViewport() {
+  const rect = canvas.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const nextWidth = Math.max(320, Math.round(rect.width * dpr));
+  const nextHeight = Math.max(240, Math.round(rect.height * dpr));
+  if (canvas.width === nextWidth && canvas.height === nextHeight) {
+    return;
+  }
+  canvas.width = nextWidth;
+  canvas.height = nextHeight;
+  camera.minZoom = getFitZoom();
+  camera.zoom = clamp(camera.zoom, camera.minZoom, camera.maxZoom);
+  clampCamera();
+}
+
+function resizeMiniMapCanvas() {
+  if (!miniMapEl || !miniMapCtx) {
+    return;
+  }
+  const rect = miniMapEl.getBoundingClientRect();
+  if (!rect.width || !rect.height) {
+    return;
+  }
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const nextWidth = Math.max(120, Math.round(rect.width * dpr));
+  const nextHeight = Math.max(90, Math.round(rect.height * dpr));
+  if (miniMapEl.width !== nextWidth || miniMapEl.height !== nextHeight) {
+    miniMapEl.width = nextWidth;
+    miniMapEl.height = nextHeight;
+  }
+}
+
+function drawMiniMapPolyline(points, color, width = 2) {
+  if (!miniMapCtx || points.length < 2) {
+    return;
+  }
+  miniMapCtx.beginPath();
+  for (let i = 0; i < points.length; i += 1) {
+    const px = (points[i].x / WIDTH) * miniMapEl.width;
+    const py = (points[i].y / HEIGHT) * miniMapEl.height;
+    if (i === 0) {
+      miniMapCtx.moveTo(px, py);
+    } else {
+      miniMapCtx.lineTo(px, py);
+    }
+  }
+  miniMapCtx.strokeStyle = color;
+  miniMapCtx.lineWidth = width;
+  miniMapCtx.stroke();
+}
+
+function drawMiniMap() {
+  if (!miniMapEl || !miniMapCtx) {
+    return;
+  }
+  resizeMiniMapCanvas();
+  const w = miniMapEl.width;
+  const h = miniMapEl.height;
+
+  miniMapCtx.clearRect(0, 0, w, h);
+  miniMapCtx.fillStyle = "#11301a";
+  miniMapCtx.fillRect(0, 0, w, h);
+
+  const gridStepX = w / 8;
+  const gridStepY = h / 8;
+  miniMapCtx.strokeStyle = "rgba(126, 165, 102, 0.2)";
+  miniMapCtx.lineWidth = 1;
+  for (let gx = 1; gx < 8; gx += 1) {
+    const x = Math.round(gx * gridStepX) + 0.5;
+    miniMapCtx.beginPath();
+    miniMapCtx.moveTo(x, 0);
+    miniMapCtx.lineTo(x, h);
+    miniMapCtx.stroke();
+  }
+  for (let gy = 1; gy < 8; gy += 1) {
+    const y = Math.round(gy * gridStepY) + 0.5;
+    miniMapCtx.beginPath();
+    miniMapCtx.moveTo(0, y);
+    miniMapCtx.lineTo(w, y);
+    miniMapCtx.stroke();
+  }
+
+  if (game.mode === "duel") {
+    drawMiniMapPolyline(DUEL_WAYPOINTS[0], "rgba(153, 214, 130, 0.9)", 2.2);
+    drawMiniMapPolyline(DUEL_WAYPOINTS[1], "rgba(130, 178, 228, 0.85)", 2.2);
+  } else if (game.mode === "maze") {
+    const mazePoints = getMazePreviewPoints();
+    if (mazePoints.length > 1) {
+      drawMiniMapPolyline(mazePoints, "rgba(153, 214, 130, 0.9)", 2.2);
+    } else {
+      drawMiniMapPolyline(WAYPOINTS, "rgba(153, 214, 130, 0.7)", 2);
+    }
+  } else {
+    drawMiniMapPolyline(WAYPOINTS, "rgba(153, 214, 130, 0.9)", 2.2);
+  }
+
+  for (const tower of towers) {
+    const tx = (tower.x / WIDTH) * w;
+    const ty = (tower.y / HEIGHT) * h;
+    miniMapCtx.fillStyle = tower.owner === 1 ? "#7fc3ff" : "#9be181";
+    miniMapCtx.fillRect(tx - 1.5, ty - 1.5, 3, 3);
+  }
+
+  for (const enemy of enemies) {
+    const ex = (enemy.x / WIDTH) * w;
+    const ey = (enemy.y / HEIGHT) * h;
+    miniMapCtx.fillStyle = enemy.flying ? "#ffd28f" : "#ff8a7a";
+    miniMapCtx.beginPath();
+    miniMapCtx.arc(ex, ey, enemy.isBoss ? 2.4 : 1.7, 0, Math.PI * 2);
+    miniMapCtx.fill();
+  }
+
+  const viewWorldW = canvas.width / camera.zoom;
+  const viewWorldH = canvas.height / camera.zoom;
+  const vx = ((camera.x - viewWorldW / 2) / WIDTH) * w;
+  const vy = ((camera.y - viewWorldH / 2) / HEIGHT) * h;
+  const vw = (viewWorldW / WIDTH) * w;
+  const vh = (viewWorldH / HEIGHT) * h;
+  miniMapCtx.strokeStyle = "#f2d486";
+  miniMapCtx.lineWidth = 1.4;
+  miniMapCtx.strokeRect(vx, vy, vw, vh);
+}
+
+function handleMiniMapPointer(event) {
+  if (!miniMapEl || !miniMapCtx) {
+    return;
+  }
+  if (event.button !== 0) {
+    return;
+  }
+  const rect = miniMapEl.getBoundingClientRect();
+  if (!rect.width || !rect.height) {
+    return;
+  }
+  const nx = clamp((event.clientX - rect.left) / rect.width, 0, 1);
+  const ny = clamp((event.clientY - rect.top) / rect.height, 0, 1);
+  camera.x = nx * WIDTH;
+  camera.y = ny * HEIGHT;
+  clampCamera();
+  setTooltip("Camera centered from minimap.");
+  event.preventDefault();
 }
 
 function getTowerAtCell(cx, cy) {
@@ -2871,6 +3481,12 @@ function updateSelectionPanel() {
     selectionNoneEl.classList.remove("hidden");
     selectionDetailsEl.classList.add("hidden");
     branchControlsEl.classList.add("hidden");
+    if (selTitleEl) {
+      selTitleEl.textContent = "Tower";
+    }
+    if (selSubEl) {
+      selSubEl.textContent = "Role and element";
+    }
     return;
   }
 
@@ -2885,6 +3501,13 @@ function updateSelectionPanel() {
   selRateEl.textContent = `${(1 / tower.effectiveFireRate).toFixed(2)} /s`;
   selBranchEl.textContent = tower.branchData?.name || "None";
   selAuraEl.textContent = tower.branchData?.aura?.name || tower.branchData?.auraSlow?.name || "None";
+  if (selTitleEl) {
+    selTitleEl.textContent = tower.data.name;
+  }
+  if (selSubEl) {
+    const roles = tower.data.roleTags ? tower.data.roleTags.join("/") : "Tower";
+    selSubEl.textContent = `${tower.data.element || "Neutral"} ${roles} | ${tower.canHitAir ? "Air" : "Ground"}`;
+  }
   const ownerState = game.duelMode ? getPlayerState(tower.owner) : game;
   const controllable = !game.duelMode || tower.owner === game.activePlayer;
 
@@ -2985,6 +3608,7 @@ function getRunSnapshot() {
       spawnInterval: game.spawnInterval,
       waveTag: game.waveTag,
       selectedType: game.selectedType,
+      commandTab: game.commandTab,
       paused: game.paused,
       speedIndex: game.speedIndex,
       autoWaveEnabled: game.autoWaveEnabled,
@@ -3066,6 +3690,7 @@ function loadRun(showMessage = true) {
     game.spawnInterval = parsed.game.spawnInterval;
     game.waveTag = parsed.game.waveTag;
     game.selectedType = parsed.game.selectedType || "arrow";
+    game.commandTab = COMMAND_TABS.includes(parsed.game.commandTab) ? parsed.game.commandTab : "build";
     game.mode = parsed.game.mode === "maze" ? "maze" : parsed.game.mode === "duel" ? "duel" : "classic";
     game.duelMode = game.mode === "duel" || !!parsed.game.duelMode;
     if (game.duelMode && game.mode !== "duel") {
@@ -3073,6 +3698,7 @@ function loadRun(showMessage = true) {
     }
     game.activePlayer = parsed.game.activePlayer === 1 ? 1 : 0;
     game.paused = !!parsed.game.paused;
+    game.menuOpen = false;
     game.speedIndex = Math.max(0, Math.min(SPEED_LEVELS.length - 1, parsed.game.speedIndex || 0));
     game.autoWaveEnabled = parsed.game.autoWaveEnabled !== undefined ? !!parsed.game.autoWaveEnabled : true;
     game.autoWaveTimer = Math.max(0, parsed.game.autoWaveTimer || 0);
@@ -3119,6 +3745,10 @@ function loadRun(showMessage = true) {
     setSelectedType(game.selectedType);
     rebuildMazeDistances();
     clampCamera();
+    if (menuOverlayEl) {
+      menuOverlayEl.classList.add("hidden");
+      menuOverlayEl.setAttribute("aria-hidden", "true");
+    }
     status(showMessage ? "Run loaded." : game.message);
     return true;
   } catch {
@@ -3161,12 +3791,14 @@ function resetRun(options = {}) {
   game.waveTag = "";
   game.mode = modeValue;
   game.selectedType = "arrow";
+  game.commandTab = "build";
   game.selectedTower = null;
   game.hoverCell = null;
   game.hoverEnemy = null;
   game.gameOver = false;
   game.scoreRecorded = false;
   game.paused = false;
+  game.menuOpen = false;
   game.speedIndex = 0;
   game.autoWaveEnabled = autoWaveValue;
   game.autoWaveTimer = 0;
@@ -3176,15 +3808,56 @@ function resetRun(options = {}) {
   syncLegacyEconomyFromActive();
   camera.x = WIDTH / 2;
   camera.y = HEIGHT / 2;
-  camera.zoom = FIT_ZOOM;
+  camera.zoom = getFitZoom();
   clampCamera();
+  if (menuOverlayEl) {
+    menuOverlayEl.classList.add("hidden");
+    menuOverlayEl.setAttribute("aria-hidden", "true");
+  }
 
   rebuildMazeDistances();
   setSelectedType(game.selectedType);
   status(game.message);
 }
 
+function openMenu() {
+  if (!menuOverlayEl || game.menuOpen) {
+    return;
+  }
+  game.menuOpen = true;
+  game.paused = true;
+  menuOverlayEl.classList.remove("hidden");
+  menuOverlayEl.setAttribute("aria-hidden", "false");
+  status("Menu opened.");
+}
+
+function closeMenu(options = {}) {
+  const resume = options.resume !== undefined ? !!options.resume : true;
+  const silent = !!options.silent;
+  if (!menuOverlayEl || !game.menuOpen) {
+    return;
+  }
+  game.menuOpen = false;
+  menuOverlayEl.classList.add("hidden");
+  menuOverlayEl.setAttribute("aria-hidden", "true");
+  if (resume && !game.gameOver) {
+    game.paused = false;
+  }
+  if (!silent) {
+    status(game.paused ? "Game paused." : "Game resumed.");
+  }
+}
+
+function restartRun() {
+  resetRun();
+  saveRun(false);
+  status("New run started.");
+}
+
 function togglePause() {
+  if (game.menuOpen) {
+    closeMenu({ resume: true, silent: true });
+  }
   if (game.gameOver) {
     return;
   }
@@ -3739,13 +4412,41 @@ function drawEnemy(enemy) {
     ctx.stroke();
   }
 
-  const barW = enemy.isBoss ? 42 : 28;
+  const barW = enemy.isBoss ? 46 : 30;
   const hpRatio = Math.max(0, enemy.hp / enemy.maxHp);
   ctx.fillStyle = "rgba(15, 18, 12, 0.88)";
-  ctx.fillRect(enemy.x - barW / 2, enemy.y - enemy.radius - 12, barW, 4);
+  ctx.fillRect(enemy.x - barW / 2, enemy.y - enemy.radius - 14, barW, 5.2);
 
   ctx.fillStyle = enemy.isBoss ? "#f9c76d" : enemy.flying ? "#9dd8ff" : "#98d872";
-  ctx.fillRect(enemy.x - barW / 2 + 0.7, enemy.y - enemy.radius - 11.3, (barW - 1.4) * hpRatio, 2.6);
+  ctx.fillRect(enemy.x - barW / 2 + 0.8, enemy.y - enemy.radius - 13.1, (barW - 1.6) * hpRatio, 3.4);
+
+  const statusBadges = [];
+  if (enemy.slowTimer > 0 || enemy.auraSlowFactor < 0.999) {
+    statusBadges.push({ text: "S", color: "#9adfff" });
+  }
+  if (enemy.burnTimer > 0) {
+    statusBadges.push({ text: "B", color: "#ffb38a" });
+  }
+  if (enemy.magicImmune) {
+    statusBadges.push({ text: "M", color: "#d0bcff" });
+  }
+  if (enemy.isBoss) {
+    statusBadges.push({ text: "K", color: "#f4d577" });
+  }
+  for (let i = 0; i < statusBadges.length; i += 1) {
+    const badge = statusBadges[i];
+    const bx = enemy.x - barW / 2 + i * 10;
+    const by = enemy.y - enemy.radius - 22;
+    ctx.fillStyle = "rgba(9, 16, 9, 0.84)";
+    ctx.fillRect(bx, by, 9, 9);
+    ctx.strokeStyle = "rgba(201, 222, 161, 0.4)";
+    ctx.lineWidth = 0.8;
+    ctx.strokeRect(bx + 0.4, by + 0.4, 8.2, 8.2);
+    ctx.fillStyle = badge.color;
+    ctx.font = "700 8px Rajdhani, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(badge.text, bx + 4.5, by + 7);
+  }
 
   if (game.hoverEnemy === enemy) {
     ctx.beginPath();
@@ -3821,6 +4522,20 @@ function drawEffect(effect) {
 function drawOverlay() {
   const viewW = canvas.width;
   const viewH = canvas.height;
+  if (statusBanners.length > 0) {
+    ctx.textAlign = "center";
+    ctx.font = "700 14px Rajdhani, sans-serif";
+    for (let i = 0; i < statusBanners.length; i += 1) {
+      const banner = statusBanners[i];
+      const alpha = clamp(banner.life / 3.2, 0, 1);
+      const y = 44 + i * 22;
+      ctx.fillStyle = `rgba(8, 14, 8, ${0.56 * alpha})`;
+      ctx.fillRect(viewW / 2 - 220, y - 13, 440, 18);
+      ctx.fillStyle = `rgba(245, 229, 154, ${0.96 * alpha})`;
+      ctx.fillText(banner.text, viewW / 2, y);
+    }
+  }
+
   if (game.paused && !game.gameOver) {
     ctx.fillStyle = "rgba(8, 11, 8, 0.4)";
     ctx.fillRect(0, 0, viewW, viewH);
@@ -3852,7 +4567,17 @@ function drawOverlay() {
   ctx.fillText("Use New Run or Load Run to continue.", viewW / 2, viewH / 2 + 50);
 }
 
+function updateStatusBanners(dt) {
+  for (let i = statusBanners.length - 1; i >= 0; i -= 1) {
+    statusBanners[i].life -= dt;
+    if (statusBanners[i].life <= 0) {
+      statusBanners.splice(i, 1);
+    }
+  }
+}
+
 function update(dt) {
+  updateStatusBanners(dt);
   updateCameraFromKeys(dt);
 
   if (game.gameOver || game.paused) {
@@ -4023,6 +4748,8 @@ function render() {
 }
 
 function syncUi() {
+  setCommandTab(game.commandTab);
+
   if (game.duelMode) {
     syncLegacyEconomyFromActive();
     game.score = game.players[0].score + game.players[1].score;
@@ -4039,13 +4766,53 @@ function syncUi() {
 
   const bestWave = highScores[0]?.wave || game.bestWave || 0;
   game.bestWave = bestWave;
-  bestEl.textContent = `W${bestWave}`;
+  if (bestEl) {
+    bestEl.textContent = `W${bestWave}`;
+  }
 
-  speedEl.textContent = `${SPEED_LEVELS[game.speedIndex]}x`;
+  if (speedEl) {
+    speedEl.textContent = `${SPEED_LEVELS[game.speedIndex]}x`;
+  }
   incomeEl.textContent = String(Math.floor(game.income));
-  incomeTickEl.textContent = `${Math.max(0, game.incomeInterval - game.incomeTimer).toFixed(1)}s`;
+  if (incomeTickEl) {
+    incomeTickEl.textContent = `${Math.max(0, game.incomeInterval - game.incomeTimer).toFixed(1)}s`;
+  }
   pauseGameBtn.textContent = game.paused ? "Resume (P)" : "Pause (P)";
   speedGameBtn.textContent = `Speed ${SPEED_LEVELS[game.speedIndex]}x (T)`;
+  if (speedBtn) {
+    speedBtn.title = `Click to change game speed (1x-5x). Current: ${SPEED_LEVELS[game.speedIndex]}x.`;
+  }
+  if (nextWaveBtn) {
+    const nextWaveLocked = game.gameOver || game.waveActive || game.menuOpen;
+    nextWaveBtn.disabled = nextWaveLocked;
+    nextWaveBtn.querySelector("strong").textContent = nextWaveLocked ? "Locked" : "Start";
+  }
+  if (menuBtn) {
+    menuBtn.classList.toggle("active", game.menuOpen);
+  }
+  if (quickModeEl) {
+    const modeLabel = game.mode === "maze" ? "Maze" : game.mode === "duel" ? "Duel" : "Classic";
+    quickModeEl.textContent = modeLabel;
+  }
+  if (quickStateEl) {
+    let stateLabel = "Build";
+    if (game.gameOver) {
+      stateLabel = game.duelMode ? "Match End" : "Defeat";
+    } else if (game.menuOpen || game.paused) {
+      stateLabel = "Paused";
+    } else if (game.waveActive) {
+      stateLabel = "Combat";
+    }
+    quickStateEl.textContent = stateLabel;
+  }
+  if (quickWaveTagEl) {
+    quickWaveTagEl.textContent = game.waveTag || "-";
+  }
+  if (quickSendsEl) {
+    const queueState = game.duelMode ? getActivePlayerState() : game;
+    const queued = Array.isArray(queueState.sendQueue) ? queueState.sendQueue.length : 0;
+    quickSendsEl.textContent = String(queued);
+  }
   autoWaveBtn.textContent = game.autoWaveEnabled ? "Auto: On (A)" : "Auto: Off (A)";
   modeClassicBtn.classList.toggle("active", game.mode === "classic");
   modeMazeBtn.classList.toggle("active", game.mode === "maze");
@@ -4068,9 +4835,19 @@ function syncUi() {
     duelP1Btn.classList.remove("active");
     duelP2Btn.classList.remove("active");
   }
+  if (duelBoardCardEl && duelBoardBodyEl) {
+    duelBoardCardEl.classList.toggle("hidden", !game.duelMode);
+    if (game.duelMode) {
+      duelBoardBodyEl.innerHTML = `
+        <tr><td>P1</td><td>${Math.floor(game.players[0].lives)}</td><td>${Math.floor(game.players[0].income)}</td><td>${Math.floor(game.players[0].score)}</td></tr>
+        <tr><td>P2</td><td>${Math.floor(game.players[1].lives)}</td><td>${Math.floor(game.players[1].income)}</td><td>${Math.floor(game.players[1].score)}</td></tr>
+      `;
+    }
+  }
 
   updateSelectionPanel();
   updateSendUi();
+  drawMiniMap();
 }
 
 function initAudio() {
@@ -4206,6 +4983,7 @@ function handleBoardClick(event) {
       return;
     }
     game.selectedTower = clickedTower;
+    setCommandTab("selection");
     status(`${clickedTower.data.name} selected.`);
     return;
   }
@@ -4308,32 +5086,49 @@ function handleCanvasMouseUp() {
 }
 
 function handleCanvasWheel(event) {
-  event.preventDefault();
-  if (!event.ctrlKey && !event.metaKey) {
-    camera.x += event.deltaX / camera.zoom;
-    camera.y += event.deltaY / camera.zoom;
+  if (event.currentTarget !== canvas || event.target !== canvas) {
+    return;
+  }
+  const rect = canvas.getBoundingClientRect();
+  const insideCanvas =
+    event.clientX >= rect.left &&
+    event.clientX <= rect.right &&
+    event.clientY >= rect.top &&
+    event.clientY <= rect.bottom;
+  if (!insideCanvas) {
+    return;
+  }
+
+  if (event.shiftKey) {
+    const panDelta = Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX;
+    camera.x += (panDelta * 0.8) / camera.zoom;
     clampCamera();
+    event.preventDefault();
     return;
   }
 
   const screen = getScreenPos(event);
   const worldBefore = screenToWorld(screen.x, screen.y);
-  const zoomFactor = Math.exp(-event.deltaY * 0.0015);
+  const zoomFactor = Math.exp(-event.deltaY * 0.0012);
   camera.zoom = clamp(camera.zoom * zoomFactor, camera.minZoom, camera.maxZoom);
   const worldAfter = screenToWorld(screen.x, screen.y);
   camera.x += worldBefore.x - worldAfter.x;
   camera.y += worldBefore.y - worldAfter.y;
   clampCamera();
+  event.preventDefault();
 }
 
 let previousTime = performance.now();
 function tick(now) {
-  const dtRaw = Math.min(0.033, (now - previousTime) / 1000);
+  const dtRaw = (now - previousTime) / 1000;
   previousTime = now;
-
-  const dt = dtRaw * SPEED_LEVELS[game.speedIndex];
-
-  update(dt);
+  const dtFrame = Math.min(0.033, Math.max(0, dtRaw));
+  let dtScaled = dtFrame * SPEED_LEVELS[game.speedIndex];
+  while (dtScaled > 0.00001) {
+    const step = Math.min(0.033, dtScaled);
+    update(step);
+    dtScaled -= step;
+  }
   render();
   syncUi();
 
@@ -4355,9 +5150,38 @@ function bindEvents() {
     setTooltip(defaultTooltip());
   });
   canvas.addEventListener("click", handleBoardClick);
+  if (miniMapEl) {
+    miniMapEl.addEventListener("pointerdown", handleMiniMapPointer);
+  }
+  for (const tabBtn of commandTabButtons) {
+    tabBtn.addEventListener("click", () => {
+      setCommandTab(tabBtn.dataset.commandTab);
+    });
+  }
+
+  if (nextWaveBtn) {
+    nextWaveBtn.addEventListener("click", () => {
+      ensureAudioActive();
+      setCommandTab("wave");
+      startWave();
+    });
+  }
+  if (speedBtn) {
+    speedBtn.addEventListener("click", () => {
+      ensureAudioActive();
+      cycleSpeed();
+    });
+  }
+  if (menuBtn) {
+    menuBtn.addEventListener("click", () => {
+      ensureAudioActive();
+      openMenu();
+    });
+  }
 
   startWaveBtn.addEventListener("click", () => {
     ensureAudioActive();
+    setCommandTab("wave");
     startWave();
   });
   pauseGameBtn.addEventListener("click", () => {
@@ -4395,26 +5219,32 @@ function bindEvents() {
 
   sendRunnerBtn.addEventListener("click", () => {
     ensureAudioActive();
+    setCommandTab("send");
     queueSend("runner");
   });
   sendArmorBtn.addEventListener("click", () => {
     ensureAudioActive();
+    setCommandTab("send");
     queueSend("armor");
   });
   sendAirBtn.addEventListener("click", () => {
     ensureAudioActive();
+    setCommandTab("send");
     queueSend("air");
   });
   sendBreakerBtn.addEventListener("click", () => {
     ensureAudioActive();
+    setCommandTab("send");
     queueSend("breaker");
   });
   sendSplitterBtn.addEventListener("click", () => {
     ensureAudioActive();
+    setCommandTab("send");
     queueSend("splitter");
   });
   sendMiniBossBtn.addEventListener("click", () => {
     ensureAudioActive();
+    setCommandTab("send");
     queueSend("miniboss");
   });
   clearSendsBtn.addEventListener("click", () => {
@@ -4449,14 +5279,38 @@ function bindEvents() {
   });
   newRunBtn.addEventListener("click", () => {
     ensureAudioActive();
-    resetRun();
-    saveRun(false);
-    status("New run started.");
+    restartRun();
   });
+  if (menuResumeBtn) {
+    menuResumeBtn.addEventListener("click", () => {
+      ensureAudioActive();
+      closeMenu({ resume: true });
+    });
+  }
+  if (menuRestartBtn) {
+    menuRestartBtn.addEventListener("click", () => {
+      ensureAudioActive();
+      closeMenu({ resume: false, silent: true });
+      restartRun();
+    });
+  }
+  if (menuHomeBtn) {
+    menuHomeBtn.addEventListener("click", () => {
+      window.location.href = HOME_URL;
+    });
+  }
+  if (menuOverlayEl) {
+    menuOverlayEl.addEventListener("click", (event) => {
+      if (event.target === menuOverlayEl) {
+        closeMenu({ resume: true });
+      }
+    });
+  }
 
   for (const button of towerButtons) {
     button.addEventListener("click", () => {
       ensureAudioActive();
+      setCommandTab("build");
       setSelectedType(button.dataset.type);
       status(`${TOWER_DATA[button.dataset.type].name} selected for building.`);
     });
@@ -4480,6 +5334,13 @@ function bindEvents() {
 
   window.addEventListener("keydown", (event) => {
     const key = event.key.toLowerCase();
+    if (game.menuOpen) {
+      if (key === "escape" || key === "p") {
+        event.preventDefault();
+        closeMenu({ resume: true });
+      }
+      return;
+    }
     if (key === "arrowleft") {
       keyState.left = true;
       event.preventDefault();
@@ -4498,24 +5359,31 @@ function bindEvents() {
     }
 
     if (key === "1") {
+      setCommandTab("build");
       setSelectedType("arrow");
     }
     if (key === "2") {
+      setCommandTab("build");
       setSelectedType("frost");
     }
     if (key === "3") {
+      setCommandTab("build");
       setSelectedType("cannon");
     }
     if (key === "4") {
+      setCommandTab("build");
       setSelectedType("arcane");
     }
     if (key === "5") {
+      setCommandTab("build");
       setSelectedType("venom");
     }
     if (key === "0") {
+      setCommandTab("build");
       setSelectedType("mortar");
     }
     if (key === "-") {
+      setCommandTab("build");
       setSelectedType("obelisk");
     }
     if (key === "u") {
@@ -4554,12 +5422,17 @@ function bindEvents() {
     }
     if (event.code === "Space") {
       event.preventDefault();
+      setCommandTab("wave");
       startWave();
     }
   });
 
   window.addEventListener("pointerdown", () => {
     ensureAudioActive();
+  });
+  window.addEventListener("resize", () => {
+    resizeCanvasToViewport();
+    resizeMiniMapCanvas();
   });
   window.addEventListener("mouseup", handleCanvasMouseUp);
   window.addEventListener("blur", () => {
@@ -4587,7 +5460,11 @@ function bindEvents() {
 }
 
 function boot() {
+  resizeCanvasToViewport();
+  resizeMiniMapCanvas();
+  runStartupGuardrails();
   bindEvents();
+  setCommandTab(game.commandTab, true);
   clampCamera();
   setSelectedType(game.selectedType);
   renderHighScores();

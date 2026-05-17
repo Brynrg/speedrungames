@@ -20,10 +20,100 @@
           <div class="card"><span>Lives</span><strong id="lives">0</strong></div>
           <div class="card"><span>Wave</span><strong id="wave">0</strong></div>
           <div class="card"><span>Score</span><strong id="score">0</strong></div>
-          <div class="card"><span>Best</span><strong id="best">0</strong></div>
-          <div class="card"><span>Speed</span><strong id="speed">1x</strong></div>
+          <button id="nextWaveBtn" class="card stat-btn" title="Start the next wave when ready." type="button">
+            <span>Next Wave</span>
+            <strong>Start</strong>
+          </button>
+          <button id="speedBtn" class="card stat-btn" title="Click to change game speed (1x-5x)." type="button">
+            <span>Speed</span>
+            <strong id="speed">1x</strong>
+          </button>
           <div class="card"><span>Income</span><strong id="income">0</strong></div>
-          <div class="card"><span>Tick</span><strong id="incomeTick">0.0s</strong></div>
+          <button id="menuBtn" class="card stat-btn" title="Pause and open menu." type="button">
+            <span>Menu</span>
+            <strong>Open</strong>
+          </button>
+        </div>
+        <div id="duelStats" class="duel-stats hidden">
+          <div class="duel-row"><strong>P1</strong> <span id="duelP1">G0 | L0 | I0 | S0</span></div>
+          <div class="duel-row"><strong>P2</strong> <span id="duelP2">G0 | L0 | I0 | S0</span></div>
+          <div class="duel-row"><strong>Active:</strong> <span id="duelActive">P1</span></div>
+        </div>
+      </section>
+
+      <aside class="utility-panel">
+        <h1>Green Circle TD</h1>
+
+        <section class="section-card minimap-card">
+          <h2>Minimap</h2>
+          <div class="minimap-shell" aria-label="Minimap shell">
+            <canvas id="miniMap" width="220" height="170" aria-label="Minimap"></canvas>
+          </div>
+          <p class="mini-copy">Click minimap to center camera.</p>
+        </section>
+
+        <section class="section-card quick-card">
+          <h2>Quick Info</h2>
+          <div class="quick-grid">
+            <p><span>Mode</span><strong id="quickMode">Classic</strong></p>
+            <p><span>State</span><strong id="quickState">Build</strong></p>
+            <p><span>Wave Tag</span><strong id="quickWaveTag">-</strong></p>
+            <p><span>Queued Sends</span><strong id="quickSends">0</strong></p>
+          </div>
+          <p>Modes: Classic, Maze, Duel. Keep the route open in Maze mode.</p>
+          <p>Controls: <code>Space</code> wave, <code>T</code> speed, <code>P</code> pause, <code>M</code> mode.</p>
+        </section>
+
+        <section id="duelBoardCard" class="section-card hidden">
+          <h2>Duel Board</h2>
+          <table class="duel-board">
+            <thead>
+              <tr>
+                <th>Player</th>
+                <th>Lives</th>
+                <th>Income</th>
+                <th>Score</th>
+              </tr>
+            </thead>
+            <tbody id="duelBoardBody">
+              <tr><td>P1</td><td>0</td><td>0</td><td>0</td></tr>
+              <tr><td>P2</td><td>0</td><td>0</td><td>0</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="persist section-card">
+          <h2>Save</h2>
+          <div class="row2">
+            <button id="saveRun">Save</button>
+            <button id="loadRun">Load</button>
+            <button id="newRun">New</button>
+          </div>
+          <ol id="highScores"></ol>
+        </section>
+
+        <section class="tip section-card">
+          <h2>Tooltip</h2>
+          <p id="tooltipBox">Hover buttons, towers, and enemies for detail. Wheel zooms, Shift+Wheel pans horizontally.</p>
+        </section>
+
+        <section class="help section-card">
+          <h2>Hotkeys</h2>
+          <p class="hotkeys"><code>1/2/3/4/5/0/-</code> Build, <code>U</code> Upgrade, <code>F</code> Ability, <code>P</code> Pause, <code>T</code> Speed, <code>A</code> Auto Wave, <code>M</code> Toggle Mode, <code>Tab</code> Switch Duel Player, <code>Space</code> Wave, <code>Arrows</code> Pan, <code>Scroll</code> Pan, <code>Ctrl/Cmd + Wheel</code> Zoom, <code>Right Drag / Alt+Drag</code> Pan</p>
+        </section>
+      </aside>
+
+      <section class="game-wrap">
+        <canvas id="game" width="960" height="576" aria-label="Green Circle TD board"></canvas>
+      </section>
+
+      <aside class="panel">
+        <h1>Command Card</h1>
+        <div class="command-tabs">
+          <button class="command-tab active" data-command-tab="build">Build</button>
+          <button class="command-tab" data-command-tab="wave">Wave</button>
+          <button class="command-tab" data-command-tab="selection">Select</button>
+          <button class="command-tab" data-command-tab="send">Send</button>
         </div>
         <div id="duelStats" class="duel-stats hidden">
           <div class="duel-row"><strong>P1</strong> <span id="duelP1">G0 | L0 | I0 | S0</span></div>
@@ -39,13 +129,14 @@
       <aside class="panel">
         <h1>Green Circle TD</h1>
 
-        <div class="command-grid">
-          <section class="shop section-card span-2">
+        <div class="command-grid command-card-grid">
+          <section class="shop section-card span-2 command-panel" data-command-panel="build">
             <h2>Build</h2>
             <div class="tower-grid">
               <button
                 class="tower-btn"
                 data-type="arrow"
+                data-icon="AR"
                 data-tip="Arrow Tower: Piercing damage, strong vs Light, can hit Air."
               >
                 <strong>Arrow (1)</strong>
@@ -55,6 +146,7 @@
               <button
                 class="tower-btn"
                 data-type="frost"
+                data-icon="FR"
                 data-tip="Frost Tower: Magic damage, slows enemies, can hit Air, weak vs Spell Immune."
               >
                 <strong>Frost (2)</strong>
@@ -64,6 +156,7 @@
               <button
                 class="tower-btn"
                 data-type="cannon"
+                data-icon="CN"
                 data-tip="Cannon Tower: Siege splash, best vs Fortified, cannot hit Air unless Flak branch."
               >
                 <strong>Cannon (3)</strong>
@@ -73,6 +166,7 @@
               <button
                 class="tower-btn"
                 data-type="arcane"
+                data-icon="AC"
                 data-tip="Arcane Tower: Spell damage, excels at burst and control, can hit Air."
               >
                 <strong>Arcane (4)</strong>
@@ -82,6 +176,7 @@
               <button
                 class="tower-btn"
                 data-type="venom"
+                data-icon="VN"
                 data-tip="Venom Tower: Poison magic and control, branch can gain anti-air."
               >
                 <strong>Venom (5)</strong>
@@ -91,6 +186,7 @@
               <button
                 class="tower-btn"
                 data-type="mortar"
+                data-icon="MT"
                 data-tip="Fire Mortar: Siege splash with Burn. Branches into Shrapnel or Incendiary fire patch."
               >
                 <strong>Mortar (0)</strong>
@@ -100,6 +196,7 @@
               <button
                 class="tower-btn"
                 data-type="obelisk"
+                data-icon="OB"
                 data-tip="Frost Obelisk: Control magic with strong slow branches."
               >
                 <strong>Obelisk (-)</strong>
@@ -109,26 +206,30 @@
             </div>
           </section>
 
-          <section class="actions section-card span-2">
+          <section class="actions section-card span-2 command-panel" data-command-panel="wave">
             <h2>Wave</h2>
             <div class="row2 row-wave">
-              <button id="startWave">Start / Next</button>
-              <button id="pauseGame">Pause (P)</button>
-              <button id="speedGame">Speed (T)</button>
-              <button id="autoWave">Auto: On (A)</button>
+              <button id="startWave" data-icon="NW">Start / Next</button>
+              <button id="pauseGame" data-icon="PA">Pause (P)</button>
+              <button id="speedGame" data-icon="SP">Speed (T)</button>
+              <button id="autoWave" data-icon="AU">Auto: On (A)</button>
             </div>
             <div class="row2 row-mode">
-              <button id="modeClassic">Mode: Classic</button>
-              <button id="modeMaze">Mode: Maze</button>
-              <button id="modeDuel">Mode: Duel</button>
+              <button id="modeClassic" data-icon="CL">Mode: Classic</button>
+              <button id="modeMaze" data-icon="MZ">Mode: Maze</button>
+              <button id="modeDuel" data-icon="DU">Mode: Duel</button>
             </div>
             <p id="waveStatus">Build towers and send wave 1.</p>
           </section>
 
-          <section class="selection section-card span-2">
+          <section class="selection section-card span-2 command-panel" data-command-panel="selection">
             <h2>Selection</h2>
             <p id="selectionNone">No tower selected.</p>
             <div id="selectionDetails" class="hidden">
+              <div class="selection-hero">
+                <p id="selTitle">Tower</p>
+                <p id="selSub">Role and element</p>
+              </div>
               <div class="kv-grid">
                 <p><span>Type:</span> <strong id="selType">-</strong></p>
                 <p><span>Level:</span> <strong id="selLevel">-</strong></p>
@@ -140,60 +241,54 @@
                 <p><span>Aura:</span> <strong id="selAura">None</strong></p>
               </div>
               <div class="row2 row2-tower">
-                <button id="upgradeTower">Upgrade (U)</button>
-                <button id="castAbility">Ability (F)</button>
+                <button id="upgradeTower" data-icon="UP">Upgrade (U)</button>
+                <button id="castAbility" data-icon="AB">Ability (F)</button>
               </div>
               <div id="branchControls" class="hidden row2 row2-tower">
-                <button id="branchA">Branch A</button>
-                <button id="branchB">Branch B</button>
+                <button id="branchA" data-icon="A">Branch A</button>
+                <button id="branchB" data-icon="B">Branch B</button>
               </div>
             </div>
           </section>
 
-          <section class="send section-card span-2">
+          <section class="send section-card span-2 command-panel" data-command-panel="send">
             <h2>Send (Next Wave)</h2>
             <p class="send-copy">Spend gold to add extra creeps to the next wave. Each send increases Income.</p>
             <div id="duelPlayerSwitch" class="row2 row-mode hidden">
-              <button id="duelP1Btn">Active: P1</button>
-              <button id="duelP2Btn">Active: P2</button>
+              <button id="duelP1Btn" data-icon="P1">Active: P1</button>
+              <button id="duelP2Btn" data-icon="P2">Active: P2</button>
             </div>
             <div class="send-grid">
-              <button id="sendRunner" title="Runner Pack: 6 fast light creeps. Cost 60, Income +1">Runner Pack<br /><small>60g | +1 Income</small></button>
-              <button id="sendArmor" title="Armor Column: 4 heavy creeps. Cost 90, Income +1">Armor Column<br /><small>90g | +1 Income</small></button>
-              <button id="sendAir" title="Air Squad: 4 flying creeps. Cost 110, Income +2">Air Squad<br /><small>110g | +2 Income</small></button>
-              <button id="sendBreaker" title="Spellbreaker: 1 magic immune heavy creep. Cost 140, Income +2">Spellbreaker<br /><small>140g | +2 Income</small></button>
-              <button id="sendSplitter" title="Splitter Nest: 2 splitting creeps. Cost 160, Income +2">Splitter Nest<br /><small>160g | +2 Income</small></button>
-              <button id="sendMiniBoss" title="Mini-Boss: 1 powerful creep. Cost 220, Income +3">Mini-Boss<br /><small>220g | +3 Income</small></button>
+              <button id="sendRunner" data-icon="RN" title="Runner Pack: 6 fast light creeps. Cost 60, Income +1">Runner Pack<br /><small>60g | +1 Income</small></button>
+              <button id="sendArmor" data-icon="AR" title="Armor Column: 4 heavy creeps. Cost 90, Income +1">Armor Column<br /><small>90g | +1 Income</small></button>
+              <button id="sendAir" data-icon="AI" title="Air Squad: 4 flying creeps. Cost 110, Income +2">Air Squad<br /><small>110g | +2 Income</small></button>
+              <button id="sendBreaker" data-icon="SB" title="Spellbreaker: 1 magic immune heavy creep. Cost 140, Income +2">Spellbreaker<br /><small>140g | +2 Income</small></button>
+              <button id="sendSplitter" data-icon="SP" title="Splitter Nest: 2 splitting creeps. Cost 160, Income +2">Splitter Nest<br /><small>160g | +2 Income</small></button>
+              <button id="sendMiniBoss" data-icon="MB" title="Mini-Boss: 1 powerful creep. Cost 220, Income +3">Mini-Boss<br /><small>220g | +3 Income</small></button>
             </div>
             <div class="send-foot">
               <div id="sendQueue">No sends queued.</div>
-              <button id="clearSends">Clear Queue</button>
+              <button id="clearSends" data-icon="CL">Clear Queue</button>
             </div>
-          </section>
-
-          <section class="persist section-card">
-            <h2>Save</h2>
-            <div class="row2">
-              <button id="saveRun">Save</button>
-              <button id="loadRun">Load</button>
-              <button id="newRun">New</button>
-            </div>
-            <ol id="highScores"></ol>
-          </section>
-
-          <section class="tip section-card">
-            <h2>Tooltip</h2>
-            <p id="tooltipBox">Hover buttons, towers, and enemies for detail. Scroll pans, ctrl/cmd + wheel zooms.</p>
-          </section>
-
-          <section class="help section-card span-2">
-            <h2>Hotkeys</h2>
-            <p class="hotkeys"><code>1/2/3/4/5/0/-</code> Build, <code>U</code> Upgrade, <code>F</code> Ability, <code>P</code> Pause, <code>T</code> Speed, <code>A</code> Auto Wave, <code>M</code> Toggle Mode, <code>Tab</code> Switch Duel Player, <code>Space</code> Wave, <code>Arrows</code> Pan, <code>Scroll</code> Pan, <code>Ctrl/Cmd + Wheel</code> Zoom, <code>Right Drag / Alt+Drag</code> Pan</p>
           </section>
         </div>
       </aside>
     </main>
 
+    <div id="menuOverlay" class="overlay hidden" aria-hidden="true">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
+        <h2 id="menuTitle">Menu</h2>
+        <div class="modal-actions">
+          <button id="menuResume" type="button">Resume</button>
+          <button id="menuRestart" type="button">Restart</button>
+          <button id="menuHome" type="button">Return Home</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      window.SPEEDRUN_HOME_URL = window.SPEEDRUN_HOME_URL || "/";
+    </script>
     <script src="game.js"></script>
   </body>
 </html>
