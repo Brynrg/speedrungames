@@ -115,6 +115,19 @@
           <button class="command-tab" data-command-tab="selection">Select</button>
           <button class="command-tab" data-command-tab="send">Send</button>
         </div>
+        <div id="duelStats" class="duel-stats hidden">
+          <div class="duel-row"><strong>P1</strong> <span id="duelP1">G0 | L0 | I0 | S0</span></div>
+          <div class="duel-row"><strong>P2</strong> <span id="duelP2">G0 | L0 | I0 | S0</span></div>
+          <div class="duel-row"><strong>Active:</strong> <span id="duelActive">P1</span></div>
+        </div>
+      </section>
+
+      <section class="game-wrap">
+        <canvas id="game" width="960" height="576" aria-label="Green Circle TD board"></canvas>
+      </section>
+
+      <aside class="panel">
+        <h1>Green Circle TD</h1>
 
         <div class="command-grid command-card-grid">
           <section class="shop section-card span-2 command-panel" data-command-panel="build">

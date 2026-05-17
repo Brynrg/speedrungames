@@ -781,6 +781,78 @@ function syncActiveToLegacyIfDuel() {
   syncLegacyEconomyFromActive();
 }
 
+function createPlayerState(id) {
+  return {
+    id,
+    gold: 230,
+    lives: 20,
+    score: 0,
+    income: 2,
+    incomeTimer: 0,
+    incomeInterval: 10,
+    sendQueue: [],
+  };
+}
+
+function getPlayerState(id) {
+  if (!game.duelMode) {
+    return game;
+  }
+  return game.players[id] || game.players[0];
+}
+
+function getActivePlayerState() {
+  return getPlayerState(game.activePlayer);
+}
+
+function getEnemyDefenderState(enemy) {
+  if (!game.duelMode) {
+    return game;
+  }
+  if (enemy.targetPlayer !== undefined) {
+    return getPlayerState(enemy.targetPlayer);
+  }
+  return getPlayerState(enemy.lane || 0);
+}
+
+function getEnemyLane(enemy) {
+  if (!game.duelMode) {
+    return 0;
+  }
+  if (enemy.targetPlayer !== undefined) {
+    return enemy.targetPlayer;
+  }
+  return enemy.lane || 0;
+}
+
+function getLaneOwnerForCell(cx, cy) {
+  if (!game.duelMode) {
+    return game.activePlayer || 0;
+  }
+  return cy < Math.floor(ROWS / 2) ? 0 : 1;
+}
+
+function syncLegacyEconomyFromActive() {
+  if (!game.duelMode) {
+    return;
+  }
+  const active = getActivePlayerState();
+  game.gold = active.gold;
+  game.lives = active.lives;
+  game.score = active.score;
+  game.income = active.income;
+  game.incomeTimer = active.incomeTimer;
+  game.incomeInterval = active.incomeInterval;
+  game.sendQueue = active.sendQueue;
+}
+
+function syncActiveToLegacyIfDuel() {
+  if (!game.duelMode) {
+    return;
+  }
+  syncLegacyEconomyFromActive();
+}
+
 const audio = {
   ctx: null,
   master: null,
@@ -1845,6 +1917,297 @@ function status(text) {
   if (statusBanners.length > 4) {
     statusBanners.length = 4;
   }
+}
+
+function isSendLocked() {
+  return game.waveActive || game.gameOver;
+}
+
+function getIncomePayout(state = game) {
+  return Math.max(0, Math.floor(state.income));
+}
+
+function buildRunnerSendUnits(wave) {
+  const w = Math.max(1, wave);
+  const units = [];
+  for (let i = 0; i < 6; i += 1) {
+    units.push({
+      name: "Runner",
+      armorType: "light",
+      hp: 28 + w * 8,
+      speed: 110 + w * 2 + (i % 2 === 0 ? 0 : 4),
+      reward: 4 + Math.floor(w * 0.7),
+      leakDamage: 1,
+      color: "#d8897a",
+      rim: "#f3c9b4",
+    });
+  }
+  return units;
+}
+
+function buildArmorSendUnits(wave) {
+  const w = Math.max(1, wave);
+  const units = [];
+  for (let i = 0; i < 4; i += 1) {
+    units.push({
+      name: "Armor Guard",
+      armorType: "heavy",
+      hp: 95 + w * 20,
+      speed: 52 + w,
+      reward: 7 + w,
+      leakDamage: 2,
+      color: "#8f6558",
+      rim: "#e1c49c",
+    });
+  }
+  return units;
+}
+
+function buildAirSendUnits(wave) {
+  const w = Math.max(1, wave);
+  const units = [];
+  for (let i = 0; i < 4; i += 1) {
+    units.push({
+      name: "Harpy Scout",
+      armorType: "light",
+      hp: 70 + w * 16,
+      speed: 96 + w * 2,
+      reward: 8 + w,
+      leakDamage: 1,
+      flying: true,
+      color: "#76a4d6",
+      rim: "#d5ebff",
+    });
+  }
+  return units;
+}
+
+function buildBreakerSendUnits(wave) {
+  const w = Math.max(1, wave);
+  return [
+    {
+      name: "Send Spellbreaker",
+      armorType: "heavy",
+      hp: 220 + w * 28,
+      speed: 64 + Math.floor(w * 1.2),
+      reward: 18 + w,
+      leakDamage: 2,
+      magicImmune: true,
+      color: "#7e7b8f",
+      rim: "#d9d5ff",
+    },
+  ];
+}
+
+function buildSplitterSendUnits(wave) {
+  const w = Math.max(1, wave);
+  const depth = w >= 12 ? 2 : 1;
+  return [
+    {
+      name: "Send Broodling",
+      armorType: "medium",
+      hp: 110 + w * 20,
+      speed: 72 + w,
+      reward: 12 + w,
+      leakDamage: 1,
+      splitter: true,
+      splitDepth: depth,
+      color: "#cf8a67",
+      rim: "#f8d8b6",
+    },
+    {
+      name: "Send Broodling",
+      armorType: "medium",
+      hp: 110 + w * 20,
+      speed: 72 + w,
+      reward: 12 + w,
+      leakDamage: 1,
+      splitter: true,
+      splitDepth: depth,
+      color: "#cf8a67",
+      rim: "#f8d8b6",
+    },
+  ];
+}
+
+function buildMiniBossSendUnits(wave) {
+  const w = Math.max(1, wave);
+  return [
+    {
+      name: "Mini Tyrant",
+      armorType: "fortified",
+      hp: 520 + w * 110,
+      speed: 48 + w * 0.6,
+      reward: 60 + w * 8,
+      leakDamage: 3,
+      radius: 19,
+      color: "#764940",
+      rim: "#f2c894",
+      slowImmune: w >= 16,
+    },
+  ];
+}
+
+function makeSendUnits(key, wave) {
+  if (key === "runner") {
+    return buildRunnerSendUnits(wave);
+  }
+  if (key === "armor") {
+    return buildArmorSendUnits(wave);
+  }
+  if (key === "air") {
+    return buildAirSendUnits(wave);
+  }
+  if (key === "breaker") {
+    return buildBreakerSendUnits(wave);
+  }
+  if (key === "splitter") {
+    return buildSplitterSendUnits(wave);
+  }
+  if (key === "miniboss") {
+    return buildMiniBossSendUnits(wave);
+  }
+  return [];
+}
+
+function queueSend(key) {
+  const option = SEND_OPTIONS[key];
+  if (!option) {
+    return;
+  }
+
+  if (isSendLocked()) {
+    status("Sends can only be managed between waves.");
+    return;
+  }
+
+  const player = getActivePlayerState();
+
+  if (player.gold < option.cost) {
+    status(`Not enough gold for ${option.label}.`);
+    return;
+  }
+
+  player.gold -= option.cost;
+  player.income += option.incomeGain;
+  player.sendQueue.push({
+    key: option.id,
+    label: option.label,
+    cost: option.cost,
+    incomeGain: option.incomeGain,
+    wavePurchased: game.wave,
+  });
+
+  status(
+    game.duelMode
+      ? `${option.label} queued by P${game.activePlayer + 1}. Income +${option.incomeGain}.`
+      : `${option.label} queued for next wave. Income +${option.incomeGain}.`
+  );
+  syncActiveToLegacyIfDuel();
+  saveRun(false);
+}
+
+function clearSendQueue() {
+  if (isSendLocked()) {
+    status("Cannot clear sends during an active wave.");
+    return;
+  }
+
+  const player = getActivePlayerState();
+  if (player.sendQueue.length === 0) {
+    status("No sends queued.");
+    return;
+  }
+
+  let refund = 0;
+  let incomeBack = 0;
+  for (const entry of player.sendQueue) {
+    refund += entry.cost || 0;
+    incomeBack += entry.incomeGain || 0;
+  }
+
+  player.gold += refund;
+  player.income = Math.max(0, player.income - incomeBack);
+  player.sendQueue = [];
+  status(
+    game.duelMode
+      ? `P${game.activePlayer + 1} queue cleared. Refunded ${refund}g and removed ${incomeBack} income.`
+      : `Send queue cleared. Refunded ${refund}g and removed ${incomeBack} income.`
+  );
+  syncActiveToLegacyIfDuel();
+  saveRun(false);
+}
+
+function consumeSendQueueForWave(state, wave, laneTarget = 0) {
+  if (!state.sendQueue || state.sendQueue.length === 0) {
+    return { units: [], summary: "" };
+  }
+
+  const units = [];
+  const counts = {};
+
+  for (const entry of state.sendQueue) {
+    const option = SEND_OPTIONS[entry.key];
+    if (!option) {
+      continue;
+    }
+    counts[option.label] = (counts[option.label] || 0) + 1;
+    const pack = makeSendUnits(option.id, wave);
+    for (const unit of pack) {
+      units.push({ ...unit, lane: laneTarget, targetPlayer: laneTarget });
+    }
+  }
+
+  state.sendQueue = [];
+  const summary = Object.entries(counts)
+    .map(([label, count]) => `${label} x${count}`)
+    .join(", ");
+
+  return { units, summary };
+}
+
+function updateSendUi() {
+  const locked = isSendLocked();
+  const player = getActivePlayerState();
+
+  for (const [key, button] of Object.entries(sendButtons)) {
+    if (!button) {
+      continue;
+    }
+    const option = SEND_OPTIONS[key];
+    const cannotAfford = player.gold < option.cost;
+    button.disabled = locked || cannotAfford;
+  }
+
+  if (clearSendsBtn) {
+    clearSendsBtn.disabled = locked || player.sendQueue.length === 0;
+  }
+
+  if (!sendQueueEl) {
+    return;
+  }
+
+  if (player.sendQueue.length === 0) {
+    sendQueueEl.textContent = "No sends queued.";
+    return;
+  }
+
+  const grouped = {};
+  for (const entry of player.sendQueue) {
+    const key = entry.key;
+    if (!grouped[key]) {
+      grouped[key] = { label: entry.label, count: 0, income: 0 };
+    }
+    grouped[key].count += 1;
+    grouped[key].income += entry.incomeGain || 0;
+  }
+
+  const parts = [];
+  for (const key of Object.keys(grouped)) {
+    const g = grouped[key];
+    parts.push(`<span class="send-chip">${g.label} x${g.count} (+${g.income})</span>`);
+  }
+  sendQueueEl.innerHTML = parts.join("");
 }
 
 function isSendLocked() {
