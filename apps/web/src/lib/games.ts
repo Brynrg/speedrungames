@@ -1,4 +1,5 @@
 import gamesData from "./games.generated.json";
+import registryData from "./games.registry.json";
 
 export interface Game {
   /** URL-safe slug. For proxied games, must match the Netlify subdomain. */
@@ -22,3 +23,12 @@ export interface Game {
 export const games: Game[] = gamesData as Game[];
 
 export const visibleGames = games.filter((g) => !g.hidden);
+
+// Union of slugs from both the legacy `games.generated.json` (overrides +
+// topic-discovered repos) and the canonical `games.registry.json` (ingest
+// flow per AGENTS.md §2). Used by /api/runs to validate POST submissions
+// so games registered via either flow can submit runs to the leaderboard.
+export const allSlugs: Set<string> = new Set([
+  ...games.map((g) => g.slug),
+  ...(registryData as Array<{ slug: string }>).map((e) => e.slug),
+]);

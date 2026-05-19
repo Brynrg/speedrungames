@@ -12,7 +12,7 @@
 
 import { NextResponse } from "next/server";
 import { getStore, getDeployStore } from "@netlify/blobs";
-import { games } from "@/lib/games";
+import { allSlugs as VALID_SLUGS } from "@/lib/games";
 
 export const dynamic = "force-dynamic";
 
@@ -39,8 +39,6 @@ interface Run {
   splits?: RunSplit[];
   achievedAt: number;
 }
-
-const VALID_SLUGS = new Set(games.map((g) => g.slug));
 
 function clamp(n: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, n));
