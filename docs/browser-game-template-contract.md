@@ -76,7 +76,35 @@ The portal's `/gamedeploy` flow calls this test. If the test isn't green, ingest
 - **Phaser** or **PixiJS** — for canvas/WebGL games. The framework field in your manifest reflects which one (`vite-phaser`, `vite-pixi`).
 - **Keep deterministic game logic separate from rendering** where practical. Easier to add replay/leaderboard later if game state is reproducible from a seed.
 
-## 7. What the portal will do with your build
+## 7. Multiplayer (optional)
+
+If the game is multiplayer, declare it in `game.manifest.json`:
+
+```json
+{
+  "multiplayer": "p2p",
+  "multiplayerProvider": "webrtc",
+  "multiplayerEndpoint": "https://your-deployed-server.example/optional"
+}
+```
+
+`multiplayer` is one of:
+- `"none"` (default — omit the field)
+- `"local"` — couch co-op, no network. `multiplayerProvider` should be `null` or omitted.
+- `"p2p"` — WebRTC peer-to-peer with portal-side signaling. `multiplayerProvider: "webrtc"`.
+- `"realtime-server"` — WebSocket via a hosted server. `multiplayerProvider: "partykit"` or `"cloudflare-do"`.
+- `"async"` — turn-based or polled state via Netlify Blobs. `multiplayerProvider: "netlify-blobs"`.
+
+When `multiplayer` is `p2p`, `realtime-server`, or `async`, `multiplayerProvider` is **required**. The portal validator enforces this.
+
+Pattern-specific game source requirements are documented in [docs/multiplayer-architecture.md](./multiplayer-architecture.md). Common ones:
+
+- **All patterns:** No user accounts, no auth, no PII. Use room codes / pairing handshakes for matchmaking.
+- **Pattern C (PartyKit):** Add `party/index.ts` server module, `partykit.json` config, and a deploy step (`npx partykit deploy`).
+- **Pattern D (Cloudflare Workers + DO):** Add `worker/index.ts`, `wrangler.toml`, and `npx wrangler deploy`.
+- **Pattern E (Netlify Blobs):** Coordinate with portal-side route additions; flag in your PR.
+
+## 8. What the portal will do with your build
 
 When `scripts/ingest-game-build.mjs --game-dir <your-repo>` runs:
 

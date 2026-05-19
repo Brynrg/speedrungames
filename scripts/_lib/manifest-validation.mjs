@@ -46,6 +46,9 @@ const REQUIRED_PORTAL_FIELDS = [
 
 const REQUIRED_SOURCE_FIELDS = ["slug", "title", "description", "framework"];
 
+const MULTIPLAYER_MODES = ["none", "local", "p2p", "realtime-server", "async"];
+const MULTIPLAYER_MODES_REQUIRING_PROVIDER = new Set(["p2p", "realtime-server", "async"]);
+
 /**
  * @param {unknown} manifest
  * @param {string} pathForErrors - file path used in error messages
@@ -151,6 +154,34 @@ export function validatePortalManifest(manifest, pathForErrors = "<manifest>") {
     errors.push(`${at("redirectTo")}: must be string when present`);
   }
 
+  // multiplayer fields (optional; if present, must be valid; provider required for non-trivial modes)
+  if (manifest.multiplayer !== undefined) {
+    if (typeof manifest.multiplayer !== "string") {
+      errors.push(`${at("multiplayer")}: must be string when present`);
+    } else if (!MULTIPLAYER_MODES.includes(manifest.multiplayer)) {
+      errors.push(`${at("multiplayer")}: "${manifest.multiplayer}" not one of ${MULTIPLAYER_MODES.join(", ")}`);
+    } else if (
+      MULTIPLAYER_MODES_REQUIRING_PROVIDER.has(manifest.multiplayer) &&
+      (manifest.multiplayerProvider === undefined ||
+        manifest.multiplayerProvider === null ||
+        manifest.multiplayerProvider === "")
+    ) {
+      errors.push(
+        `${at("multiplayerProvider")}: required when multiplayer is "${manifest.multiplayer}" — see docs/multiplayer-architecture.md`,
+      );
+    }
+  }
+  if (
+    manifest.multiplayerProvider !== undefined &&
+    manifest.multiplayerProvider !== null &&
+    typeof manifest.multiplayerProvider !== "string"
+  ) {
+    errors.push(`${at("multiplayerProvider")}: must be string or null when present`);
+  }
+  if (manifest.multiplayerEndpoint !== undefined && typeof manifest.multiplayerEndpoint !== "string") {
+    errors.push(`${at("multiplayerEndpoint")}: must be string when present`);
+  }
+
   return { valid: errors.length === 0, errors };
 }
 
@@ -182,6 +213,22 @@ export function validateSourceManifest(manifest, pathForErrors = "<game.manifest
   }
   if (manifest.supportsMobile !== undefined && typeof manifest.supportsMobile !== "boolean") {
     errors.push(`${at("supportsMobile")}: must be boolean`);
+  }
+  if (manifest.multiplayer !== undefined) {
+    if (typeof manifest.multiplayer !== "string") {
+      errors.push(`${at("multiplayer")}: must be string`);
+    } else if (!MULTIPLAYER_MODES.includes(manifest.multiplayer)) {
+      errors.push(`${at("multiplayer")}: "${manifest.multiplayer}" not one of ${MULTIPLAYER_MODES.join(", ")}`);
+    } else if (
+      MULTIPLAYER_MODES_REQUIRING_PROVIDER.has(manifest.multiplayer) &&
+      (manifest.multiplayerProvider === undefined ||
+        manifest.multiplayerProvider === null ||
+        manifest.multiplayerProvider === "")
+    ) {
+      errors.push(
+        `${at("multiplayerProvider")}: required when multiplayer is "${manifest.multiplayer}" — see docs/multiplayer-architecture.md`,
+      );
+    }
   }
 
   return { valid: errors.length === 0, errors };
