@@ -125,6 +125,66 @@ main { min-height: calc(100vh - 60px); }
   width: fit-content;
 }
 
+.recent-runs {
+  margin-top: 4rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border);
+}
+
+.recent-runs h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 1rem;
+  color: var(--text);
+}
+
+.recent-runs ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.recent-run {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: 1rem;
+  align-items: baseline;
+  padding: 0.6rem 0.85rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.recent-run-game {
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-run-game:hover { color: var(--accent-hover); }
+
+.recent-run-time {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.recent-run-runner {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.recent-run-ago {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
 @media (max-width: 900px) {
   header {
     padding: 0.8rem 1rem;

@@ -1,4 +1,5 @@
 import { visibleGames } from "@/lib/games";
+import RecentRuns from "@/components/RecentRuns";
 
 export default function HomePage() {
   return (
@@ -15,6 +16,7 @@ export default function HomePage() {
           </a>
         ))}
       </div>
+      <RecentRuns />
     </div>
   );
 }

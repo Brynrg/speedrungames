@@ -1,4 +1,4 @@
-import gamesData from "./games.data.json";
+import gamesData from "./games.generated.json";
 
 export interface Game {
   /** URL-safe slug. For proxied games, must match the Netlify subdomain. */
