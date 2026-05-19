@@ -3,12 +3,17 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "postinstall": "node scripts/ensure-registry.mjs",
+    "dev": "node scripts/ensure-registry.mjs && node scripts/discover-games.mjs && node scripts/generate-redirects.mjs && next dev",
+    "prebuild": "node scripts/ensure-registry.mjs && node scripts/discover-games.mjs && node scripts/generate-redirects.mjs",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "discover": "node scripts/discover-games.mjs",
+    "generate-redirects": "node scripts/generate-redirects.mjs"
   },
   "dependencies": {
+    "@netlify/blobs": "^10.7.8",
     "@speedrungames/pokemonspeedrungen1": "workspace:*",
     "next": "16.1.6",
     "react": "19.0.0",

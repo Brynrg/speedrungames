@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { visibleGames } from "@/lib/games";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -22,9 +23,11 @@ export default function RootLayout({
             </Link>
             <nav className="site-nav" aria-label="Primary">
               <Link href="/">Home</Link>
-              <Link href="/games/tower-wars">Tower Wars</Link>
-              <Link href="/games/tower-wars-2">Tower Wars II</Link>
-              <Link href="/pokemonspeedrungen1">Pokémon Gen 1</Link>
+              {visibleGames.map((game) => (
+                <Link key={game.slug} href={game.href}>
+                  {game.title}
+                </Link>
+              ))}
             </nav>
           </div>
         </header>

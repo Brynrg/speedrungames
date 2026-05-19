@@ -1,0 +1,432 @@
+#!/usr/bin/env node
+// bin/new-game — bootstrap a new speedrungames.net game end-to-end.
+//
+// What it does (in order):
+//   1. Validates inputs and prerequisites (gh, git, node).
+//   2. Creates Brynrg/game-<slug> from Brynrg/speedrungames-game-template.
+//   3. Applies the `speedrungames` topic to the new repo.
+//   4. (Optional) Creates a Netlify site connected to the new repo via the
+//      Netlify API. Requires NETLIFY_AUTH_TOKEN. Without it, prints the
+//      one-click Netlify "import repo" deploy URL.
+//   5. Clones the new repo locally, populates speedrungames.json + sets
+//      SLUG in src/main.ts + updates <title> in index.html, commits, pushes.
+//   6. (Optional) Fires the umbrella's Netlify build hook to redeploy with
+//      the new game registered via auto-discovery.
+//      Requires NETLIFY_UMBRELLA_BUILD_HOOK. Without it, falls back to
+//      opening a PR that adds the game to games.data.json (manual override).
+//
+// Auto-discovery means the speedrungames-side step is normally invisible:
+// the umbrella reads the new repo's speedrungames.json + topic membership
+// at its next build. The build hook just triggers that build immediately.
+//
+// Usage:
+//   bin/new-game --slug=<slug> --title="<Title>" --description="<one-liner>" [--emoji=🎮]
+//
+// Idempotent: re-running with the same slug skips create steps that already
+// succeeded, and skips pushing identical content.
+
+import { execFileSync, execSync } from "node:child_process";
+import {
+  existsSync,
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+} from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const OVERRIDES = resolve(ROOT, "apps/web/src/lib/games.data.json");
+const OWNER = "Brynrg";
+const TEMPLATE = `${OWNER}/speedrungames-game-template`;
+
+// ─── arg parsing ────────────────────────────────────────────────────────────
+const args = Object.fromEntries(
+  process.argv.slice(2).flatMap((a) => {
+    const m = a.match(/^--([^=]+)(?:=(.*))?$/);
+    if (!m) return [];
+    return [[m[1], m[2] ?? true]];
+  }),
+);
+
+function need(name, hint) {
+  if (!args[name] || typeof args[name] !== "string") {
+    fail(`Missing required --${name}=...   (${hint})`);
+  }
+  return args[name];
+}
+
+const slug = need("slug", "URL slug, lowercase kebab-case, e.g. snake-rush");
+const title = need("title", 'human title, e.g. "Snake Rush"');
+const description = need("description", "one-liner shown on the home grid");
+const emoji = (args.emoji && typeof args.emoji === "string") ? args.emoji : "🎮";
+const dryRun = !!args["dry-run"];
+
+if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(slug)) {
+  fail(
+    `Invalid --slug "${slug}". Must be kebab-case (lowercase + digits + hyphens, no leading/trailing hyphen).`,
+  );
+}
+
+const repoName = `game-${slug}`;
+const repoFull = `${OWNER}/${repoName}`;
+const proxyTo = `https://${repoName}.netlify.app`;
+
+log(`Bootstrapping speedrungames game:`);
+log(`  slug         ${slug}`);
+log(`  title        ${title}`);
+log(`  repo         github.com/${repoFull}`);
+log(`  proxyTo      ${proxyTo}`);
+if (dryRun) log(`  (dry-run: no remote changes)`);
+log("");
+
+// ─── prerequisites ──────────────────────────────────────────────────────────
+ensureCommand("gh", "Install GitHub CLI: https://cli.github.com/");
+ensureCommand("git");
+
+// ─── 1. registry: refuse if slug collides with an explicit override ─────────
+const overrides = JSON.parse(readFileSync(OVERRIDES, "utf8"));
+if (overrides.some((g) => g.slug === slug)) {
+  fail(
+    `Slug "${slug}" already exists as an override in apps/web/src/lib/games.data.json. Pick another.`,
+  );
+}
+
+// ─── 2. create the GitHub repo from template ────────────────────────────────
+const repoExists = ghRepoExists(repoFull);
+if (repoExists) {
+  log(`✓ Repo ${repoFull} already exists — skipping create.`);
+} else if (dryRun) {
+  log(`(dry-run) would create ${repoFull} from ${TEMPLATE}`);
+} else {
+  log(`Creating ${repoFull} from template ${TEMPLATE}...`);
+  run("gh", [
+    "repo",
+    "create",
+    repoFull,
+    "--public",
+    "--template",
+    TEMPLATE,
+    "--description",
+    `${title} — speedrun game at speedrungames.net/games/${slug}/`,
+  ]);
+  log(`✓ Repo created.`);
+}
+
+// ─── 3. topic ───────────────────────────────────────────────────────────────
+if (!dryRun) {
+  runStdin(
+    "gh",
+    ["api", "-X", "PUT", `repos/${repoFull}/topics`, "--input", "-"],
+    JSON.stringify({ names: ["speedrungames"] }),
+  );
+  log(`✓ Topic "speedrungames" applied to ${repoFull}.`);
+}
+
+// ─── 4. Netlify site (optional, gated on NETLIFY_AUTH_TOKEN) ────────────────
+const netlifyToken = process.env.NETLIFY_AUTH_TOKEN;
+let netlifyManual = false;
+if (!netlifyToken) {
+  netlifyManual = true;
+  log("");
+  log("ℹ NETLIFY_AUTH_TOKEN not set — Netlify site must be created manually:");
+  log(
+    `  https://app.netlify.com/start/deploy?repository=https://github.com/${repoFull}`,
+  );
+  log(
+    `  (Set NETLIFY_AUTH_TOKEN at app.netlify.com → User settings → Applications to automate this.)`,
+  );
+  log("");
+} else if (dryRun) {
+  log(`(dry-run) would create Netlify site ${repoName} linked to ${repoFull}.`);
+} else {
+  await createNetlifySite({ name: repoName, repoFull, token: netlifyToken });
+}
+
+if (dryRun) {
+  log("");
+  log("(dry-run) stopping before populating the game repo / firing build hook / PR.");
+  process.exit(0);
+}
+
+// ─── 5. clone the new repo and populate manifest + slug ─────────────────────
+const cloneDir = resolve(ROOT, "tmp", repoName);
+mkdirSync(dirname(cloneDir), { recursive: true });
+if (!existsSync(cloneDir)) {
+  log(`Cloning ${repoFull} into ${cloneDir}...`);
+  run("git", ["clone", `https://github.com/${repoFull}.git`, cloneDir]);
+} else {
+  log(`Local clone already exists at ${cloneDir} — fetching latest.`);
+  run("git", ["-C", cloneDir, "pull", "--ff-only"]);
+}
+
+let didEdit = false;
+
+// speedrungames.json
+const manifestPath = resolve(cloneDir, "speedrungames.json");
+if (existsSync(manifestPath)) {
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+  const next = {
+    ...manifest,
+    slug,
+    title,
+    description,
+    emoji,
+    deployUrl: proxyTo,
+    hidden: !!manifest.hidden,
+  };
+  const current = JSON.stringify(manifest, null, 2);
+  const desired = JSON.stringify(next, null, 2);
+  if (current !== desired) {
+    writeFileSync(manifestPath, desired + "\n", "utf8");
+    didEdit = true;
+    log(`✓ Populated ${repoName}/speedrungames.json`);
+  } else {
+    log(`✓ ${repoName}/speedrungames.json already up to date.`);
+  }
+} else {
+  log(
+    `⚠ ${repoName}/speedrungames.json not found — manifest auto-discovery won't pick this up. Did the template change?`,
+  );
+}
+
+// src/main.ts SLUG
+const mainPath = resolve(cloneDir, "src/main.ts");
+if (existsSync(mainPath)) {
+  const main = readFileSync(mainPath, "utf8");
+  const updated = main.replace(/const SLUG = "REPLACE_ME";/, `const SLUG = ${JSON.stringify(slug)};`);
+  if (updated !== main) {
+    writeFileSync(mainPath, updated, "utf8");
+    didEdit = true;
+    log(`✓ Set SLUG in ${repoName}/src/main.ts`);
+  }
+}
+
+// index.html <title>
+const htmlPath = resolve(cloneDir, "index.html");
+if (existsSync(htmlPath)) {
+  const html = readFileSync(htmlPath, "utf8");
+  const updated = html.replace(
+    /<title>[^<]*<\/title>/,
+    `<title>${escapeHtml(title)} — speedrungames.net</title>`,
+  );
+  if (updated !== html) {
+    writeFileSync(htmlPath, updated, "utf8");
+    didEdit = true;
+    log(`✓ Set <title> in ${repoName}/index.html`);
+  }
+}
+
+if (didEdit) {
+  run("git", ["-C", cloneDir, "add", "-A"]);
+  run("git", ["-C", cloneDir, "commit", "-m", `Bootstrap ${slug} (${title})`]);
+  run("git", ["-C", cloneDir, "push", "origin", "main"]);
+  log(`✓ Pushed bootstrap commit to ${repoFull}.`);
+} else {
+  log(`✓ Game repo already bootstrapped; no commit needed.`);
+}
+
+// ─── 6. trigger umbrella rebuild (build hook) or fall back to PR ────────────
+const buildHook = process.env.NETLIFY_UMBRELLA_BUILD_HOOK;
+let prUrl = null;
+
+if (buildHook) {
+  try {
+    const res = await fetch(buildHook, { method: "POST" });
+    if (res.ok) {
+      log(`✓ Fired umbrella Netlify build hook. Site will redeploy with auto-discovery.`);
+    } else {
+      log(`⚠ Build hook returned ${res.status}. Falling back to PR.`);
+      prUrl = await openOverridePR();
+    }
+  } catch (err) {
+    log(`⚠ Build hook fetch failed: ${err.message}. Falling back to PR.`);
+    prUrl = await openOverridePR();
+  }
+} else {
+  log("");
+  log(
+    "ℹ NETLIFY_UMBRELLA_BUILD_HOOK not set — opening a games.data.json PR as fallback.",
+  );
+  log(
+    "  Set this env var (Netlify dashboard → speedrungames site → Build & deploy → Build hooks)",
+  );
+  log(
+    "  to skip the PR step in future runs (auto-discovery handles registration).",
+  );
+  log("");
+  prUrl = await openOverridePR();
+}
+
+// ─── final summary ──────────────────────────────────────────────────────────
+log("");
+log("─── Next steps ──────────────────────────────────────────────────────");
+log(`1. Build the game in:   ${cloneDir}`);
+log(`   - Edit src/main.ts (replace the gameplay section)`);
+log(`   - Run: cd ${cloneDir} && npm install && npm run dev`);
+let n = 2;
+if (netlifyManual) {
+  log(`${n++}. Create the Netlify site (one-click):`);
+  log(`   https://app.netlify.com/start/deploy?repository=https://github.com/${repoFull}`);
+}
+if (prUrl) {
+  log(`${n++}. Merge the speedrungames override PR: ${prUrl}`);
+}
+log(`${n++}. Live at: https://speedrungames.net/games/${slug}/`);
+log("");
+
+// ─── helpers ────────────────────────────────────────────────────────────────
+
+async function openOverridePR() {
+  const entry = {
+    slug,
+    title,
+    description,
+    href: `/games/${slug}/`,
+    emoji,
+    proxyTo,
+  };
+  const overridesNow = JSON.parse(readFileSync(OVERRIDES, "utf8"));
+  if (overridesNow.some((g) => g.slug === slug)) {
+    log("✓ Override entry already present; skipping PR.");
+    return null;
+  }
+  overridesNow.push(entry);
+  writeFileSync(OVERRIDES, JSON.stringify(overridesNow, null, 2) + "\n", "utf8");
+
+  const branch = `add-${slug}`;
+  const currentBranch = run("git", ["-C", ROOT, "rev-parse", "--abbrev-ref", "HEAD"], { silent: true }).trim();
+  if (currentBranch !== branch) {
+    const branchExists = run("git", ["-C", ROOT, "branch", "--list", branch], { silent: true }).trim() !== "";
+    if (branchExists) {
+      run("git", ["-C", ROOT, "checkout", branch]);
+    } else {
+      run("git", ["-C", ROOT, "checkout", "-b", branch]);
+    }
+  }
+  run("git", ["-C", ROOT, "add", "apps/web/src/lib/games.data.json"]);
+  run("git", ["-C", ROOT, "commit", "-m", `Register ${slug} (${title}) as override`]);
+  run("git", ["-C", ROOT, "push", "-u", "origin", branch]);
+
+  try {
+    const body = [
+      `Registers **${title}** at \`speedrungames.net/games/${slug}/\` as an explicit override.`,
+      ``,
+      `- Repo: https://github.com/${repoFull}`,
+      `- Proxy target: ${proxyTo}`,
+      ``,
+      `_(Auto-discovery would pick this up automatically once the umbrella rebuilds, but a build hook isn't configured. Merge this PR to register without waiting.)_`,
+    ].join("\n");
+    return run("gh", [
+      "pr", "create",
+      "--title", `Add ${title} (${slug})`,
+      "--body", body,
+      "--base", "main",
+      "--head", branch,
+    ], { silent: true }).trim();
+  } catch {
+    return null;
+  }
+}
+
+async function createNetlifySite({ name, repoFull, token }) {
+  log(`Creating Netlify site "${name}" linked to ${repoFull}...`);
+  try {
+    const createRes = await fetch("https://api.netlify.com/api/v1/sites", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name,
+        repo: {
+          provider: "github",
+          repo: repoFull,
+          branch: "main",
+          cmd: "npm ci && npm run build",
+          dir: "dist",
+        },
+      }),
+    });
+
+    if (!createRes.ok) {
+      const body = await createRes.text();
+      log(`✗ Netlify API responded ${createRes.status}. Falling back to manual deploy URL.`);
+      log(`  Response: ${body.slice(0, 300)}`);
+      log(`  Manual deploy: https://app.netlify.com/start/deploy?repository=https://github.com/${repoFull}`);
+      return;
+    }
+
+    const site = await createRes.json();
+    log(`✓ Netlify site created: ${site.ssl_url || site.url}`);
+    if (site.url && site.url !== proxyTo) {
+      log(`  Note: site URL is ${site.url} but expected ${proxyTo}.`);
+      log(`  If they differ, update speedrungames.json deployUrl in the new repo.`);
+    }
+  } catch (err) {
+    log(`✗ Netlify create threw: ${err.message}`);
+    log(`  Manual deploy: https://app.netlify.com/start/deploy?repository=https://github.com/${repoFull}`);
+  }
+}
+
+function ghRepoExists(full) {
+  try {
+    execFileSync("gh", ["api", `repos/${full}`], {
+      stdio: ["ignore", "ignore", "ignore"],
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function ensureCommand(cmd, hint = "") {
+  try {
+    execFileSync("which", [cmd], { stdio: "ignore" });
+  } catch {
+    fail(`Required command not found: ${cmd}${hint ? `\n  ${hint}` : ""}`);
+  }
+}
+
+function run(cmd, argv, opts = {}) {
+  try {
+    return execFileSync(cmd, argv, {
+      encoding: "utf8",
+      stdio: opts.silent ? ["ignore", "pipe", "pipe"] : "inherit",
+    });
+  } catch (err) {
+    fail(`Command failed: ${cmd} ${argv.join(" ")}\n${err.stderr || err.message || ""}`);
+  }
+}
+
+function runStdin(cmd, argv, stdin) {
+  try {
+    return execSync(`${cmd} ${argv.map(quote).join(" ")}`, {
+      input: stdin,
+      encoding: "utf8",
+    });
+  } catch (err) {
+    fail(`Command failed: ${cmd} ${argv.join(" ")}\n${err.stderr || err.message || ""}`);
+  }
+}
+
+function quote(s) {
+  return /[^A-Za-z0-9_/.=:-]/.test(s) ? `'${s.replace(/'/g, "'\\''")}'` : s;
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function log(s) {
+  process.stdout.write(s + "\n");
+}
+
+function fail(msg) {
+  process.stderr.write(`\n✗ ${msg}\n\n`);
+  process.exit(1);
+}
