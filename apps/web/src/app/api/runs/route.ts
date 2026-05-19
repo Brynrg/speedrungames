@@ -8,8 +8,16 @@
 // returns empty / 503. Use `netlify dev` to test against real blob storage.
 
 import { NextResponse } from "next/server";
-import { getStore } from "@netlify/blobs";
+import { getStore, getDeployStore } from "@netlify/blobs";
 import { games } from "@/lib/games";
+
+// Isolate deploy-preview / branch-deploy storage from production so test
+// submits on a PR can't pollute the live leaderboard.
+function leaderboardStore() {
+  const ctx = process.env.CONTEXT;
+  const isPreview = ctx === "deploy-preview" || ctx === "branch-deploy";
+  return isPreview ? getDeployStore(STORE_NAME) : getStore(STORE_NAME);
+}
 
 export const dynamic = "force-dynamic";
 
@@ -43,14 +51,41 @@ function clamp(n: number, lo: number, hi: number) {
 }
 
 async function readRuns(): Promise<Run[]> {
-  const store = getStore(STORE_NAME);
+  const store = leaderboardStore();
   const data = (await store.get(RUNS_KEY, { type: "json" })) as Run[] | null;
   return Array.isArray(data) ? data : [];
 }
 
-async function writeRuns(runs: Run[]): Promise<void> {
-  const store = getStore(STORE_NAME);
-  await store.setJSON(RUNS_KEY, runs);
+/**
+ * Atomically prepend `run` to the recent[] blob, capped at MAX_RECENT.
+ * Uses compare-and-swap on the blob's etag with retries to handle
+ * concurrent writes from racing function invocations.
+ */
+async function prependRun(run: Run, attempts = 6): Promise<void> {
+  const store = leaderboardStore();
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    const meta = (await store.getWithMetadata(RUNS_KEY, { type: "json" })) as
+      | { data: unknown; etag: string }
+      | null;
+    const existing = (meta && Array.isArray(meta.data) ? (meta.data as Run[]) : []) ?? [];
+    const next = [run, ...existing].slice(0, MAX_RECENT);
+    try {
+      const opts = meta?.etag
+        ? { onlyIfMatch: meta.etag }
+        : { onlyIfNew: true };
+      const result = (await store.setJSON(RUNS_KEY, next, opts)) as
+        | { modified: boolean }
+        | undefined;
+      if (!result || result.modified) return;
+      // CAS conflict — another writer beat us. Retry.
+    } catch (err) {
+      lastErr = err;
+    }
+    await new Promise((r) => setTimeout(r, 25 * (i + 1)));
+  }
+  if (lastErr) throw lastErr;
+  throw new Error(`leaderboard: CAS retry exhausted after ${attempts} attempts`);
 }
 
 export async function GET(req: Request) {
@@ -124,9 +159,7 @@ export async function POST(req: Request) {
   };
 
   try {
-    const existing = await readRuns();
-    const next = [run, ...existing].slice(0, MAX_RECENT);
-    await writeRuns(next);
+    await prependRun(run);
     return NextResponse.json(run);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "unknown";
