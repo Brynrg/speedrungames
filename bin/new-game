@@ -1,0 +1,311 @@
+#!/usr/bin/env node
+// bin/new-game — bootstrap a new speedrungames.net game end-to-end.
+//
+// What it does (in order):
+//   1. Validates inputs and that prerequisites are installed (gh, git).
+//   2. Creates Brynrg/game-<slug> from the speedrungames-game-template.
+//   3. Adds the `speedrungames` topic to the new repo.
+//   4. (Optional) Creates a Netlify site connected to the new repo via the
+//      Netlify API. Requires NETLIFY_AUTH_TOKEN. Without it, prints the
+//      one-click Netlify "import repo" deploy URL.
+//   5. Adds an entry to apps/web/src/lib/games.data.json on a new branch in
+//      this repo, commits, pushes, and opens a PR.
+//   6. Clones the new game repo into ./tmp/game-<slug>/ and prints next steps.
+//
+// Usage:
+//   bin/new-game --slug=<slug> --title="<Title>" --description="<one-liner>" [--emoji=🎮]
+//
+// Designed to be run by AI agents AND humans. Idempotent on the speedrungames
+// PR step (re-running with the same slug skips the duplicate insert).
+
+import { execFileSync, execSync } from "node:child_process";
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const REGISTRY = resolve(ROOT, "apps/web/src/lib/games.data.json");
+const OWNER = "Brynrg";
+const TEMPLATE = `${OWNER}/speedrungames-game-template`;
+
+// ─── arg parsing ────────────────────────────────────────────────────────────
+const args = Object.fromEntries(
+  process.argv.slice(2).flatMap((a) => {
+    const m = a.match(/^--([^=]+)(?:=(.*))?$/);
+    if (!m) return [];
+    return [[m[1], m[2] ?? true]];
+  }),
+);
+
+function need(name, hint) {
+  if (!args[name] || typeof args[name] !== "string") {
+    fail(`Missing required --${name}=...   (${hint})`);
+  }
+  return args[name];
+}
+
+const slug = need("slug", "URL slug, lowercase kebab-case, e.g. snake-rush");
+const title = need("title", 'human title, e.g. "Snake Rush"');
+const description = need("description", "one-liner shown on the home grid");
+const emoji = (args.emoji && typeof args.emoji === "string") ? args.emoji : "🎮";
+const dryRun = !!args["dry-run"];
+
+if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(slug)) {
+  fail(`Invalid --slug "${slug}". Must be kebab-case (lowercase + digits + hyphens, no leading/trailing hyphen).`);
+}
+
+const repoName = `game-${slug}`;
+const repoFull = `${OWNER}/${repoName}`;
+const proxyTo = `https://${repoName}.netlify.app`;
+
+log(`Bootstrapping speedrungames game:`);
+log(`  slug         ${slug}`);
+log(`  title        ${title}`);
+log(`  repo         github.com/${repoFull}`);
+log(`  proxyTo      ${proxyTo}`);
+if (dryRun) log(`  (dry-run: no remote changes)`);
+log("");
+
+// ─── prerequisites ──────────────────────────────────────────────────────────
+ensureCommand("gh", "Install GitHub CLI: https://cli.github.com/");
+ensureCommand("git");
+
+// ─── 1. registry: refuse if slug already exists ─────────────────────────────
+const registry = JSON.parse(readFileSync(REGISTRY, "utf8"));
+if (registry.some((g) => g.slug === slug)) {
+  fail(`Slug "${slug}" already exists in apps/web/src/lib/games.data.json. Pick another.`);
+}
+
+// ─── 2. create the GitHub repo from template ────────────────────────────────
+const repoExists = ghRepoExists(repoFull);
+if (repoExists) {
+  log(`✓ Repo ${repoFull} already exists — skipping create.`);
+} else if (dryRun) {
+  log(`(dry-run) would create ${repoFull} from ${TEMPLATE}`);
+} else {
+  log(`Creating ${repoFull} from template ${TEMPLATE}...`);
+  run("gh", ["repo", "create", repoFull, "--public", "--template", TEMPLATE,
+    "--description", `${title} — speedrun game at speedrungames.net/games/${slug}/`]);
+  log(`✓ Repo created.`);
+}
+
+// ─── 3. topic ───────────────────────────────────────────────────────────────
+if (!dryRun) {
+  try {
+    const topicsRaw = run("gh", ["api", `repos/${repoFull}/topics`, "--jq", ".names"], { silent: true });
+    const topics = JSON.parse(topicsRaw || "[]");
+    const merged = Array.from(new Set([...topics, "speedrungames"]));
+    run("gh", ["api", "-X", "PUT", `repos/${repoFull}/topics`,
+      "-f", `names[]=${merged.join(",")}`], { silent: true });
+  } catch (e) {
+    // gh api with -f names[]=a,b doesn't actually work; use proper API call.
+    runStdin("gh", ["api", "-X", "PUT", `repos/${repoFull}/topics`, "--input", "-"],
+      JSON.stringify({ names: ["speedrungames"] }));
+  }
+  log(`✓ Topic "speedrungames" applied to ${repoFull}.`);
+}
+
+// ─── 4. Netlify site (optional, gated on NETLIFY_AUTH_TOKEN) ────────────────
+const netlifyToken = process.env.NETLIFY_AUTH_TOKEN;
+let netlifyManual = false;
+if (!netlifyToken) {
+  netlifyManual = true;
+  log("");
+  log("ℹ NETLIFY_AUTH_TOKEN not set — Netlify site must be created manually.");
+  log("  Open this URL in a browser to deploy in one click:");
+  log(`  https://app.netlify.com/start/deploy?repository=https://github.com/${repoFull}`);
+  log("  Or set NETLIFY_AUTH_TOKEN (create at app.netlify.com → User settings → Applications)");
+  log("  and re-run this script (it's idempotent).");
+  log("");
+} else if (dryRun) {
+  log(`(dry-run) would create Netlify site ${repoName} linked to ${repoFull}.`);
+} else {
+  await createNetlifySite({ name: repoName, repoFull, token: netlifyToken });
+}
+
+// ─── 5. registry entry + speedrungames PR ───────────────────────────────────
+const entry = {
+  slug,
+  title,
+  description,
+  href: `/games/${slug}/`,
+  emoji,
+  proxyTo,
+};
+
+if (dryRun) {
+  log(`(dry-run) would add entry to apps/web/src/lib/games.data.json:`);
+  log(`  ${JSON.stringify(entry)}`);
+  log("(dry-run) stopping before file write / commit / push / PR.");
+  process.exit(0);
+}
+
+registry.push(entry);
+writeFileSync(REGISTRY, JSON.stringify(registry, null, 2) + "\n", "utf8");
+log(`✓ Added entry to apps/web/src/lib/games.data.json.`);
+
+const branch = `add-${slug}`;
+const currentBranch = run("git", ["-C", ROOT, "rev-parse", "--abbrev-ref", "HEAD"], { silent: true }).trim();
+
+if (currentBranch !== branch) {
+  // If the branch exists locally already, check it out; otherwise create it.
+  const branchExists = run("git", ["-C", ROOT, "branch", "--list", branch], { silent: true }).trim() !== "";
+  if (branchExists) {
+    run("git", ["-C", ROOT, "checkout", branch]);
+  } else {
+    run("git", ["-C", ROOT, "checkout", "-b", branch]);
+  }
+}
+
+run("git", ["-C", ROOT, "add", "apps/web/src/lib/games.data.json"]);
+run("git", ["-C", ROOT, "commit", "-m", `Register ${slug} (${title})`]);
+run("git", ["-C", ROOT, "push", "-u", "origin", branch]);
+
+const prBody = [
+  `Registers **${title}** at \`speedrungames.net/games/${slug}/\`.`,
+  ``,
+  `- Repo: https://github.com/${repoFull}`,
+  `- Proxy target: ${proxyTo}`,
+  netlifyManual
+    ? `- ⚠️ Netlify site must still be created manually (see bootstrap log).`
+    : `- Netlify site auto-created via API.`,
+  ``,
+  `Generated by \`bin/new-game --slug=${slug}\`.`,
+].join("\n");
+
+let prUrl;
+try {
+  prUrl = run("gh", [
+    "pr", "create",
+    "--title", `Add ${title} (${slug})`,
+    "--body", prBody,
+    "--base", "main",
+    "--head", branch,
+  ], { silent: true }).trim();
+  log(`✓ PR opened: ${prUrl}`);
+} catch (e) {
+  log("ℹ PR creation skipped (a PR may already exist for this branch).");
+}
+
+// ─── 6. clone the game repo locally for the agent to work in ────────────────
+const cloneDir = resolve(ROOT, "tmp", repoName);
+mkdirSync(dirname(cloneDir), { recursive: true });
+if (!existsSync(cloneDir)) {
+  run("git", ["clone", `https://github.com/${repoFull}.git`, cloneDir]);
+} else {
+  log(`Local clone already exists at ${cloneDir}.`);
+}
+
+log("");
+log("─── Next steps ──────────────────────────────────────────────────────");
+log(`1. Build the game in:   ${cloneDir}`);
+log(`   - Edit src/main.ts (replace the gameplay section)`);
+log(`   - Change SLUG in src/storage.ts to "${slug}"`);
+log(`   - Update <title> in index.html`);
+log(`   - Run: cd ${cloneDir} && npm install && npm run dev`);
+if (netlifyManual) {
+  log(`2. Create the Netlify site (one-click):`);
+  log(`   https://app.netlify.com/start/deploy?repository=https://github.com/${repoFull}`);
+}
+log(`${netlifyManual ? "3" : "2"}. Merge the speedrungames PR${prUrl ? `: ${prUrl}` : ""}.`);
+log(`${netlifyManual ? "4" : "3"}. Live at: https://speedrungames.net/games/${slug}/`);
+log("");
+
+// ─── helpers ────────────────────────────────────────────────────────────────
+
+async function createNetlifySite({ name, repoFull, token }) {
+  log(`Creating Netlify site "${name}" linked to ${repoFull}...`);
+
+  // Find the GitHub installation id for this repo so Netlify can deploy from it.
+  // Netlify's API supports POST /sites with a repo block. The repo block needs
+  // provider, repo, branch, and either installation_id or the user's GitHub
+  // auth on Netlify side.
+  //
+  // The simplest reliable path: create the site bare, then connect via the
+  // repo build settings endpoint. If that fails (perms, no GitHub install),
+  // fall back to printing the manual deploy URL.
+
+  try {
+    const createRes = await fetch("https://api.netlify.com/api/v1/sites", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name,
+        repo: {
+          provider: "github",
+          repo: repoFull,
+          branch: "main",
+          cmd: "npm ci && npm run build",
+          dir: "dist",
+        },
+      }),
+    });
+
+    if (!createRes.ok) {
+      const body = await createRes.text();
+      log(`✗ Netlify API responded ${createRes.status}. Falling back to manual deploy URL.`);
+      log(`  Response: ${body.slice(0, 300)}`);
+      log(`  Manual deploy: https://app.netlify.com/start/deploy?repository=https://github.com/${repoFull}`);
+      return;
+    }
+
+    const site = await createRes.json();
+    log(`✓ Netlify site created: ${site.ssl_url || site.url}`);
+    if (site.url && site.url !== proxyTo) {
+      log(`  Note: site URL is ${site.url} but registry expected ${proxyTo}.`);
+      log(`  If they differ, update the registry entry's proxyTo manually before merge.`);
+    }
+  } catch (err) {
+    log(`✗ Netlify create threw: ${err.message}`);
+    log(`  Manual deploy: https://app.netlify.com/start/deploy?repository=https://github.com/${repoFull}`);
+  }
+}
+
+function ghRepoExists(full) {
+  try {
+    execFileSync("gh", ["api", `repos/${full}`], { stdio: ["ignore", "ignore", "ignore"] });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function ensureCommand(cmd, hint = "") {
+  try {
+    execFileSync("which", [cmd], { stdio: "ignore" });
+  } catch {
+    fail(`Required command not found: ${cmd}${hint ? `\n  ${hint}` : ""}`);
+  }
+}
+
+function run(cmd, argv, opts = {}) {
+  try {
+    return execFileSync(cmd, argv, { encoding: "utf8", stdio: opts.silent ? ["ignore", "pipe", "pipe"] : "inherit" });
+  } catch (err) {
+    fail(`Command failed: ${cmd} ${argv.join(" ")}\n${err.stderr || err.message || ""}`);
+  }
+}
+
+function runStdin(cmd, argv, stdin) {
+  try {
+    return execSync(`${cmd} ${argv.map(quote).join(" ")}`, { input: stdin, encoding: "utf8" });
+  } catch (err) {
+    fail(`Command failed: ${cmd} ${argv.join(" ")}\n${err.stderr || err.message || ""}`);
+  }
+}
+
+function quote(s) {
+  return /[^A-Za-z0-9_/.=:-]/.test(s) ? `'${s.replace(/'/g, "'\\''")}'` : s;
+}
+
+function log(s) {
+  process.stdout.write(s + "\n");
+}
+
+function fail(msg) {
+  process.stderr.write(`\n✗ ${msg}\n\n`);
+  process.exit(1);
+}

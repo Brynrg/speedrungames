@@ -1,20 +1,34 @@
 # AGENTS.md — adding a game to speedrungames.net
 
-You are adding a new game to **speedrungames.net**. The site is a Next.js shell hosted on Netlify; each game lives in its **own** GitHub repo and ships from its **own** Netlify site. The umbrella site (this repo) just proxies the URL.
+**For autonomous agents: read [AGENT.md](AGENT.md) instead.** That file is a self-contained system prompt.
 
-After initial wiring, every `git push` to the game repo's `main` updates the live game on speedrungames.net automatically — **zero commits to this repo required for iteration.**
+This file is the manual-mode reference. Each game has its own GitHub repo + its own Netlify site. The umbrella proxies them. After initial wiring, `git push` to the game's `main` updates the live game on speedrungames.net.
 
-## TL;DR
+## TL;DR — the bootstrap script does it all
 
-1. Create the game repo from the template:
+```bash
+./bin/new-game \
+  --slug=<slug> \
+  --title="<Game Title>" \
+  --description="<one-liner>" \
+  --emoji=🎮
+```
+
+This creates the game repo from the template, tags it, creates the Netlify site (if `NETLIFY_AUTH_TOKEN` is set), adds the entry to `apps/web/src/lib/games.data.json` on a new branch, and opens a PR. The new game repo is cloned to `./tmp/game-<slug>/` for you to start coding in.
+
+Set up the Netlify token once at `app.netlify.com` → User settings → Applications → Personal access tokens, then `export NETLIFY_AUTH_TOKEN=...` in your shell. Without it, the script prints a one-click deploy URL you click manually.
+
+## Manual path (if you can't use the bootstrap)
+
+1. Create the game repo:
    ```bash
    gh repo create Brynrg/game-<slug> --public \
      --template Brynrg/speedrungames-game-template --clone
    ```
-2. Build the game in that repo. Push to `main`.
-3. Connect the repo to Netlify (one-time, manual): netlify.com → Add new site → Import from GitHub → pick the repo → Deploy. The included `netlify.toml` handles config.
-4. Note the resulting URL, e.g. `https://game-<slug>.netlify.app`.
-5. In **this repo**, add **one entry** to `apps/web/src/lib/games.data.json`:
+2. Tag it: `gh api -X PUT repos/Brynrg/game-<slug>/topics --input -` with body `{"names":["speedrungames"]}`.
+3. Build the game (see the template's `AGENTS.md`).
+4. Connect the repo to Netlify (web UI: app.netlify.com → Import → pick repo → Deploy).
+5. Add one entry to `apps/web/src/lib/games.data.json`:
    ```json
    {
      "slug": "<slug>",
@@ -27,31 +41,43 @@ After initial wiring, every `git push` to the game repo's `main` updates the liv
    ```
 6. PR → merge → live at `speedrungames.net/games/<slug>/`.
 
-That's it. No new route file. No nav edit. No `_redirects` edit. The build script + auto-nav + home grid all derive from that single entry.
+## The proxy model
 
-## The proxy model (read before iterating)
+`apps/web/scripts/generate-redirects.mjs` runs in `prebuild`. It reads `games.data.json` and writes `apps/web/public/_redirects` with one rule per game that has `proxyTo`:
 
-- `apps/web/scripts/generate-redirects.mjs` runs in `prebuild`. It reads `games.data.json` and writes `apps/web/public/_redirects` with one rule per game that has `proxyTo`:
-  ```
-  /games/<slug>/*    https://game-<slug>.netlify.app/:splat    200!
-  ```
-- The `200!` (force) means the proxy wins even over a Next route at the same path. Netlify proxies the request transparently — the player's URL bar stays at `speedrungames.net`.
-- The game itself **must** use relative asset paths (`./assets/foo.png`, not `/assets/foo.png`) — see the template's `AGENTS.md` for the per-tool config.
+```
+/games/<slug>/*    https://game-<slug>.netlify.app/:splat    200!
+```
+
+The `200!` (force) means the proxy wins even over a Next route at the same path. Netlify proxies the request transparently — the player's URL bar stays at `speedrungames.net`.
+
+## Iteration
+
+To change an existing proxied game, you do **not** touch this repo. Clone the game's own repo, change it, push:
+
+```bash
+gh repo clone Brynrg/game-<slug>
+cd game-<slug>
+# ... changes ...
+git push origin main
+```
+
+The game's own Netlify site redeploys. The umbrella has nothing to do.
 
 ## Hard rules
 
-1. **`slug` is permanent.** It's baked into the live URL and the proxy target. Choose carefully (lowercase, kebab-case, URL-safe).
-2. **Repo name must equal `game-<slug>`** unless you also override `proxyTo` to point at the actual Netlify subdomain (which is usually `<repo-name>.netlify.app`).
-3. **`href` for proxied games must end in `/`** (`/games/<slug>/`). The proxy splat doesn't match the bare path; the generator emits a 301 to handle it, but linking with the slash skips the redirect.
-4. **Never hand-edit `apps/web/public/_redirects`.** It is generated. Edit `games.data.json` and re-run `pnpm -C apps/web build` (or the dev server).
+1. **`slug` is permanent.** Baked into the live URL and proxy target.
+2. **Repo name must equal `game-<slug>`** unless you override `proxyTo` to point at the actual Netlify subdomain.
+3. **`href` for proxied games ends in `/`** (`/games/<slug>/`). The proxy splat doesn't match the bare path; the generator emits a 301 to handle it, but linking with the slash skips the redirect.
+4. **Never hand-edit `apps/web/public/_redirects`.** It is generated. Edit `games.data.json` and re-run `pnpm -C apps/web build`.
 5. **Don't change the `prebuild` script or `netlify.toml` build command** without explicit approval — Netlify deploys depend on them.
 6. **Don't add Next routes for proxied games.** The proxy at `/games/<slug>/*` covers everything; a Next route is dead code.
 
-## Legacy games (in-monorepo pattern)
+## Legacy games
 
-The original three games (`tower-wars`, `tower-wars-2`, `pokemonspeedrungen1`) still live in this repo and use either an iframe-from-`public/games/` (Pattern A) or a workspace package (Pattern B). They have **no `proxyTo`** so the redirect generator skips them. Leave them alone unless explicitly migrating.
+The original three (`tower-wars`, `tower-wars-2`, `pokemonspeedrungen1`) live in this repo with no `proxyTo` and use the older in-monorepo pattern (iframe-from-`public/games/` or workspace package). The redirect generator skips them; their routes still work.
 
-To migrate one: extract its source to `Brynrg/game-<slug>`, follow steps 1–6 above, then delete the old Next route file and `apps/web/public/games/<slug>/` directory.
+To migrate one: extract its source to `Brynrg/game-<slug>`, run the bootstrap with the same slug (after deleting the old `games.data.json` entry), and delete the old Next route file + `apps/web/public/games/<slug>/` directory.
 
 ## Verifying locally
 
@@ -60,16 +86,17 @@ pnpm install
 pnpm -C apps/web dev
 ```
 
-Visit `http://localhost:3000` — the new game appears in the grid and nav. The proxy rule itself only works on a deployed Netlify build (the dev server doesn't run Netlify redirects).
-
-To preview the live proxy behavior, push to a PR — Netlify deploy previews include `_redirects` and will proxy the new game from the preview URL.
+Visit `http://localhost:3000` — the new game appears in the grid and nav. The proxy rule itself only works on a deployed Netlify build (the dev server doesn't apply Netlify redirects). To see proxy behavior, push to a PR and use the Netlify deploy preview.
 
 ## Pre-flight checklist
 
-- [ ] Game repo created from `Brynrg/speedrungames-game-template`
-- [ ] Game uses relative asset paths
-- [ ] Game's Netlify site deployed successfully (status: Published)
-- [ ] Game URL loads in a browser standalone
-- [ ] Entry added to `apps/web/src/lib/games.data.json` with correct `slug`, `href` (trailing slash), `proxyTo`
-- [ ] `pnpm -C apps/web build` passes locally
-- [ ] PR opened; deploy preview loads the new game at `/games/<slug>/`
+- [ ] Bootstrap ran successfully (or manual steps completed)
+- [ ] Game's Netlify site is Published and loads standalone
+- [ ] CI green in the game repo
+- [ ] Speedrungames PR opened and ready to merge
+- [ ] After merge: `speedrungames.net/games/<slug>/` loads the game
+
+## See also
+
+- [AGENT.md](AGENT.md) — self-contained system prompt for autonomous agents
+- [Brynrg/speedrungames-game-template](https://github.com/Brynrg/speedrungames-game-template) — the game-side template + its own AGENTS.md
