@@ -11,6 +11,8 @@ export default function TowerWars2Page() {
       <iframe
         src="/games/tower-wars-2/index.html"
         title="Tower Wars II"
+        sandbox="allow-scripts allow-same-origin allow-pointer-lock allow-gamepad"
+        allow="gamepad; fullscreen"
         style={{ width: "100%", height: "100%", border: "0" }}
         loading="lazy"
       />

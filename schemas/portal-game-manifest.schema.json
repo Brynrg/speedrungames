@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://speedrungames.net/schemas/portal-game-manifest.schema.json",
+  "title": "Portal game manifest",
+  "description": "Schema for apps/web/public/games/<slug>/manifest.json. Authored by scripts/ingest-game-build.mjs. Source of truth for scripts/build-registry.mjs.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "slug",
+    "title",
+    "description",
+    "repo",
+    "playUrl",
+    "category",
+    "status",
+    "framework",
+    "supportsMobile",
+    "version",
+    "sourceCommit",
+    "buildHash",
+    "buildTimestamp",
+    "lastUpdated"
+  ],
+  "properties": {
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$",
+      "minLength": 2,
+      "maxLength": 48,
+      "description": "Lowercase kebab-case URL slug. No leading/trailing hyphen."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 280
+    },
+    "repo": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Source repo URL (https://github.com/<owner>/<name>) or owner/name shorthand."
+    },
+    "playUrl": {
+      "type": "string",
+      "pattern": "^/games/[a-z0-9][a-z0-9-]*[a-z0-9]/$",
+      "description": "Must equal /games/<slug>/ (trailing slash required)."
+    },
+    "category": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "preview", "live", "archived", "broken"]
+    },
+    "framework": {
+      "type": "string",
+      "enum": [
+        "vite",
+        "vite-phaser",
+        "vite-pixi",
+        "vite-react",
+        "vanilla",
+        "other"
+      ]
+    },
+    "supportsMobile": {
+      "type": "boolean"
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sourceCommit": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{7,40}$",
+      "description": "Git SHA of the source repo at build time."
+    },
+    "buildHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "sha256 over dist/ contents (see scripts/ingest-game-build.mjs for method)."
+    },
+    "buildTimestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 datetime when this build was ingested."
+    },
+    "lastUpdated": {
+      "type": "string",
+      "description": "ISO 8601 date or datetime, derived from buildTimestamp."
+    },
+    "redirectTo": {
+      "type": "string",
+      "description": "Required if status is 'archived' and index.html is not preserved. Absolute URL or /games/<other-slug>/."
+    },
+    "assetLicenseSummary": {
+      "type": "string",
+      "description": "Optional one-line summary of asset licenses for games whose source repo carries assets."
+    },
+    "assetsDocumented": {
+      "type": "boolean",
+      "description": "Optional. Asserts the source repo has ASSETS.md."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "status": { "const": "archived" } }
+      },
+      "then": {
+        "anyOf": [
+          { "required": ["redirectTo"] },
+          { "description": "OR index.html is preserved on disk; checked by validate-games.mjs at filesystem layer." }
+        ]
+      }
+    }
+  ]
+}

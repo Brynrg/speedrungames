@@ -1,0 +1,10 @@
+# reports/
+
+Agents write run reports here using the filename pattern:
+
+  <UTC-timestamp>-<slug>.md
+
+E.g.  2026-05-19T18-30-00Z-tower-warz.md
+
+Both successful runs and failure reports go here. See AGENTS.md §7 (halt
+protocol) and §10 (required final-report format).
