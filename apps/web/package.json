@@ -3,10 +3,12 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node scripts/generate-redirects.mjs && next dev",
+    "prebuild": "node scripts/generate-redirects.mjs",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "generate-redirects": "node scripts/generate-redirects.mjs"
   },
   "dependencies": {
     "@speedrungames/pokemonspeedrungen1": "workspace:*",
