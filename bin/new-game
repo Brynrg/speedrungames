@@ -129,13 +129,17 @@ let netlifyManual = false;
 if (!netlifyToken) {
   netlifyManual = true;
   log("");
-  log("ℹ NETLIFY_AUTH_TOKEN not set — Netlify site must be created manually:");
-  log(
-    `  https://app.netlify.com/start/deploy?repository=https://github.com/${repoFull}`,
-  );
-  log(
-    `  (Set NETLIFY_AUTH_TOKEN at app.netlify.com → User settings → Applications to automate this.)`,
-  );
+  log("ℹ NETLIFY_AUTH_TOKEN not set — Netlify site must be created manually this run.");
+  log("");
+  log("  Manual deploy URL for this game:");
+  log(`    https://app.netlify.com/start/deploy?repository=https://github.com/${repoFull}`);
+  log("");
+  log("  To skip this manual step in future runs, set NETLIFY_AUTH_TOKEN once:");
+  log("    1. Generate token:");
+  log("       https://app.netlify.com/user/applications#personal-access-tokens");
+  log("    2. Add to ~/.zshenv (use .zshenv, NOT .zshrc — non-interactive shells need it):");
+  log('       export NETLIFY_AUTH_TOKEN="<paste-token-here>"');
+  log("    3. Reload:  source ~/.zshenv");
   log("");
 } else if (dryRun) {
   log(`(dry-run) would create Netlify site ${repoName} linked to ${repoFull}.`);
@@ -245,15 +249,17 @@ if (buildHook) {
   }
 } else {
   log("");
-  log(
-    "ℹ NETLIFY_UMBRELLA_BUILD_HOOK not set — opening a games.data.json PR as fallback.",
-  );
-  log(
-    "  Set this env var (Netlify dashboard → speedrungames site → Build & deploy → Build hooks)",
-  );
-  log(
-    "  to skip the PR step in future runs (auto-discovery handles registration).",
-  );
+  log("ℹ NETLIFY_UMBRELLA_BUILD_HOOK not set — opening a games.data.json PR as fallback.");
+  log("");
+  log("  To skip the PR step in future runs, set NETLIFY_UMBRELLA_BUILD_HOOK once:");
+  log("    1. Create a build hook for the umbrella site:");
+  log("       https://app.netlify.com → speedrungames → Site configuration → Build & deploy → Build hooks → Add build hook");
+  log("       (name: bootstrap-new-game, branch: main)");
+  log("    2. Add to ~/.zshenv (use .zshenv, NOT .zshrc — non-interactive shells need it):");
+  log('       export NETLIFY_UMBRELLA_BUILD_HOOK="<paste-hook-url-here>"');
+  log("    3. Reload:  source ~/.zshenv");
+  log("");
+  log("  With the hook set, the umbrella auto-discovers new games via GitHub topic + manifest. No PR needed.");
   log("");
   prUrl = await openOverridePR();
 }
