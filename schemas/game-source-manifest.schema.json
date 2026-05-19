@@ -57,6 +57,16 @@
     },
     "version": {
       "type": "string"
+    },
+    "multiplayer": {
+      "type": "string",
+      "enum": ["none", "local", "p2p", "realtime-server", "async"]
+    },
+    "multiplayerProvider": {
+      "type": ["string", "null"]
+    },
+    "multiplayerEndpoint": {
+      "type": "string"
     }
   }
 }

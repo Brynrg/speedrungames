@@ -106,6 +106,19 @@
     "assetsDocumented": {
       "type": "boolean",
       "description": "Optional. Asserts the source repo has ASSETS.md."
+    },
+    "multiplayer": {
+      "type": "string",
+      "enum": ["none", "local", "p2p", "realtime-server", "async"],
+      "description": "Multiplayer pattern declared by the game. Defaults to 'none' if absent. See docs/multiplayer-architecture.md for the decision tree."
+    },
+    "multiplayerProvider": {
+      "type": ["string", "null"],
+      "description": "Transport identifier when multiplayer is not 'none' or 'local'. Examples: webrtc, partykit, cloudflare-do, netlify-blobs. Required when multiplayer is p2p, realtime-server, or async."
+    },
+    "multiplayerEndpoint": {
+      "type": "string",
+      "description": "Optional endpoint URL for the multiplayer transport (e.g. the PartyKit deploy URL). Documentary only; not validated."
     }
   },
   "allOf": [

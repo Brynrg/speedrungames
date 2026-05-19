@@ -106,7 +106,8 @@ If a high-risk file must change, the agent must:
 - No host migration away from Netlify.
 - No direct push to `main` unless repo policy explicitly allows it (currently it does NOT — see [docs/autonomy-and-deployment-levels.md](./docs/autonomy-and-deployment-levels.md)).
 - No copyrighted or unlicensed assets.
-- No multiplayer infrastructure, auth, payments, analytics, or other external service integration in normal game-deploy runs.
+- No auth, payments, analytics, or other external service integration in normal game-deploy runs.
+- **Multiplayer:** allowed only via one of the approved free-tier patterns in [docs/multiplayer-architecture.md](./docs/multiplayer-architecture.md). The default position is single-player; multiplayer is opt-in per game and must declare its pattern in `game.manifest.json`. **No always-on paid servers, no proprietary multiplayer SDKs requiring paid plans, no usage-billed APIs without a documented free ceiling.**
 
 ## 10. Required final-report format (every run)
 
@@ -132,5 +133,6 @@ Agents may write run reports (success or failure) under [`reports/`](./reports/)
 - [commands/gamedeploy.md](./commands/gamedeploy.md) — the `/gamedeploy` contract.
 - [docs/browser-game-template-contract.md](./docs/browser-game-template-contract.md) — what a game source repo must provide.
 - [docs/autonomy-and-deployment-levels.md](./docs/autonomy-and-deployment-levels.md) — current rollout level and PR/merge policy.
+- [docs/multiplayer-architecture.md](./docs/multiplayer-architecture.md) — approved free-tier multiplayer patterns.
 - [schemas/portal-game-manifest.schema.json](./schemas/portal-game-manifest.schema.json) — manifest validation schema.
 - [AGENT.md](./AGENT.md) — historical/alternative proxy-based flow (not canonical).

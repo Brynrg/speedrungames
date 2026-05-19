@@ -18,18 +18,19 @@ Land a working game on `https://speedrungames.net/games/<slug>/` end-to-end with
 
 1. **Read root [AGENTS.md](../AGENTS.md).** Inherit all rules.
 2. **Inspect the portal repo before any change.** Confirm current branch state, existing per-game directories under `apps/web/public/games/`, and the existing registry.
-3. **Determine new vs. existing game.** Match by slug. If the user's description provides a slug, use it. Otherwise infer kebab-case from the title.
-4. **Choose / validate slug.** Lowercase kebab-case, URL-safe, ≤ 24 chars, no leading/trailing hyphen, not already taken.
-5. **Create or update the dedicated game source repo.**
+3. **Detect multiplayer intent in the user's description.** Keywords like "multiplayer", "MP", "PvP", "co-op", "two-player", "online", "real-time", etc. → **read [docs/multiplayer-architecture.md](../docs/multiplayer-architecture.md) before continuing.** Choose ONE of the five approved free-tier patterns (Local / WebRTC P2P / PartyKit / Cloudflare Workers+DO / Netlify Blobs async) and set `multiplayer` + `multiplayerProvider` in the game's `game.manifest.json`. If the user's request implies costs beyond the documented free tiers (always-on servers, paid SDKs, voice/video at scale), **halt and surface the cost question** — do not silently incur cost.
+4. **Determine new vs. existing game.** Match by slug. If the user's description provides a slug, use it. Otherwise infer kebab-case from the title.
+5. **Choose / validate slug.** Lowercase kebab-case, URL-safe, ≤ 24 chars, no leading/trailing hyphen, not already taken.
+6. **Create or update the dedicated game source repo.**
    - For a new game: scaffold from the official game template (or per the user's framework preference). Follow [docs/browser-game-template-contract.md](../docs/browser-game-template-contract.md).
    - For an existing game: clone and update.
-6. **Follow the standard game-repo contract.** Required files: `game.manifest.json`, `package.json`, `vite.config.ts` (when Vite), `src/`, `tests/`. See the contract doc.
-7. **Build the static browser app** in the source repo: `npm ci && npm run build`.
-8. **Verify game `npm run test`.** Smoke test must pass.
-9. **Verify game `npm run build`** produced `dist/index.html`.
-10. **Verify nested-path behavior.** Game must serve correctly at `/games/<slug>/` — relative paths only, no `localhost`/`127.0.0.1`/absolute `/assets/*` references in the build output.
-11. **Verify iframe compatibility.** Game must not depend on parent-window access. Verify by loading the built `dist/` inside a sandboxed iframe in a Playwright smoke check.
-12. **Ingest using [scripts/ingest-game-build.mjs](../scripts/ingest-game-build.mjs):**
+7. **Follow the standard game-repo contract.** Required files: `game.manifest.json`, `package.json`, `vite.config.ts` (when Vite), `src/`, `tests/`. See the contract doc.
+8. **Build the static browser app** in the source repo: `npm ci && npm run build`.
+9. **Verify game `npm run test`.** Smoke test must pass.
+10. **Verify game `npm run build`** produced `dist/index.html`.
+11. **Verify nested-path behavior.** Game must serve correctly at `/games/<slug>/` — relative paths only, no `localhost`/`127.0.0.1`/absolute `/assets/*` references in the build output.
+12. **Verify iframe compatibility.** Game must not depend on parent-window access. Verify by loading the built `dist/` inside a sandboxed iframe in a Playwright smoke check.
+13. **Ingest using [scripts/ingest-game-build.mjs](../scripts/ingest-game-build.mjs):**
 
     ```bash
     node scripts/ingest-game-build.mjs --game-dir <path-to-game-repo> --status preview
@@ -42,12 +43,12 @@ Land a working game on `https://speedrungames.net/games/<slug>/` end-to-end with
     - Cleans and re-populates `apps/web/public/games/<slug>/`.
     - Writes `apps/web/public/games/<slug>/manifest.json`.
     - Runs `scripts/build-registry.mjs` and `scripts/validate-games.mjs`.
-13. **Confirm the portal builds.** Run `pnpm install --frozen-lockfile && pnpm -C apps/web build`.
-14. **Open a PR** against the portal `main` branch.
+14. **Confirm the portal builds.** Run `pnpm install --frozen-lockfile && pnpm -C apps/web build`.
+15. **Open a PR** against the portal `main` branch.
     - Title: `feat(games): add/update <title> (<slug>)`
     - Body: result of the structured report (see §5).
     - Branch name: `game/<slug>` or `game/<slug>-<short-sha>`.
-15. **Auto-merge: disabled.** Per [docs/autonomy-and-deployment-levels.md](../docs/autonomy-and-deployment-levels.md) the current level is Level 2 (PR-only). Do not enable auto-merge unless the user explicitly approves AND the repo's auto-merge policy is configured.
+16. **Auto-merge: disabled.** Per [docs/autonomy-and-deployment-levels.md](../docs/autonomy-and-deployment-levels.md) the current level is Level 2 (PR-only). Do not enable auto-merge unless the user explicitly approves AND the repo's auto-merge policy is configured.
 
 ## 3. Hard rules
 
