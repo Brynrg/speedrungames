@@ -1,0 +1,20 @@
+{
+  "slug": "pokemonspeedrungen1",
+  "title": "Pokémon Speedrun Gen 1",
+  "description": "Voice-first (tap fallback) Gen 1 Pokémon speedrun. Name all 151 as fast as you can.",
+  "repo": "Brynrg/speedrungames",
+  "playUrl": "/games/pokemonspeedrungen1/",
+  "category": "speedrun",
+  "status": "archived",
+  "framework": "other",
+  "supportsMobile": true,
+  "version": "1.0.0",
+  "sourceCommit": "98ea6ba0747947435d8f5c8caf00e7b3a003b65b",
+  "buildHash": "588235db5e55a838803d84fc6955088c3d59ad30f9f1faf854c3768cb01d991b",
+  "buildTimestamp": "2026-05-19T16:10:04.710Z",
+  "lastUpdated": "2026-05-19T16:10:04.710Z",
+  "redirectTo": "/pokemonspeedrungen1",
+  "assetLicenseSummary": "Assets bundled via the games/pokemonspeedrungen1 Next.js workspace package; see that package's README for provenance.",
+  "backfilled": true,
+  "backfillNotes": "Status 'archived' + redirectTo because this game is served from /pokemonspeedrungen1 (a top-level Next.js route), not the canonical /games/<slug>/ path. The game is still active — the status flag here documents that its URL doesn't fit the new contract, not that the game is dead. Migrate to /games/pokemonspeedrungen1/ to flip status to 'live'."
+}

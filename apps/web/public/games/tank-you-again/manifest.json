@@ -1,0 +1,18 @@
+{
+  "slug": "tank-you-again",
+  "title": "Tank You Again",
+  "description": "Top-down arcade tank action.",
+  "repo": "Brynrg/Tank-you-again",
+  "playUrl": "/games/tank-you-again/",
+  "category": "action",
+  "status": "live",
+  "framework": "vite",
+  "supportsMobile": false,
+  "version": "1.0.0",
+  "sourceCommit": "54e12d6",
+  "buildHash": "b2964f8cf93bfcfc704ad3f2e446c0eb653ce2efda2d04c12ee109457637066b",
+  "buildTimestamp": "2026-05-19T16:10:04.710Z",
+  "lastUpdated": "2026-05-19T16:10:04.710Z",
+  "backfilled": true,
+  "backfillNotes": "Legacy static-drop game predating the manifest contract. sourceCommit is the best-available reference (in-repo commit that introduced or last touched the static files, or a short SHA extracted from a sync-commit message). True upstream source repo provenance unknown for tank-you-again and tower-wars-2."
+}
