@@ -6,6 +6,9 @@
   "scripts": {
     "dev": "pnpm -C apps/web dev",
     "build": "pnpm -C apps/web build",
-    "lint": "pnpm -C apps/web lint"
+    "lint": "pnpm -C apps/web lint",
+    "build:registry": "node scripts/build-registry.mjs",
+    "validate:games": "node scripts/validate-games.mjs",
+    "ingest:game": "node scripts/ingest-game-build.mjs"
   }
 }

@@ -1,102 +1,136 @@
-# AGENTS.md — adding a game to speedrungames.net
+# AGENTS.md — speedrungames.net portal contract
 
-**For autonomous agents: read [AGENT.md](AGENT.md) instead.** That file is a self-contained system prompt.
+**Read this file before adding or updating any game in this repo.**
 
-This file is the manual-mode reference. Each game has its own GitHub repo + its own Netlify site. The umbrella proxies them. After initial wiring, `git push` to the game's `main` updates the live game on speedrungames.net.
+## 1. Purpose
 
-## TL;DR — the bootstrap script does it all
+This repo powers **speedrungames.net**, a browser game portal. It hosts static browser games under `/games/<slug>/`. Games are isolated in sandboxed iframes. AI agents and humans must follow this contract end-to-end — it defines the canonical portal-side deployment model.
 
-```bash
-./bin/new-game \
-  --slug=<slug> \
-  --title="<Game Title>" \
-  --description="<one-liner>" \
-  --emoji=🎮
+## 2. Core deployment model (canonical)
+
+- **One source repo per game.** Each game's source code lives in its own GitHub repo (no naming requirement; the source repo URL goes in the game's manifest).
+- **Built static output is ingested into this portal.** A game's `dist/` (after `npm run build` or equivalent) is copied into `apps/web/public/games/<slug>/` in this repo.
+- **Per-game portal manifest.** Every game has `apps/web/public/games/<slug>/manifest.json` carrying slug, title, repo, sourceCommit, buildHash, buildTimestamp, status, framework, etc.
+- **Generated registry.** `apps/web/src/lib/games.registry.json` is **generated** from the per-game portal manifests by `scripts/build-registry.mjs`. Never hand-edit it.
+- **Netlify deploys this repo.** Build = `pnpm install --frozen-lockfile && pnpm -C apps/web build`. Publish = `apps/web/.next` via `@netlify/plugin-nextjs`.
+
+> **Alternative pattern (legacy / optional):** [AGENT.md](./AGENT.md) and [bin/new-game](./bin/new-game) describe a per-game-Netlify-site + reverse-proxy flow with GitHub-topic auto-discovery (`apps/web/scripts/discover-games.mjs`). **No currently shipped game uses that flow.** Treat AGENT.md / bin/new-game / apps/web/scripts/discover-games.mjs as historical/alternative documentation. New games go through the ingest model defined here.
+
+## 3. Game isolation rule
+
+The portal loads every game through a sandboxed iframe:
+
+```jsx
+<iframe
+  src="/games/<slug>/index.html"
+  title="<Game Title>"
+  sandbox="allow-scripts allow-same-origin allow-pointer-lock allow-gamepad"
+  allow="gamepad; fullscreen"
+  loading="lazy"
+/>
 ```
 
-This creates the game repo from the template, tags it, creates the Netlify site (if `NETLIFY_AUTH_TOKEN` is set), populates the new repo's manifest + slug + title and pushes, then fires the umbrella build hook (if `NETLIFY_UMBRELLA_BUILD_HOOK` is set) so auto-discovery picks the game up — no umbrella PR required.
+Games must not assume parent-window access. Any future portal↔game communication uses an explicit `postMessage` schema (TBD; not in scope until needed).
 
-Set up the two env vars once and the workflow is fully autonomous:
+## 4. Path rule
 
-```bash
-# In your shell rc:
-export NETLIFY_AUTH_TOKEN=...            # for creating Netlify sites
-export NETLIFY_UMBRELLA_BUILD_HOOK=...   # for triggering umbrella rebuilds
-```
+- Games are playable at `/games/<slug>/`.
+- Vite games must set `base: '/games/<slug>/'`, derived from `game.manifest.json` or a `GAME_SLUG` env var. See [docs/browser-game-template-contract.md](./docs/browser-game-template-contract.md).
+- **Do not rely on root-relative `/assets/...` paths.** Use the configured `base`.
+- After ingest, every `live` or `preview` game must have `apps/web/public/games/<slug>/index.html`.
 
-`NETLIFY_AUTH_TOKEN`: app.netlify.com → User settings → Applications → Personal access tokens.
+## 5. Game source repo contract (summary — full spec in `docs/browser-game-template-contract.md`)
 
-`NETLIFY_UMBRELLA_BUILD_HOOK`: Netlify dashboard → speedrungames site → Site configuration → Build & deploy → Build hooks → "Add build hook".
+Each game source repo must provide:
 
-Without `NETLIFY_AUTH_TOKEN`: the bootstrap prints a one-click Netlify deploy URL you click manually.
-Without `NETLIFY_UMBRELLA_BUILD_HOOK`: the bootstrap opens a fallback PR that adds the game to `games.data.json` (manual override).
+- `game.manifest.json` — source-of-truth manifest (slug, title, description, framework, supportsMobile, version, entry, buildCommand).
+- `npm run build` (or `pnpm build`) — produces `dist/index.html` + assets.
+- `npm run test` — at minimum a Playwright smoke test that loads the built `dist/` under a nested path and asserts a game-root element renders without console errors.
+- `ASSETS.md` — when any non-code assets are present, with per-asset licensing.
 
-## How registration works
+## 6. Portal manifest / provenance contract
 
-The umbrella's prebuild runs three scripts in order:
+Every `apps/web/public/games/<slug>/manifest.json` must satisfy the JSON Schema at [schemas/portal-game-manifest.schema.json](./schemas/portal-game-manifest.schema.json) and include:
 
-1. **`ensure-registry.mjs`** — postinstall guard, seeds `games.generated.json` from `games.data.json` if missing.
-2. **`discover-games.mjs`** — queries GitHub for repos in `Brynrg` with the `speedrungames` topic, fetches each repo's `speedrungames.json`, and merges them with `games.data.json` (overrides win on slug conflict). Writes `games.generated.json`.
-3. **`generate-redirects.mjs`** — reads the merged registry and writes `apps/web/public/_redirects` with one proxy rule per game that has `proxyTo`.
+- `slug` (kebab-case)
+- `title`, `description`
+- `repo` (source repo URL or `owner/name`)
+- `playUrl` — must equal `/games/<slug>/`
+- `category`
+- `status` — one of: `draft`, `preview`, `live`, `archived`, `broken`
+- `framework` — one of: `vite`, `vite-phaser`, `vite-pixi`, `vite-react`, `vanilla`, `other`
+- `supportsMobile` (boolean)
+- `version`
+- `sourceCommit` (git SHA from the source repo at build time)
+- `buildHash` (deterministic sha256 over `dist/`; method documented in [scripts/ingest-game-build.mjs](./scripts/ingest-game-build.mjs))
+- `buildTimestamp` (ISO datetime)
+- `lastUpdated` (derived from `buildTimestamp`)
+- `redirectTo` — required if `status` is `archived` and `index.html` is not preserved
 
-`games.ts` reads from `games.generated.json` (gitignored). Nav, home grid, and Netlify proxy rules all derive from it.
+Optional: `assetLicenseSummary` or `assetsDocumented` flag (asserting the source repo has `ASSETS.md`).
 
-## Manual path (if you can't use the bootstrap)
+## 7. Halt protocol
 
-1. `gh repo create Brynrg/game-<slug> --public --template Brynrg/speedrungames-game-template --clone`
-2. Tag it: `gh api -X PUT repos/Brynrg/game-<slug>/topics --input -` with body `{"names":["speedrungames"]}`.
-3. Edit `speedrungames.json` in the new repo to fill in slug, title, description, emoji, deployUrl.
-4. Build the game (see the template's `AGENTS.md`).
-5. Connect the repo to Netlify (web UI: app.netlify.com → Import → pick repo → Deploy).
-6. (Optional) Trigger the umbrella to rebuild — or wait for its next deploy. Auto-discovery handles registration.
+On any non-zero command, validation failure, missing output, schema failure, or unclear deployment state:
 
-If auto-discovery isn't an option (e.g. private repo), add an explicit override to `apps/web/src/lib/games.data.json` and open a PR.
+1. **Stop.** Do not continue the deployment/setup sequence.
+2. Do not push broken changes to this portal.
+3. Write a failure report under `reports/<UTC-timestamp>-<slug>.md` covering:
+   - Failed step (phase + sub-task)
+   - Exact command(s) attempted and their non-zero exit codes
+   - Error output (last ~50 lines)
+   - Files touched in this run
+   - Recommended next action
 
-## Iteration
+## 8. High-risk files
 
-To change an existing proxied game, you do **not** touch this repo. Clone the game's own repo, change it, push:
+Normal `/gamedeploy` runs **must not modify** these without explicit justification reported in the final summary:
 
-```bash
-gh repo clone Brynrg/game-<slug>
-cd game-<slug>
-# ... changes ...
-git push origin main
-```
+- `netlify.toml`
+- `package.json`
+- `pnpm-lock.yaml` (or other lockfile)
+- `.github/workflows/**`
+- `AGENTS.md` (this file)
+- `commands/**`
+- `scripts/**`
 
-The game's own Netlify site redeploys. The umbrella has nothing to do.
+If a high-risk file must change, the agent must:
+1. Explain why in the run report.
+2. Open a separate, clearly-labeled PR if the change is non-trivial.
 
-## Leaderboard
+## 9. Forbidden actions
 
-The umbrella exposes `/api/runs` (POST + GET) backed by Netlify Blobs. Games using the SDK's `submitRun({ slug, ms, splits })` post automatically on finish. The home page surfaces recent runs across all games.
+- No secrets in code, manifests, registry, or commits. **Never read, print, modify, or commit** `.env`, `.env.*`, Netlify tokens, OAuth secrets, API keys, or private keys.
+- No backend services unless explicitly requested.
+- No external APIs unless explicitly requested.
+- No host migration away from Netlify.
+- No direct push to `main` unless repo policy explicitly allows it (currently it does NOT — see [docs/autonomy-and-deployment-levels.md](./docs/autonomy-and-deployment-levels.md)).
+- No copyrighted or unlicensed assets.
+- No multiplayer infrastructure, auth, payments, analytics, or other external service integration in normal game-deploy runs.
 
-To test the API locally, use `netlify dev` instead of `pnpm dev` — `next dev` doesn't have blob access.
+## 10. Required final-report format (every run)
 
-## Hard rules
+End every deploy/setup run with a structured report containing:
 
-1. **`slug` is permanent.** Baked into the live URL and proxy target.
-2. **Repo name must equal `game-<slug>`** unless `speedrungames.json`'s `deployUrl` is set to the actual Netlify subdomain.
-3. **`href` for proxied games ends in `/`** (handled by the generator).
-4. **Never hand-edit `apps/web/public/_redirects` or `apps/web/src/lib/games.generated.json`.** Both auto-generated.
-5. **Don't change the `prebuild` script or `netlify.toml` build command** without explicit approval.
-6. **Don't add Next routes for proxied games.** The proxy at `/games/<slug>/*` covers everything.
+1. **Summary** — one paragraph: what changed and the outcome.
+2. **Files changed** — list, grouped by category (docs / scripts / portal / config).
+3. **Commands run** — exact commands, in order.
+4. **Validation results** — per-step pass/fail, with exit codes for failures.
+5. **Known limitations** — what's deferred, what's still TODO.
+6. **Next recommended step** — the smallest unit of follow-up work.
 
-## Legacy games
+## 11. Slash commands
 
-The original three (`tower-wars`, `tower-wars-2`, `pokemonspeedrungen1`) live in this repo's `apps/web/public/games/` (Pattern A, iframe) or `games/` (Pattern B, workspace package). They're explicitly listed in `games.data.json` with no `proxyTo`. The discovery + redirect scripts skip them; their existing Next routes still work.
+- `/gamedeploy <game description>` — see [commands/gamedeploy.md](./commands/gamedeploy.md). Build or update a game and ingest it into this portal.
 
-To migrate one: create a new game repo via bootstrap with the same slug (after removing the legacy entry from `games.data.json`), then delete the old Next route file + `apps/web/public/games/<slug>/` directory.
+## 12. Reports directory
 
-## Verifying locally
+Agents may write run reports (success or failure) under [`reports/`](./reports/) using the filename pattern `<UTC-timestamp>-<slug>.md`. The directory is tracked via `.gitkeep`.
 
-```bash
-pnpm install
-pnpm -C apps/web dev
-```
+## 13. Recommended further reading
 
-Visit `http://localhost:3000` — the grid + nav render from the discovered set. Proxy rules and the leaderboard endpoint only work in deployed builds (use `netlify dev` for both).
-
-## See also
-
-- [AGENT.md](AGENT.md) — self-contained system prompt for autonomous agents
-- [Brynrg/speedrungames-game-template](https://github.com/Brynrg/speedrungames-game-template) — game-side template + its own AGENTS.md
-- [Brynrg/speedrungames-sdk](https://github.com/Brynrg/speedrungames-sdk) — shared runtime (timer, storage, HUD, leaderboard client)
+- [commands/gamedeploy.md](./commands/gamedeploy.md) — the `/gamedeploy` contract.
+- [docs/browser-game-template-contract.md](./docs/browser-game-template-contract.md) — what a game source repo must provide.
+- [docs/autonomy-and-deployment-levels.md](./docs/autonomy-and-deployment-levels.md) — current rollout level and PR/merge policy.
+- [schemas/portal-game-manifest.schema.json](./schemas/portal-game-manifest.schema.json) — manifest validation schema.
+- [AGENT.md](./AGENT.md) — historical/alternative proxy-based flow (not canonical).
