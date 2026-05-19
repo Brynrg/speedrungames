@@ -1,0 +1,18 @@
+{
+  "slug": "tower-wars",
+  "title": "Tower Wars",
+  "description": "Maze tower defense with income/sends, hero towers, and large-map pan/zoom control.",
+  "repo": "Brynrg/speedrungames",
+  "playUrl": "/games/tower-wars/",
+  "category": "tower-defense",
+  "status": "live",
+  "framework": "vanilla",
+  "supportsMobile": false,
+  "version": "1.0.0",
+  "sourceCommit": "35f1074170a7ec65f16905db415a13fd924dc21d",
+  "buildHash": "e8f4b100eeeedb509a83dbeca35ae84c01b00e636c04d31e6713dbb1ea114811",
+  "buildTimestamp": "2026-05-19T16:10:04.710Z",
+  "lastUpdated": "2026-05-19T16:10:04.710Z",
+  "backfilled": true,
+  "backfillNotes": "Legacy static-drop game predating the manifest contract. sourceCommit is the best-available reference (in-repo commit that introduced or last touched the static files, or a short SHA extracted from a sync-commit message). True upstream source repo provenance unknown for tank-you-again and tower-wars-2."
+}
