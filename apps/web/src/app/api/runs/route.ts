@@ -3,32 +3,28 @@
 //  GET  /api/runs?game=<slug>&limit=<n>  → list runs (filtered by slug if given)
 //  POST /api/runs                        → submit a run
 //
-// Storage: Netlify Blobs (key=recent, value=array of runs, capped at MAX_RECENT).
-// In local `next dev`, blob storage is unavailable and the route gracefully
-// returns empty / 503. Use `netlify dev` to test against real blob storage.
+// Storage: Netlify Blobs, one blob per run, key = `<reverseTs>-<id>` so
+// lexicographic listing returns newest-first. This avoids any read-modify-
+// write race on concurrent writes.
+//
+// Deploy previews use a deploy-scoped store so PR testing can't pollute
+// production data.
 
 import { NextResponse } from "next/server";
 import { getStore, getDeployStore } from "@netlify/blobs";
 import { games } from "@/lib/games";
 
-// Isolate deploy-preview / branch-deploy storage from production so test
-// submits on a PR can't pollute the live leaderboard.
-function leaderboardStore() {
-  const ctx = process.env.CONTEXT;
-  const isPreview = ctx === "deploy-preview" || ctx === "branch-deploy";
-  return isPreview ? getDeployStore(STORE_NAME) : getStore(STORE_NAME);
-}
-
 export const dynamic = "force-dynamic";
 
-const STORE_NAME = "leaderboard";
-const RUNS_KEY = "recent";
-const MAX_RECENT = 200;
+const STORE_NAME = "runs";
 const MAX_LIMIT = 100;
 const DEFAULT_LIMIT = 50;
 const MAX_MS = 86_400_000; // 24h sanity cap
 const MAX_RUNNER_LEN = 32;
 const MAX_SPLITS = 100;
+
+// When filtering by game, scan up to this many recent blobs to find matches.
+const FILTER_SCAN_CAP = 500;
 
 interface RunSplit {
   label: string;
@@ -50,47 +46,50 @@ function clamp(n: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, n));
 }
 
-async function readRuns(): Promise<Run[]> {
-  const store = leaderboardStore();
-  const data = (await store.get(RUNS_KEY, { type: "json" })) as Run[] | null;
-  return Array.isArray(data) ? data : [];
+// Isolate deploy-preview / branch-deploy storage from production so test
+// submits on a PR can't pollute the live leaderboard.
+function leaderboardStore() {
+  const ctx = process.env.CONTEXT;
+  const isPreview = ctx === "deploy-preview" || ctx === "branch-deploy";
+  return isPreview ? getDeployStore(STORE_NAME) : getStore(STORE_NAME);
 }
 
-/**
- * Atomically prepend `run` to the recent[] blob, capped at MAX_RECENT.
- * Uses compare-and-swap on the blob's etag with retries to handle
- * concurrent writes from racing function invocations.
- */
-async function prependRun(run: Run, attempts = 6): Promise<void> {
+// 13-digit zero-padded reverse timestamp → lexicographic key sort yields
+// newest-first. 9999999999999 - now will stay positive until ~year 2286.
+function runKey(run: Run): string {
+  const reverse = (9999999999999 - run.achievedAt).toString().padStart(13, "0");
+  return `${reverse}-${run.id}`;
+}
+
+async function listRuns(limit: number, slugFilter?: string): Promise<Run[]> {
   const store = leaderboardStore();
-  let lastErr: unknown;
-  for (let i = 0; i < attempts; i++) {
-    const meta = (await store.getWithMetadata(RUNS_KEY, { type: "json" })) as
-      | { data: unknown; etag: string }
-      | null;
-    const existing = (meta && Array.isArray(meta.data) ? (meta.data as Run[]) : []) ?? [];
-    const next = [run, ...existing].slice(0, MAX_RECENT);
-    try {
-      const opts = meta?.etag
-        ? { onlyIfMatch: meta.etag }
-        : { onlyIfNew: true };
-      const result = (await store.setJSON(RUNS_KEY, next, opts)) as
-        | { modified: boolean }
-        | undefined;
-      if (!result || result.modified) return;
-      // CAS conflict — another writer beat us. Retry.
-    } catch (err) {
-      lastErr = err;
-    }
-    await new Promise((r) => setTimeout(r, 25 * (i + 1)));
-  }
-  if (lastErr) throw lastErr;
-  throw new Error(`leaderboard: CAS retry exhausted after ${attempts} attempts`);
+  const scanCap = slugFilter ? FILTER_SCAN_CAP : limit;
+  const result = (await store.list({ paginate: false })) as {
+    blobs: { key: string }[];
+  };
+  const keys = (result.blobs ?? []).map((b) => b.key).sort().slice(0, scanCap);
+  const runs = await Promise.all(
+    keys.map(async (key) => {
+      try {
+        return (await store.get(key, { type: "json" })) as Run | null;
+      } catch {
+        return null;
+      }
+    }),
+  );
+  let out = runs.filter((r): r is Run => r != null);
+  if (slugFilter) out = out.filter((r) => r.slug === slugFilter);
+  return out.slice(0, limit);
+}
+
+async function saveRun(run: Run): Promise<void> {
+  const store = leaderboardStore();
+  await store.setJSON(runKey(run), run);
 }
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const slug = url.searchParams.get("game");
+  const slug = url.searchParams.get("game") || undefined;
   const limit = clamp(
     parseInt(url.searchParams.get("limit") || String(DEFAULT_LIMIT), 10) || DEFAULT_LIMIT,
     1,
@@ -98,9 +97,8 @@ export async function GET(req: Request) {
   );
 
   try {
-    let runs = await readRuns();
-    if (slug) runs = runs.filter((r) => r.slug === slug);
-    return NextResponse.json(runs.slice(0, limit));
+    const runs = await listRuns(limit, slug);
+    return NextResponse.json(runs);
   } catch {
     return NextResponse.json([], { status: 200 });
   }
@@ -159,7 +157,7 @@ export async function POST(req: Request) {
   };
 
   try {
-    await prependRun(run);
+    await saveRun(run);
     return NextResponse.json(run);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "unknown";
