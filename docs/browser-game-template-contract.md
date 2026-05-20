@@ -9,7 +9,7 @@ Game source repos are independent of this portal. They live wherever you want on
 - `AGENTS.md` — tells future agents how to work on this game.
 - `README.md` — human-readable description, controls, how to run locally.
 - `package.json` — see required commands below.
-- `game.manifest.json` — see schema at `schemas/game-source-manifest.schema.json` in this portal repo. Required fields: `slug`, `title`, `description`, `framework`. Recommended: `category`, `supportsMobile`, `version`, `entry`, `buildCommand`.
+- `game.manifest.json` — see schema at `schemas/game-source-manifest.schema.json` in this portal repo. Required fields: `slug`, `title`, `description`, `framework`. Recommended: `category`, `supportsMobile`, `version`, `emoji`, `entry`, `buildCommand`.
 - `vite.config.ts` (if using Vite) — see required configuration below.
 - `src/` — source code.
 - `public/` (if assets are large or you want Vite to copy them unprocessed).
@@ -114,7 +114,8 @@ When `scripts/ingest-game-build.mjs --game-dir <your-repo>` runs:
 4. Copies `dist/` into `apps/web/public/games/<slug>/` in this portal repo.
 5. Writes `apps/web/public/games/<slug>/manifest.json` with all the provenance fields.
 6. Regenerates `apps/web/src/lib/games.registry.json`.
-7. Runs the portal validator.
-8. Opens a PR against portal `main`.
+7. The portal app reads `games.registry.json` directly, so a valid manifest plus regenerated registry is what makes the game appear on the homepage and become an accepted leaderboard slug.
+8. Runs the portal validator.
+9. Opens a PR against portal `main`.
 
 Your game's source repo is **not** touched by the portal. The ingest step is one-directional.

@@ -44,11 +44,15 @@ Land a working game on `https://speedrungames.net/games/<slug>/` end-to-end with
     - Writes `apps/web/public/games/<slug>/manifest.json`.
     - Runs `scripts/build-registry.mjs` and `scripts/validate-games.mjs`.
 14. **Confirm the portal builds.** Run `pnpm install --frozen-lockfile && pnpm -C apps/web build`.
-15. **Open a PR** against the portal `main` branch.
+15. **Verify catalog connection before opening the PR.**
+    - Confirm `apps/web/public/games/<slug>/manifest.json` exists.
+    - Confirm `apps/web/src/lib/games.registry.json` contains `<slug>` after `pnpm run build:registry`.
+    - Confirm the app build imports the registry and the deploy preview homepage lists the game title.
+16. **Open a PR** against the portal `main` branch.
     - Title: `feat(games): add/update <title> (<slug>)`
     - Body: result of the structured report (see §5).
     - Branch name: `game/<slug>` or `game/<slug>-<short-sha>`.
-16. **Auto-merge: disabled.** Per [docs/autonomy-and-deployment-levels.md](../docs/autonomy-and-deployment-levels.md) the current level is Level 2 (PR-only). Do not enable auto-merge unless the user explicitly approves AND the repo's auto-merge policy is configured.
+17. **Auto-merge: disabled.** Per [docs/autonomy-and-deployment-levels.md](../docs/autonomy-and-deployment-levels.md) the current level is Level 2 (PR-only). Do not enable auto-merge unless the user explicitly approves AND the repo's auto-merge policy is configured.
 
 ## 3. Hard rules
 
@@ -58,6 +62,7 @@ Land a working game on `https://speedrungames.net/games/<slug>/` end-to-end with
 - **No unlicensed assets.** If the source repo includes assets without `ASSETS.md`, halt and report.
 - **No secrets** in code, manifests, registry, or commit messages.
 - **No skipped validation.** If validation fails, [halt per AGENTS.md §7](../AGENTS.md).
+- **No static-files-only deploys.** A game is not connected until its portal manifest exists, the registry includes it, the deploy preview homepage lists it, and `/games/<slug>/` returns 200.
 - **No live slug changes** for already-shipped games unless the user explicitly requested it. A slug change is a redirect-and-archive operation, not a simple rename.
 - **No high-risk file changes** during normal game deploys ([AGENTS.md §8](../AGENTS.md)).
 

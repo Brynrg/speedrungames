@@ -24,9 +24,9 @@ export default function RootLayout({
             <nav className="site-nav" aria-label="Primary">
               <Link href="/">Home</Link>
               {visibleGames.map((game) => (
-                <Link key={game.slug} href={game.href}>
+                <a key={game.slug} href={game.href}>
                   {game.title}
-                </Link>
+                </a>
               ))}
             </nav>
           </div>

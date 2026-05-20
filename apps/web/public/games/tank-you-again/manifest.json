@@ -2,6 +2,7 @@
   "slug": "tank-you-again",
   "title": "Tank You Again",
   "description": "Top-down arcade tank action.",
+  "emoji": "🕹️",
   "repo": "Brynrg/Tank-you-again",
   "playUrl": "/games/tank-you-again/",
   "category": "action",

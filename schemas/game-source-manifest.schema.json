@@ -28,6 +28,14 @@
       "minLength": 1,
       "maxLength": 280
     },
+    "emoji": {
+      "type": "string",
+      "description": "Optional short display marker shown on the portal game card."
+    },
+    "hidden": {
+      "type": "boolean",
+      "description": "When true, the game is valid and playable but hidden from normal portal listing."
+    },
     "entry": {
       "type": "string",
       "description": "Source entry file. Defaults to src/main.ts if absent."

@@ -1,0 +1,19 @@
+{
+  "slug": "tower-wars-2",
+  "title": "Tower Wars II",
+  "description": "Branching tower upgrades, balanced enemy waves, and a fresh take on maze TD.",
+  "emoji": "🏰",
+  "repo": "Brynrg/app-tower-game",
+  "playUrl": "/games/tower-wars-2/",
+  "category": "tower-defense",
+  "status": "live",
+  "framework": "vite",
+  "supportsMobile": false,
+  "version": "1.0.0",
+  "sourceCommit": "cae1eca",
+  "buildHash": "3b66735de6456cb9edebd946d13a3f6567c9ad3157f84858d165dbb34cc68265",
+  "buildTimestamp": "2026-05-19T16:10:04.710Z",
+  "lastUpdated": "2026-05-19T16:10:04.710Z",
+  "backfilled": true,
+  "backfillNotes": "Backfilled from existing static files so the canonical manifest registry can drive portal catalog visibility."
+}

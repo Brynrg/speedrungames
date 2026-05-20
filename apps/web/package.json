@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "postinstall": "node scripts/ensure-registry.mjs",
-    "dev": "node scripts/ensure-registry.mjs && node scripts/discover-games.mjs && node scripts/generate-redirects.mjs && next dev",
-    "prebuild": "node scripts/ensure-registry.mjs && node scripts/discover-games.mjs && node scripts/generate-redirects.mjs",
+    "dev": "node ../../scripts/build-registry.mjs && node scripts/ensure-registry.mjs && node scripts/discover-games.mjs && node scripts/generate-redirects.mjs && next dev",
+    "prebuild": "node ../../scripts/build-registry.mjs && node scripts/ensure-registry.mjs && node scripts/discover-games.mjs && node scripts/generate-redirects.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
