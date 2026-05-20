@@ -14,6 +14,13 @@
     "emoji": "🏰"
   },
   {
+    "slug": "tank-you-again",
+    "title": "Tank You Again",
+    "description": "Top-down arcade tank action.",
+    "href": "/games/tank-you-again",
+    "emoji": "🕹️"
+  },
+  {
     "slug": "pokemonspeedrungen1",
     "title": "Pokémon Speedrun Gen 1",
     "description": "Voice-first (tap fallback) Gen 1 Pokémon speedrun. Name all 151 as fast as you can.",
