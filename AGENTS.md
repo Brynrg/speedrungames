@@ -12,9 +12,10 @@ This repo powers **speedrungames.net**, a browser game portal. It hosts static b
 - **Built static output is ingested into this portal.** A game's `dist/` (after `npm run build` or equivalent) is copied into `apps/web/public/games/<slug>/` in this repo.
 - **Per-game portal manifest.** Every game has `apps/web/public/games/<slug>/manifest.json` carrying slug, title, repo, sourceCommit, buildHash, buildTimestamp, status, framework, etc.
 - **Generated registry.** `apps/web/src/lib/games.registry.json` is **generated** from the per-game portal manifests by `scripts/build-registry.mjs`. Never hand-edit it.
+- **Catalog source of truth.** The portal app imports `apps/web/src/lib/games.registry.json` directly. A game is not connected until its manifest is present, the registry is regenerated, validation passes, and the deploy preview homepage lists it.
 - **Netlify deploys this repo.** Build = `pnpm install --frozen-lockfile && pnpm -C apps/web build`. Publish = `apps/web/.next` via `@netlify/plugin-nextjs`.
 
-> **Alternative pattern (legacy / optional):** [AGENT.md](./AGENT.md) and [bin/new-game](./bin/new-game) describe a per-game-Netlify-site + reverse-proxy flow with GitHub-topic auto-discovery (`apps/web/scripts/discover-games.mjs`). **No currently shipped game uses that flow.** Treat AGENT.md / bin/new-game / apps/web/scripts/discover-games.mjs as historical/alternative documentation. New games go through the ingest model defined here.
+> **Legacy note:** [bin/new-game](./bin/new-game) and `apps/web/scripts/discover-games.mjs` belong to an older per-game-Netlify-site + reverse-proxy experiment. **Do not use that flow for normal game launches.** [AGENT.md](./AGENT.md), this file, and [commands/gamedeploy.md](./commands/gamedeploy.md) all point to the ingest model defined here.
 
 ## 3. Game isolation rule
 

@@ -117,6 +117,8 @@ function manifestToRegistryEntry(m) {
     supportsMobile: m.supportsMobile,
     version: m.version,
     lastUpdated: m.lastUpdated,
+    ...(m.emoji ? { emoji: m.emoji } : {}),
+    ...(m.hidden ? { hidden: true } : {}),
     ...(m.redirectTo ? { redirectTo: m.redirectTo } : {}),
   };
 }

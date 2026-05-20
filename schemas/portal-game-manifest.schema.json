@@ -39,6 +39,14 @@
       "minLength": 1,
       "maxLength": 280
     },
+    "emoji": {
+      "type": "string",
+      "description": "Optional short display marker shown on the portal game card."
+    },
+    "hidden": {
+      "type": "boolean",
+      "description": "When true, the game is valid and playable but hidden from normal portal listing."
+    },
     "repo": {
       "type": "string",
       "minLength": 1,

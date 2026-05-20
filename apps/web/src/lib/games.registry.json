@@ -10,7 +10,8 @@
     "framework": "vite",
     "supportsMobile": false,
     "version": "1.0.0",
-    "lastUpdated": "2026-05-19T16:10:04.710Z"
+    "lastUpdated": "2026-05-19T16:10:04.710Z",
+    "emoji": "🕹️"
   },
   {
     "slug": "tower-wars",
@@ -23,7 +24,8 @@
     "framework": "vanilla",
     "supportsMobile": false,
     "version": "1.0.0",
-    "lastUpdated": "2026-05-19T16:10:04.710Z"
+    "lastUpdated": "2026-05-19T16:10:04.710Z",
+    "emoji": "🛡️"
   },
   {
     "slug": "tower-wars-2",
@@ -36,7 +38,8 @@
     "framework": "vite",
     "supportsMobile": false,
     "version": "1.0.0",
-    "lastUpdated": "2026-05-19T16:10:04.710Z"
+    "lastUpdated": "2026-05-19T16:10:04.710Z",
+    "emoji": "🏰"
   },
   {
     "slug": "pokemonspeedrungen1",
@@ -50,6 +53,7 @@
     "supportsMobile": true,
     "version": "1.0.0",
     "lastUpdated": "2026-05-19T16:10:04.710Z",
+    "emoji": "🎙️",
     "redirectTo": "/pokemonspeedrungen1"
   }
 ]

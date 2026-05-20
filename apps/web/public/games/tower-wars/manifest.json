@@ -2,6 +2,7 @@
   "slug": "tower-wars",
   "title": "Tower Wars",
   "description": "Maze tower defense with income/sends, hero towers, and large-map pan/zoom control.",
+  "emoji": "🛡️",
   "repo": "Brynrg/speedrungames",
   "playUrl": "/games/tower-wars/",
   "category": "tower-defense",

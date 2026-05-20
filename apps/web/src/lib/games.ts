@@ -1,24 +1,34 @@
-import gamesData from "./games.generated.json";
+import registryData from "./games.registry.json";
 
 export interface Game {
-  /** URL-safe slug. For proxied games, must match the Netlify subdomain. */
+  /** URL-safe slug. */
   slug: string;
   title: string;
   description: string;
-  /** URL the home grid / nav links to. For proxied games, use `/games/<slug>/`. */
+  /** URL the home grid / nav links to. */
   href: string;
   emoji: string;
-  /**
-   * If set, this game lives in its own repo and is served by Netlify proxy
-   * rewrite. The build script generates `/games/<slug>/*` → `<proxyTo>/:splat`
-   * in `apps/web/public/_redirects`. Adding a game = adding one entry here.
-   * Omit for games whose source lives in this monorepo (legacy pattern).
-   */
-  proxyTo?: string;
   /** Hide from the home grid + nav. Use during incubation. */
   hidden?: boolean;
 }
 
-export const games: Game[] = gamesData as Game[];
+interface RegistryEntry {
+  slug: string;
+  title: string;
+  description: string;
+  playUrl: string;
+  redirectTo?: string;
+  emoji?: string;
+  hidden?: boolean;
+}
+
+export const games: Game[] = (registryData as RegistryEntry[]).map((game) => ({
+  slug: game.slug,
+  title: game.title,
+  description: game.description,
+  href: game.redirectTo ?? game.playUrl,
+  emoji: game.emoji ?? "🎮",
+  hidden: game.hidden,
+}));
 
 export const visibleGames = games.filter((g) => !g.hidden);

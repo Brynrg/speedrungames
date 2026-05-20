@@ -141,6 +141,12 @@ const portalManifest = {
   lastUpdated: buildTimestamp,
 };
 
+if (typeof srcManifest.emoji === "string") {
+  portalManifest.emoji = srcManifest.emoji;
+}
+if (typeof srcManifest.hidden === "boolean") {
+  portalManifest.hidden = srcManifest.hidden;
+}
 if (typeof srcManifest.assetsDocumented === "boolean") {
   portalManifest.assetsDocumented = srcManifest.assetsDocumented;
 }
