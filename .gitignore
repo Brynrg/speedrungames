@@ -19,3 +19,9 @@ apps/web/public/_redirects
 
 # Workspaces created by bin/new-game (each is a separate game repo's local clone)
 tmp/
+
+# macOS / iCloud Drive sync conflict markers
+*\ 2.json
+*\ 2.html
+*\ 2.js
+*\ 2/

@@ -108,19 +108,8 @@
 **Acceptance:**
 - [ ] Loading `/games/tower-wars/index.html` in a browser shows "Tower Wars — speedrungames.net" in the tab.
 
-### Task 7: Demote or delete AGENT.md so agents don't follow the legacy flow
-**Effort:** S (15min)
-**Files:** `AGENT.md` (delete or rename), `AGENTS.md`, `README.md`
-**What:** `AGENT.md` describes the per-game-Netlify-site + reverse-proxy flow as the playbook. AGENTS.md §2 declares this non-canonical. Agents that don't read AGENTS.md first will follow `AGENT.md` and use `bin/new-game`, opening PRs against `games.data.json` (the legacy override file).
-**Why:** Two different deployment playbooks in the same repo guarantee inconsistent agent behavior. Either delete AGENT.md, rename it to `docs/legacy-proxy-flow.md`, or prepend a HALT banner.
-**Steps:**
-1. Move `AGENT.md` → `docs/legacy-proxy-flow.md`.
-2. Add a top-of-file banner: `> **Legacy.** This flow is not used by any shipped game. The canonical flow is described in [AGENTS.md](../AGENTS.md). Read that first.`
-3. Update the cross-references in `AGENTS.md §2` and `docs/autonomy-and-deployment-levels.md "Alternative architecture (deferred)"` to point at the new path.
-4. Consider also removing `apps/web/scripts/discover-games.mjs` from `apps/web/package.json` prebuild/dev scripts if no game uses `proxyTo` anymore (none do as of 2026-05-19).
-**Acceptance:**
-- [ ] `AGENT.md` no longer exists at repo root, or its first line is a HALT banner.
-- [ ] `grep -r "AGENT.md" .github docs scripts apps` returns only references to AGENTS.md (or the new path).
+### Task 7: Demote or delete AGENT.md so agents don't follow the legacy flow — ✅ DONE (2026-05-21)
+**Resolution:** AGENT.md was kept at the repo root for a while but its content drifted to match AGENTS.md (both described the canonical ingest flow), creating duplication rather than a legacy-flow problem. Deleted in the "polish-readme-and-deduplicate-agent-docs" PR. README.md rewritten to be the actual entry point, pointing at AGENTS.md as the canonical contract. Stale `AGENT.md` references removed from AGENTS.md §2 + §13 and from `docs/autonomy-and-deployment-levels.md`. Sub-item from step 4 (remove `discover-games.mjs` from `prebuild`) is still open — tracked as a separate task if it becomes annoying.
 
 ### Task 8: Add Vitest coverage for `scripts/_lib/manifest-validation.mjs`
 **Effort:** M (1hr)

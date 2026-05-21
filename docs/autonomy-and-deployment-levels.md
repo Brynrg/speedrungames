@@ -88,7 +88,7 @@ The current model commits built game output into this repo. That's fine while th
 
 ## Alternative architecture (deferred)
 
-Per-game Netlify sites + portal-side reverse proxy. Each game is its own Netlify deploy; the portal proxies `/games/<slug>/*`. Already partially scaffolded in this repo via [bin/new-game](../bin/new-game) and [AGENT.md](../AGENT.md), but unused by any shipped game.
+Per-game Netlify sites + portal-side reverse proxy. Each game is its own Netlify deploy; the portal proxies `/games/<slug>/*`. Already partially scaffolded in this repo via [bin/new-game](../bin/new-game), but unused by any shipped game.
 
 **Why deferred:** more moving parts (one Netlify site per game, build hooks, proxy config). The ingest-into-portal model is simpler and currently fits well within bloat triggers.
 
