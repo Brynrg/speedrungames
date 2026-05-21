@@ -15,7 +15,7 @@ This repo powers **speedrungames.net**, a browser game portal. It hosts static b
 - **Catalog source of truth.** The portal app imports `apps/web/src/lib/games.registry.json` directly. A game is not connected until its manifest is present, the registry is regenerated, validation passes, and the deploy preview homepage lists it.
 - **Netlify deploys this repo.** Build = `pnpm install --frozen-lockfile && pnpm -C apps/web build`. Publish = `apps/web/.next` via `@netlify/plugin-nextjs`.
 
-> **Legacy note:** [bin/new-game](./bin/new-game) and `apps/web/scripts/discover-games.mjs` belong to an older per-game-Netlify-site + reverse-proxy experiment. **Do not use that flow for normal game launches.** [AGENT.md](./AGENT.md), this file, and [commands/gamedeploy.md](./commands/gamedeploy.md) all point to the ingest model defined here.
+> **Legacy note:** [bin/new-game](./bin/new-game) and `apps/web/scripts/discover-games.mjs` belong to an older per-game-Netlify-site + reverse-proxy experiment. **Do not use that flow for normal game launches.** This file and [commands/gamedeploy.md](./commands/gamedeploy.md) both point to the ingest model defined here.
 
 ## 3. Game isolation rule
 
@@ -136,4 +136,3 @@ Agents may write run reports (success or failure) under [`reports/`](./reports/)
 - [docs/autonomy-and-deployment-levels.md](./docs/autonomy-and-deployment-levels.md) — current rollout level and PR/merge policy.
 - [docs/multiplayer-architecture.md](./docs/multiplayer-architecture.md) — approved free-tier multiplayer patterns.
 - [schemas/portal-game-manifest.schema.json](./schemas/portal-game-manifest.schema.json) — manifest validation schema.
-- [AGENT.md](./AGENT.md) — historical/alternative proxy-based flow (not canonical).
