@@ -1,4 +1,21 @@
 #!/usr/bin/env node
+//
+// ┌──────────────────────────────────────────────────────────────────────────┐
+// │ DEPRECATED — DO NOT USE. This scaffolds the OLD per-game-Netlify-site +    │
+// │ reverse-proxy + auto-discovery model. The canonical model is ingest-into-  │
+// │ portal. To create a new game, use:                                         │
+// │                                                                            │
+// │     pnpm new:game --slug <slug> --title "<Title>" --framework <fw>         │
+// │                                                                            │
+// │ (scripts/new-game.mjs). See AGENTS.md and commands/gamedeploy.md. This     │
+// │ file is kept only for the deferred per-game-Netlify architecture noted in  │
+// │ docs/autonomy-and-deployment-levels.md.                                    │
+// └──────────────────────────────────────────────────────────────────────────┘
+console.error(
+  "bin/new-game is DEPRECATED. Use: pnpm new:game --slug <slug> --title \"<Title>\" --framework <fw>",
+);
+process.exit(1);
+
 // bin/new-game — bootstrap a new speedrungames.net game end-to-end.
 //
 // What it does (in order):

@@ -2,6 +2,42 @@
 
 **Read this file before adding or updating any game in this repo.**
 
+## 0. Canonical commands (read first)
+
+There is exactly ONE way to create a game and ONE way to deploy/update one. Do
+not improvise either. Hand-copying build output into the portal is the single
+most common way agents break the live site — it is forbidden (see §9).
+
+**Create a new game:**
+
+```bash
+pnpm new:game --slug <slug> --title "<Title>" --framework <vanilla|vite|vite-phaser|vite-pixi|vite-react|nextjs>
+```
+
+This creates a GitHub repo from `speedrungames-game-template` that is born
+auto-deploying: it sets the deploy secret and wires the game's CI to this
+portal. (`bin/new-game` is DEPRECATED — do not use it.)
+
+**Update / deploy a game:** just push to the game's source repo. Its
+`.github/workflows/deploy.yml` calls this portal's reusable workflow
+[`.github/workflows/deploy-game.yml`](./.github/workflows/deploy-game.yml),
+which builds, runs `scripts/ingest-game-build.mjs`, and opens an **auto-merging
+portal PR** that lands only when CI + the Netlify deploy preview pass. Every
+push auto-deploys.
+
+**Manual deploy (no CI):** from a built game repo, run the portal ingest — never
+copy files yourself:
+
+```bash
+node /path/to/speedrungames/scripts/ingest-game-build.mjs --game-dir <game-repo> --status live
+```
+
+> ❌ **Never** `cp`/`rsync`/hand-edit anything under `apps/web/public/games/`.
+> The deployed files live at the **root** of `apps/web/public/games/<slug>/`,
+> never in a nested `dist/` subfolder. `scripts/validate-games.mjs` fails CI on a
+> stray `dist/`/`out/`/`build/` subdir — that check exists because a hand-copied
+> `cp -r dist <game-dir>/` once shipped a "no visible change" build.
+
 ## 1. Purpose
 
 This repo powers **speedrungames.net**, a browser game portal. It hosts static browser games under `/games/<slug>/`. Games are isolated in sandboxed iframes. AI agents and humans must follow this contract end-to-end — it defines the canonical portal-side deployment model.
@@ -105,7 +141,7 @@ If a high-risk file must change, the agent must:
 - No backend services unless explicitly requested.
 - No external APIs unless explicitly requested.
 - No host migration away from Netlify.
-- No direct push to `main` unless repo policy explicitly allows it (currently it does NOT — see [docs/autonomy-and-deployment-levels.md](./docs/autonomy-and-deployment-levels.md)).
+- **No manual `git push` to `main`, and no hand-copying into `apps/web/public/games/`.** Game deploys reach `main` ONLY through the reusable deploy workflow's auto-merging PR (gated on CI + Netlify preview) — see [docs/autonomy-and-deployment-levels.md](./docs/autonomy-and-deployment-levels.md) (current level: **Level 3**). Portal-infra changes (high-risk files, §8) still go through a human-reviewed PR.
 - No copyrighted or unlicensed assets.
 - No auth, payments, analytics, or other external service integration in normal game-deploy runs.
 - **Multiplayer:** allowed only via one of the approved free-tier patterns in [docs/multiplayer-architecture.md](./docs/multiplayer-architecture.md). The default position is single-player; multiplayer is opt-in per game and must declare its pattern in `game.manifest.json`. **No always-on paid servers, no proprietary multiplayer SDKs requiring paid plans, no usage-billed APIs without a documented free ceiling.**

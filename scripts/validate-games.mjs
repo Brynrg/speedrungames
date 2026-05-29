@@ -48,6 +48,13 @@ const BROKEN_PATH_NEEDLES = [
 // open multi-MB binaries.
 const SCAN_EXTS = new Set([".html", ".css", ".js", ".mjs", ".cjs", ".map", ".svg"]);
 
+// Subdirectories that must NEVER appear inside a deployed game dir. Their
+// presence means someone copied a build artifact in wholesale instead of
+// ingesting its CONTENTS — e.g. `cp -r client/dist <game-dir>/` nests the build
+// under dist/ and the site keeps serving the stale root files. This exact
+// mistake shipped a "no visual change" Tank You Again build. Catch it here.
+const STRAY_BUILD_SUBDIRS = new Set(["dist", "out", "build", "node_modules", ".next"]);
+
 // File extensions that are "assets" — if a game's public dir contains any of
 // these, we expect either assetsDocumented:true or assetLicenseSummary in the
 // manifest.
@@ -134,6 +141,18 @@ function main() {
           `apps/web/public/games/${slug}/: archived without preserved index.html — manifest must set redirectTo`,
         );
       }
+    }
+
+    // stray build-artifact subdirectory scan — the "buried dist/" failure
+    const strayDirs = readdirSync(dir, { withFileTypes: true })
+      .filter((d) => d.isDirectory() && STRAY_BUILD_SUBDIRS.has(d.name))
+      .map((d) => d.name);
+    for (const stray of strayDirs) {
+      errors.push(
+        `apps/web/public/games/${slug}/${stray}/: stray build artifact nested inside the game dir — ` +
+          `deploy must ingest dist/ CONTENTS to the game-dir root, never copy the build folder in. ` +
+          `Re-run scripts/ingest-game-build.mjs; never \`cp -r dist <game-dir>/\`.`,
+      );
     }
 
     // broken-path scan
