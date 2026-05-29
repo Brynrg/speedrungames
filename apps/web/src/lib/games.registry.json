@@ -1,5 +1,19 @@
 [
   {
+    "slug": "line-tower-wars",
+    "title": "Line Tower Wars",
+    "description": "Standalone web Line Tower Wars, inspired by the Warcraft 3 custom map — build a maze, leak creeps to your opponent.",
+    "repo": "Brynrg/line-tower-wars",
+    "playUrl": "/games/line-tower-wars/",
+    "category": "tower-defense",
+    "status": "live",
+    "framework": "vanilla",
+    "supportsMobile": false,
+    "version": "1.0.0",
+    "lastUpdated": "2026-05-29T14:02:31.823Z",
+    "emoji": "🏰"
+  },
+  {
     "slug": "tower-wars",
     "title": "Tower Wars",
     "description": "Maze tower defense with income/sends, hero towers, and large-map pan/zoom control.",
