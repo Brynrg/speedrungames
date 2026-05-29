@@ -126,6 +126,10 @@ if (token) {
 }
 
 // ── 3. clone + substitute placeholders ─────────────────────────────────────────
+// `gh repo create --template` returns BEFORE GitHub finishes copying the
+// template files (generation is async), so cloning immediately can yield an
+// empty repo. Wait until the template content (game.manifest.json) appears.
+waitForTemplateContents(repo);
 if (existsSync(workdir)) rmSync(workdir, { recursive: true, force: true });
 log(`→ Cloning ${repo} -> ${workdir} ...`);
 gh(["repo", "clone", repo, workdir]);
@@ -231,6 +235,21 @@ function resolveToken() {
     }
   }
   return { token: "", tokenSource: "" };
+}
+
+function waitForTemplateContents(full) {
+  log(`→ Waiting for ${full} to populate from the template ...`);
+  for (let i = 0; i < 20; i++) {
+    try {
+      execFileSync("gh", ["api", `repos/${full}/contents/game.manifest.json`], {
+        stdio: ["ignore", "ignore", "ignore"],
+      });
+      return; // template files are present
+    } catch {
+      execFileSync("sleep", ["2"]);
+    }
+  }
+  log(`⚠ Timed out waiting for ${full} template contents; cloning anyway.`);
 }
 
 function repoExists(full) {
