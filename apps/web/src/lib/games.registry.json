@@ -14,20 +14,6 @@
     "emoji": "🛡️"
   },
   {
-    "slug": "tower-wars-2",
-    "title": "Tower Wars II",
-    "description": "Branching tower upgrades, balanced enemy waves, and a fresh take on maze TD.",
-    "repo": "Brynrg/app-tower-game",
-    "playUrl": "/games/tower-wars-2/",
-    "category": "tower-defense",
-    "status": "live",
-    "framework": "vite",
-    "supportsMobile": false,
-    "version": "1.0.0",
-    "lastUpdated": "2026-05-19T16:10:04.710Z",
-    "emoji": "🏰"
-  },
-  {
     "slug": "tank-you-again",
     "title": "Tank You Again",
     "description": "Real-time multiplayer tank arena. 8-way movement, fuel-as-health, landmines, masked radar, 10-tier rank ladder.",
@@ -55,5 +41,19 @@
     "lastUpdated": "2026-05-19T16:10:04.710Z",
     "emoji": "🎙️",
     "redirectTo": "/pokemonspeedrungen1"
+  },
+  {
+    "slug": "tower-wars-2",
+    "title": "Tower Wars II",
+    "description": "Branching tower upgrades, balanced enemy waves, and a fresh take on maze TD.",
+    "repo": "Brynrg/app-tower-game",
+    "playUrl": "/games/tower-wars-2/",
+    "category": "tower-defense",
+    "status": "archived",
+    "framework": "vite",
+    "supportsMobile": false,
+    "version": "1.0.0",
+    "lastUpdated": "2026-05-29T00:00:00.000Z",
+    "emoji": "🏰"
   }
 ]
