@@ -52,11 +52,11 @@ Land a working game on `https://speedrungames.net/games/<slug>/` end-to-end with
     - Title: `feat(games): add/update <title> (<slug>)`
     - Body: result of the structured report (see §5).
     - Branch name: `game/<slug>` or `game/<slug>-<short-sha>`.
-17. **Auto-merge: disabled.** Per [docs/autonomy-and-deployment-levels.md](../docs/autonomy-and-deployment-levels.md) the current level is Level 2 (PR-only). Do not enable auto-merge unless the user explicitly approves AND the repo's auto-merge policy is configured.
+17. **Auto-merge: enabled, gated.** Per [docs/autonomy-and-deployment-levels.md](../docs/autonomy-and-deployment-levels.md) the current level is **Level 3**. Game-content PRs (touching only `apps/web/public/games/<slug>/**` + `apps/web/src/lib/games.registry.json`) are opened with `gh pr merge --auto --squash` and land automatically **once required CI checks + the Netlify deploy preview pass**. Prefer letting the game repo's `deploy.yml` (→ reusable `deploy-game.yml`) do this. Do not hand-merge; do not bypass the checks.
 
 ## 3. Hard rules
 
-- **No direct main push.** PR-only. Even if the agent has write access.
+- **No manual `main` push, no hand-copy.** Deploys reach `main` only via the auto-merging PR gated on CI + Netlify preview. Never `cp`/`rsync` into `apps/web/public/games/` — use `scripts/ingest-game-build.mjs` (or the game repo's `deploy.yml`).
 - **No Netlify settings changes** (env vars, build hooks, custom domains, redirects). The portal build is the only Netlify-side artifact.
 - **No backend services** added unless the user explicitly requested it.
 - **No unlicensed assets.** If the source repo includes assets without `ASSETS.md`, halt and report.

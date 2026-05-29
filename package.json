@@ -9,6 +9,7 @@
     "lint": "pnpm -C apps/web lint",
     "build:registry": "node scripts/build-registry.mjs",
     "validate:games": "node scripts/validate-games.mjs",
-    "ingest:game": "node scripts/ingest-game-build.mjs"
+    "ingest:game": "node scripts/ingest-game-build.mjs",
+    "new:game": "node scripts/new-game.mjs"
   }
 }

@@ -1,0 +1,164 @@
+name: Deploy game to portal (reusable)
+
+# Single source of truth for deploying ANY speedrungames game into this portal.
+#
+# Game repos do NOT reimplement deploy logic. Each game repo has a ~12-line caller
+# workflow (.github/workflows/deploy.yml) that does:
+#
+#   jobs:
+#     deploy:
+#       uses: Brynrg/speedrungames/.github/workflows/deploy-game.yml@main
+#       with:
+#         slug: my-game
+#         build-command: npm run build   # or "" for a no-build vanilla game
+#         dist-dir: dist                 # "out" for Next.js static export, etc.
+#       secrets:
+#         SPEEDRUNGAMES_TOKEN: ${{ secrets.SPEEDRUNGAMES_TOKEN }}
+#
+# What this does (in order):
+#   1. Build the game to dist/ (uniform: every game produces dist/index.html).
+#   2. Run the portal's scripts/ingest-game-build.mjs — the ONE canonical ingest
+#      (writes manifest, rebuilds registry, validates, broken-path scan).
+#   3. Open a portal PR and enable auto-merge. The PR merges itself ONLY when the
+#      portal's required checks + Netlify deploy preview pass. A broken build can
+#      never reach the live site.
+#
+# Never `cp` build output straight into apps/web/public/games — that is exactly
+# the failure this pipeline exists to prevent.
+
+on:
+  workflow_call:
+    inputs:
+      slug:
+        description: "Portal slug (kebab-case). Must match game.manifest.json#slug."
+        required: true
+        type: string
+      build-command:
+        description: 'Build command run in the game repo. Empty string = no build (vanilla).'
+        required: false
+        type: string
+        default: "npm run build"
+      dist-dir:
+        description: "Directory the build produces, relative to the game repo root."
+        required: false
+        type: string
+        default: "dist"
+      status:
+        description: "Portal status to ingest with: draft|preview|live|archived."
+        required: false
+        type: string
+        default: "live"
+      node-version:
+        required: false
+        type: string
+        default: "22"
+    secrets:
+      SPEEDRUNGAMES_TOKEN:
+        description: "PAT with repo scope on Brynrg/speedrungames (pushes the deploy PR)."
+        required: true
+      VITE_WS_URL:
+        description: "Optional multiplayer WebSocket URL passed to the build."
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-game-${{ inputs.slug }}
+      cancel-in-progress: false
+    steps:
+      - name: Checkout game repo
+        uses: actions/checkout@v4
+        with:
+          path: game
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+
+      - name: Install game dependencies
+        working-directory: game
+        run: |
+          if [ -f package.json ]; then
+            if [ -f package-lock.json ]; then
+              npm ci --no-audit --no-fund
+            else
+              npm install --no-audit --no-fund
+            fi
+          else
+            echo "No package.json — treating as a no-build vanilla static game."
+          fi
+
+      - name: Build game
+        working-directory: game
+        env:
+          GAME_SLUG: ${{ inputs.slug }}
+          NODE_ENV: production
+          VITE_WS_URL: ${{ secrets.VITE_WS_URL }}
+        run: |
+          CMD='${{ inputs.build-command }}'
+          if [ -n "$CMD" ] && [ -f package.json ]; then
+            echo "Running: $CMD"
+            eval "$CMD"
+          else
+            echo "No build command — skipping build step."
+          fi
+
+      - name: Normalize build output into dist/
+        working-directory: game
+        run: |
+          DIST='${{ inputs.dist-dir }}'
+          if [ "$DIST" != "dist" ]; then
+            rm -rf dist
+            cp -R "$DIST" dist
+          fi
+          if [ ! -f dist/index.html ]; then
+            echo "::error::Expected dist/index.html after build (dist-dir='${DIST}')."
+            echo "::error::A vanilla game needs a build script that stages static files into dist/."
+            ls -la . dist 2>/dev/null || true
+            exit 1
+          fi
+          # Defensive: never let a nested build artifact get ingested.
+          rm -rf dist/dist dist/node_modules
+
+      - name: Checkout portal
+        uses: actions/checkout@v4
+        with:
+          repository: Brynrg/speedrungames
+          token: ${{ secrets.SPEEDRUNGAMES_TOKEN }}
+          ref: main
+          path: portal
+
+      - name: Ingest build into portal (canonical)
+        working-directory: portal
+        run: node scripts/ingest-game-build.mjs --game-dir ../game --status "${{ inputs.status }}"
+
+      - name: Open deploy PR with auto-merge
+        working-directory: portal
+        env:
+          GH_TOKEN: ${{ secrets.SPEEDRUNGAMES_TOKEN }}
+        run: |
+          set -euo pipefail
+          SHA="$(git -C ../game rev-parse --short HEAD)"
+          BRANCH="game/${{ inputs.slug }}-${SHA}-${GITHUB_RUN_ID}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add "apps/web/public/games/${{ inputs.slug }}" apps/web/src/lib/games.registry.json
+          if git diff --cached --quiet; then
+            echo "No portal changes — already up to date. Nothing to deploy."
+            exit 0
+          fi
+          git commit -m "deploy(${{ inputs.slug }}): sync from ${GITHUB_REPOSITORY}@${SHA}"
+          git push origin "$BRANCH"
+          PR_URL="$(gh pr create --repo Brynrg/speedrungames --base main --head "$BRANCH" \
+            --title "deploy(${{ inputs.slug }}): ${GITHUB_REPOSITORY}@${SHA}" \
+            --body "Automated deploy from \`${GITHUB_REPOSITORY}@${SHA}\` via the reusable deploy workflow. Auto-merges when portal checks + Netlify deploy preview pass.")"
+          echo "Opened: $PR_URL"
+          # Enable auto-merge; the PR lands only after required checks + preview pass.
+          gh pr merge --repo Brynrg/speedrungames "$PR_URL" --auto --squash || \
+            echo "::warning::Could not enable auto-merge (is branch protection + repo auto-merge configured?). PR left open: $PR_URL"

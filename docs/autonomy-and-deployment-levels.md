@@ -61,7 +61,21 @@ Level 4 is speculative. **Do not enable** without operator approval and a docume
 
 ## Current level
 
-**Level 2.** PR-only. Set by AGENTS.md and commands/gamedeploy.md.
+**Level 3 — auto-merge after checks and policy.** Operator-approved (2026-05-29).
+Game-content PRs (touching only `apps/web/public/games/<slug>/**` and
+`apps/web/src/lib/games.registry.json`) auto-merge **only when** required CI
+checks and the Netlify deploy preview pass — enforced by branch protection on
+`main`. This is what makes "every push to a game repo auto-deploys" safe: a
+broken build never reaches the live site. The reusable workflow
+[`.github/workflows/deploy-game.yml`](../.github/workflows/deploy-game.yml) opens
+these PRs with `gh pr merge --auto --squash`.
+
+Portal-infra changes (AGENTS.md §8 high-risk files) are **out of scope for
+auto-merge** and still require a human-reviewed PR.
+
+> Note: the Level-3 gate below ("10 consecutive Level-2 PRs") was waived by
+> explicit operator decision when adopting the hardened pipeline. The
+> CI-+-preview gate is the active safety mechanism.
 
 ## Rollback
 
