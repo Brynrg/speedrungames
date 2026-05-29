@@ -12,9 +12,12 @@
 // What it does (in order):
 //   1. Validate slug (kebab-case, <=24 chars, not already a portal game/repo).
 //   2. Create Brynrg/<slug> from the Brynrg/speedrungames-game-template repo.
-//   3. Set the SPEEDRUNGAMES_TOKEN secret on the new repo (read from the
-//      SPEEDRUNGAMES_TOKEN env var) so its CI can open deploy PRs against this
-//      portal. Without it, prints instructions and continues.
+//   3. Set the SPEEDRUNGAMES_TOKEN secret on the new repo so its CI can open
+//      deploy PRs against this portal. The token is resolved automatically:
+//      env SPEEDRUNGAMES_TOKEN → macOS Keychain (service SPEEDRUNGAMES_TOKEN) →
+//      `gh auth token` (only with --use-gh-token). Store it ONCE in the Keychain
+//      and every future `pnpm new:game` sets it for you:
+//        security add-generic-password -a "$USER" -s SPEEDRUNGAMES_TOKEN -w
 //   4. Clone the new repo, substitute slug/title/description/framework into
 //      game.manifest.json + deploy.yml + index.html, commit, push.
 //   5. First push triggers the game's deploy.yml -> reusable deploy workflow ->
@@ -80,7 +83,7 @@ if (repoExists(`${OWNER}/${slug}`)) {
 
 const repo = `${OWNER}/${slug}`;
 const workdir = str(args.workdir) || resolve(ROOT, "..", slug);
-const token = process.env.SPEEDRUNGAMES_TOKEN || "";
+const { token, tokenSource } = resolveToken();
 
 log("");
 log(`Plan:`);
@@ -89,7 +92,7 @@ log(`  template:    ${TEMPLATE}`);
 log(`  title:       ${title}`);
 log(`  framework:   ${framework}`);
 log(`  clone to:    ${workdir}`);
-log(`  secret:      ${token ? "SPEEDRUNGAMES_TOKEN (from env) -> set on new repo" : "NOT set (SPEEDRUNGAMES_TOKEN env missing)"}`);
+log(`  secret:      ${token ? `SPEEDRUNGAMES_TOKEN (from ${tokenSource}) -> set on new repo` : "NOT FOUND — see hint below"}`);
 log(`  live URL:    https://speedrungames.net/games/${slug}/`);
 log("");
 
@@ -114,8 +117,12 @@ if (token) {
     stdio: ["ignore", "inherit", "inherit"],
   });
 } else {
-  log("⚠ SPEEDRUNGAMES_TOKEN env not set — the game cannot auto-deploy until you run:");
-  log(`    gh secret set SPEEDRUNGAMES_TOKEN -R ${repo} --body '<PAT with repo scope on ${OWNER}/speedrungames>'`);
+  log("⚠ No SPEEDRUNGAMES_TOKEN found — the game cannot auto-deploy until the secret is set.");
+  log("  Store the PAT ONCE (then every `pnpm new:game` sets it automatically), pick one:");
+  log("    • macOS Keychain (recommended):  security add-generic-password -a \"$USER\" -s SPEEDRUNGAMES_TOKEN -w");
+  log("    • shell profile:                 echo 'export SPEEDRUNGAMES_TOKEN=<PAT>' >> ~/.zshrc");
+  log("    • this run only:                 re-run with --use-gh-token (uses your gh login token)");
+  log(`  Or set it directly on the repo:  gh secret set SPEEDRUNGAMES_TOKEN -R ${repo} --body '<PAT>'`);
 }
 
 // ── 3. clone + substitute placeholders ─────────────────────────────────────────
@@ -190,6 +197,40 @@ function parseArgs(argv) {
 
 function str(v) {
   return typeof v === "string" ? v.trim() : "";
+}
+
+/**
+ * Resolve the deploy PAT once, automatically, so the operator never re-enters
+ * it per game. Order: env var → macOS Keychain → (opt-in) gh login token.
+ * Store it once with:
+ *   security add-generic-password -a "$USER" -s SPEEDRUNGAMES_TOKEN -w
+ */
+function resolveToken() {
+  if (process.env.SPEEDRUNGAMES_TOKEN) {
+    return { token: process.env.SPEEDRUNGAMES_TOKEN.trim(), tokenSource: "env" };
+  }
+  try {
+    const t = execFileSync(
+      "security",
+      ["find-generic-password", "-s", "SPEEDRUNGAMES_TOKEN", "-w"],
+      { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
+    ).trim();
+    if (t) return { token: t, tokenSource: "macOS Keychain" };
+  } catch {
+    // not on macOS, or not stored yet — fall through
+  }
+  if (args["use-gh-token"]) {
+    try {
+      const t = execFileSync("gh", ["auth", "token"], {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+      }).trim();
+      if (t) return { token: t, tokenSource: "gh auth token" };
+    } catch {
+      // gh not authenticated
+    }
+  }
+  return { token: "", tokenSource: "" };
 }
 
 function repoExists(full) {
