@@ -3,14 +3,14 @@
     "slug": "tower-wars",
     "title": "Tower Wars",
     "description": "Maze tower defense with income/sends, hero towers, and large-map pan/zoom control.",
-    "repo": "Brynrg/speedrungames",
+    "repo": "Brynrg/tower-wars",
     "playUrl": "/games/tower-wars/",
     "category": "tower-defense",
     "status": "live",
     "framework": "vanilla",
     "supportsMobile": false,
     "version": "1.0.0",
-    "lastUpdated": "2026-05-19T16:10:04.710Z",
+    "lastUpdated": "2026-05-29T14:00:49.527Z",
     "emoji": "🛡️"
   },
   {
