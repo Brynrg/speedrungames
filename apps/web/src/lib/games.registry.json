@@ -14,6 +14,20 @@
     "emoji": "🏰"
   },
   {
+    "slug": "pokemonspeedrungen1",
+    "title": "Pokémon Speedrun Gen 1",
+    "description": "Voice-first (tap fallback) Gen 1 Pokémon speedrun. Name all 151 as fast as you can.",
+    "repo": "Brynrg/pokemon-voice-speedrun",
+    "playUrl": "/games/pokemonspeedrungen1/",
+    "category": "speedrun",
+    "status": "live",
+    "framework": "other",
+    "supportsMobile": true,
+    "version": "1.0.0",
+    "lastUpdated": "2026-05-29T14:08:31.745Z",
+    "emoji": "🎙️"
+  },
+  {
     "slug": "tower-wars",
     "title": "Tower Wars",
     "description": "Maze tower defense with income/sends, hero towers, and large-map pan/zoom control.",
@@ -40,21 +54,6 @@
     "version": "0.1.0",
     "lastUpdated": "2026-05-29T13:45:41.762Z",
     "emoji": "🕹️"
-  },
-  {
-    "slug": "pokemonspeedrungen1",
-    "title": "Pokémon Speedrun Gen 1",
-    "description": "Voice-first (tap fallback) Gen 1 Pokémon speedrun. Name all 151 as fast as you can.",
-    "repo": "Brynrg/speedrungames",
-    "playUrl": "/games/pokemonspeedrungen1/",
-    "category": "speedrun",
-    "status": "archived",
-    "framework": "other",
-    "supportsMobile": true,
-    "version": "1.0.0",
-    "lastUpdated": "2026-05-19T16:10:04.710Z",
-    "emoji": "🎙️",
-    "redirectTo": "/pokemonspeedrungen1"
   },
   {
     "slug": "tower-wars-2",
