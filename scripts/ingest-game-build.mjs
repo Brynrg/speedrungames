@@ -306,8 +306,10 @@ function scanDistForBrokenPaths(distDir) {
     "import '/assets",
     '"/src/',
     "'/src/",
-    "localhost",
-    "127.0.0.1",
+    // dev-server URLs only — NOT the bare word "localhost", which legitimately
+    // appears inside bundled polyfills (e.g. Next.js URL parsing: s.host==="localhost").
+    "//localhost",
+    "//127.0.0.1",
   ];
   const exts = new Set([".html", ".css", ".js", ".mjs", ".cjs", ".map"]);
   const out = [];
