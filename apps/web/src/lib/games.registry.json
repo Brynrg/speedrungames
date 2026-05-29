@@ -1,19 +1,5 @@
 [
   {
-    "slug": "keychain-smoke",
-    "title": "Keychain Smoke",
-    "description": "Smoke test for the zero-touch new:game pipeline.",
-    "repo": "Brynrg/keychain-smoke",
-    "playUrl": "/games/keychain-smoke/",
-    "category": "arcade",
-    "status": "live",
-    "framework": "vite",
-    "supportsMobile": true,
-    "version": "0.1.0",
-    "lastUpdated": "2026-05-29T15:19:04.008Z",
-    "emoji": "🎮"
-  },
-  {
     "slug": "line-tower-wars",
     "title": "Line Tower Wars",
     "description": "Standalone web Line Tower Wars, inspired by the Warcraft 3 custom map — build a maze, leak creeps to your opponent.",
