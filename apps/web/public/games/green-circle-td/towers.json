@@ -1,0 +1,102 @@
+{
+  "basic": {
+    "name": "Basic",
+    "range": 200,
+    "damage": 25,
+    "cooldown": 30,
+    "cost": 100,
+    "color": [42, 178, 84],
+    "accent": [166, 255, 144],
+    "damage_type": "normal"
+  },
+  "sniper": {
+    "name": "Sniper",
+    "range": 350,
+    "damage": 75,
+    "cooldown": 90,
+    "cost": 200,
+    "color": [64, 215, 255],
+    "accent": [204, 250, 255],
+    "damage_type": "pierce"
+  },
+  "rapid": {
+    "name": "Rapid",
+    "range": 120,
+    "damage": 10,
+    "cooldown": 10,
+    "cost": 150,
+    "color": [255, 146, 41],
+    "accent": [255, 238, 98],
+    "damage_type": "pierce"
+  },
+  "splash": {
+    "name": "Splash",
+    "range": 180,
+    "damage": 40,
+    "cooldown": 60,
+    "cost": 180,
+    "color": [178, 92, 255],
+    "accent": [255, 168, 245],
+    "splash_radius": 80,
+    "damage_type": "siege"
+  },
+  "frost": {
+    "name": "Frost",
+    "range": 175,
+    "damage": 14,
+    "cooldown": 34,
+    "cost": 165,
+    "color": [102, 185, 255],
+    "accent": [220, 250, 255],
+    "slow": 0.55,
+    "slow_duration": 95,
+    "damage_type": "magic"
+  },
+  "poison": {
+    "name": "Poison",
+    "range": 185,
+    "damage": 12,
+    "cooldown": 36,
+    "cost": 145,
+    "color": [100, 224, 66],
+    "accent": [210, 255, 95],
+    "poison_damage": 4,
+    "poison_duration": 140,
+    "damage_type": "magic"
+  },
+  "detector": {
+    "name": "Detector",
+    "range": 230,
+    "damage": 8,
+    "cooldown": 24,
+    "cost": 125,
+    "color": [255, 214, 78],
+    "accent": [255, 255, 210],
+    "detect": true,
+    "damage_type": "normal"
+  },
+  "damage_aura": {
+    "name": "Damage Aura",
+    "range": 0,
+    "damage": 0,
+    "cooldown": 0,
+    "cost": 220,
+    "color": [200, 50, 50],
+    "accent": [255, 100, 100],
+    "damage_type": null,
+    "shoots": false,
+    "aura": {"type": "damage_bonus", "radius": 160, "value": 0.20}
+  },
+  "speed_aura": {
+    "name": "Speed Aura",
+    "range": 0,
+    "damage": 0,
+    "cooldown": 0,
+    "cost": 200,
+    "color": [200, 200, 50],
+    "accent": [255, 255, 100],
+    "damage_type": null,
+    "shoots": false,
+    "aura": {"type": "cooldown_reduction", "radius": 150, "value": 0.15}
+  }
+}

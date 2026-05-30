@@ -1,0 +1,21 @@
+{
+  "buffs": [
+    { "id": "extra_gold", "name": "Pocketed Reserves", "desc": "+5g per kill", "weight": 5, "type": "buff", "effect": { "gold_per_kill": 5 } },
+    { "id": "starting_dmg", "name": "Sharpened Blades", "desc": "+10% tower damage", "weight": 5, "type": "buff", "effect": { "damage_mult": 1.10 } },
+    { "id": "wider_auras", "name": "Verdant Reach", "desc": "+30% aura radius", "weight": 3, "type": "buff", "effect": { "aura_radius_mult": 1.30 } },
+    { "id": "hero_resilient", "name": "Bound Spirit", "desc": "Hero +50% HP", "weight": 4, "type": "buff", "effect": { "hero_hp_mult": 1.50 } },
+    { "id": "tower_range", "name": "Extended Lines", "desc": "+15% tower range", "weight": 4, "type": "buff", "effect": { "range_mult": 1.15 } },
+    { "id": "faster_income", "name": "Tax Collector", "desc": "+20% income", "weight": 3, "type": "buff", "effect": { "income_mult": 1.20 } },
+    { "id": "crit_mastery", "name": "Critical Edge", "desc": "+5% crit chance for all towers", "weight": 3, "type": "buff", "effect": { "crit_chance": 0.05 } },
+    { "id": "hero_xp", "name": "Veteran Presence", "desc": "Hero gains XP 50% faster", "weight": 3, "type": "buff", "effect": { "hero_xp_mult": 1.50 } }
+  ],
+  "unlocks": [
+    { "id": "tower_l5", "name": "Mastered Path", "desc": "Unlock L5 for a chosen tower", "weight": 1, "type": "unlock", "effect": { "l5_unlock": true } },
+    { "id": "second_hero", "name": "Twin Verdance", "desc": "Spawn a second hero", "weight": 1, "type": "unlock", "effect": { "second_hero": true } }
+  ],
+  "hazards": [
+    { "id": "double_or_nothing", "name": "Bountiful Risk", "desc": "Next 3 waves: +30% enemies, +60% gold", "weight": 2, "type": "hazard", "effect": { "enemy_mult": 1.30, "gold_mult": 1.60, "waves_affected": 3 } },
+    { "id": "iron_skin", "name": "Iron Skin", "desc": "All enemies +20% HP for remaining waves", "weight": 2, "type": "hazard", "effect": { "enemy_hp_mult": 1.20 } },
+    { "id": "speed_demon", "name": "Speed Demon", "desc": "All enemies +15% speed for remaining waves", "weight": 2, "type": "hazard", "effect": { "enemy_speed_mult": 1.15 } }
+  ]
+}
