@@ -1,3 +1,0 @@
-# Pinned: the game source uses Arcade 2.x-era APIs that are bridged via
-# compat.py. Bumping arcade requires re-testing and updating the shim.
-arcade==3.0.2
