@@ -34,10 +34,16 @@ class TestTower:
 
     def test_tower_max_level(self):
         tower = Tower(5, 5, "basic")
-        tower.upgrade()
-        tower.upgrade()
-        tower.upgrade()
+        result1 = tower.upgrade()
+        result2 = tower.upgrade()
+        # Level 3 upgrade returns branch options dict
+        assert tower.level == 3
+        assert result1 is not None  # L1→L2 cost
+        assert result2 is not None  # L2→L3 cost
+        # Now apply a branch to reach L4
+        tower.apply_branch("basic_heavy")
         assert tower.level == 4
+        assert tower.branch_id == "basic_heavy"
         assert tower.upgrade_cost() is None
 
     def test_tower_upgrade_cost(self):

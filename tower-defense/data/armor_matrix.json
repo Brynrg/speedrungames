@@ -1,0 +1,10 @@
+{
+  "damage_types": ["pierce", "siege", "magic", "normal"],
+  "armor_types": ["light", "medium", "heavy", "fortified", "hero"],
+  "matrix": {
+    "pierce":     {"light": 2.00, "medium": 0.75, "heavy": 1.00, "fortified": 0.35, "hero": 0.50},
+    "siege":      {"light": 1.00, "medium": 0.50, "heavy": 1.00, "fortified": 1.50, "hero": 0.50},
+    "magic":      {"light": 1.25, "medium": 0.75, "heavy": 2.00, "fortified": 0.35, "hero": 0.50},
+    "normal":     {"light": 1.00, "medium": 1.50, "heavy": 1.00, "fortified": 0.70, "hero": 1.00}
+  }
+}

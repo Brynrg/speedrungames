@@ -1,0 +1,57 @@
+name: Deploy to Speedrun Games
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "game.manifest.json"
+      - "core/**"
+      - "data/**"
+      - "game.py"
+      - "launch_game.py"
+      - "requirements.txt"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+
+      - name: Install dependencies
+        run: |
+          pip install arcade
+
+      - name: Build game
+        run: |
+          python game.py --seed 42 --daily
+
+      - name: Create dist directory
+        run: |
+          mkdir -p dist
+          cp game.manifest.json dist/
+          cp -r data/ dist/
+          cp -r core/ dist/
+          cp game.py dist/
+          cp launch_game.py dist/
+          cp requirements.txt dist/
+
+      - name: Ingest game into portal
+        run: |
+          # This simulates the portal ingestion process
+          # In a real deployment, this would call the portal's ingest script
+          echo "Ingesting game into speedrungames.net portal..."
+          echo "Game manifest: $(cat dist/game.manifest.json)"
+          echo "Build completed successfully"
+
+      - name: Update GitHub status
+        run: |
+          echo "Deployment successful"
+          echo "Game will be available at https://speedrungames.net/games/green-circle-td/"

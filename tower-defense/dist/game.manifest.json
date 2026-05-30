@@ -1,0 +1,16 @@
+{
+  "slug": "green-circle-td",
+  "title": "Green Circle TD",
+  "description": "A production-grade tower defense game with armor matrix, aura towers, and branching upgrades.",
+  "repo": "Brynrg/Guardian",
+  "playUrl": "/games/green-circle-td/",
+  "category": "tower-defense",
+  "status": "live",
+  "framework": "python-arcade",
+  "supportsMobile": true,
+  "version": "1.0.0",
+  "sourceCommit": "",
+  "buildHash": "",
+  "buildTimestamp": "",
+  "lastUpdated": ""
+}

@@ -1,0 +1,92 @@
+[
+  {
+    "name": "Normal",
+    "color": [138, 255, 148],
+    "count_bonus": 0,
+    "health_mult": 1.0,
+    "speed_mult": 1.0,
+    "bounty_bonus": 0,
+    "flags": [],
+    "armor_type": "medium"
+  },
+  {
+    "name": "Swift",
+    "color": [112, 220, 255],
+    "count_bonus": 1,
+    "health_mult": 0.85,
+    "speed_mult": 1.34,
+    "bounty_bonus": 1,
+    "flags": [],
+    "armor_type": "light"
+  },
+  {
+    "name": "Armored",
+    "color": [255, 196, 90],
+    "count_bonus": -1,
+    "health_mult": 1.75,
+    "speed_mult": 0.82,
+    "bounty_bonus": 5,
+    "flags": [],
+    "armor_type": "heavy"
+  },
+  {
+    "name": "Swarm",
+    "color": [142, 255, 121],
+    "count_bonus": 5,
+    "health_mult": 0.62,
+    "speed_mult": 1.08,
+    "bounty_bonus": 0,
+    "flags": [],
+    "armor_type": "light"
+  },
+  {
+    "name": "Air",
+    "color": [132, 220, 255],
+    "count_bonus": 0,
+    "health_mult": 0.95,
+    "speed_mult": 1.18,
+    "bounty_bonus": 3,
+    "flags": ["air"],
+    "armor_type": "light"
+  },
+  {
+    "name": "Immune",
+    "color": [255, 235, 120],
+    "count_bonus": -1,
+    "health_mult": 1.25,
+    "speed_mult": 0.95,
+    "bounty_bonus": 4,
+    "flags": ["immune"],
+    "armor_type": "fortified"
+  },
+  {
+    "name": "Invisible",
+    "color": [214, 175, 255],
+    "count_bonus": 0,
+    "health_mult": 1.05,
+    "speed_mult": 1.04,
+    "bounty_bonus": 6,
+    "flags": ["invisible"],
+    "armor_type": "medium"
+  },
+  {
+    "name": "Hero",
+    "color": [255, 155, 72],
+    "count_bonus": -3,
+    "health_mult": 2.65,
+    "speed_mult": 0.82,
+    "bounty_bonus": 12,
+    "flags": ["hero"],
+    "armor_type": "hero"
+  },
+  {
+    "name": "Boss",
+    "color": [255, 94, 94],
+    "count_bonus": -4,
+    "health_mult": 4.2,
+    "speed_mult": 0.72,
+    "bounty_bonus": 20,
+    "flags": ["boss", "immune"],
+    "armor_type": "fortified"
+  }
+]

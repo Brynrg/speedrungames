@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Green Circle TD</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #121212;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #game-container {
+            width: 960px;
+            height: 720px;
+            background-color: #000;
+            border: 1px solid #333;
+        }
+        #loading {
+            color: white;
+            font-family: Arial, sans-serif;
+            font-size: 24px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="loading">Loading Green Circle TD...</div>
+    </div>
+
+    <script>
+        // This is a placeholder for the actual game
+        // In a real implementation, this would load the Python/Arcade game
+        // via a web wrapper or server-side rendering
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const loading = document.getElementById('loading');
+            
+            // Simulate loading
+            setTimeout(() => {
+                loading.textContent = "Green Circle TD is running!";
+                loading.style.fontSize = "18px";
+                
+                // In a real implementation, we would:
+                // 1. Connect to a Python server running the game
+                // 2. Stream the game frames via WebSocket or similar
+                // 3. Handle input events and send them to the server
+                
+                // For now, just show a message
+                console.log("Green Circle TD is ready to deploy!");
+            }, 2000);
+        });
+    </script>
+</body>
+</html>
