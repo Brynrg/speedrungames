@@ -1,5 +1,19 @@
 [
   {
+    "slug": "green-circle-td",
+    "title": "Green Circle TD",
+    "description": "A production-grade tower defense game with armor matrix, aura towers, and branching upgrades.",
+    "repo": "Brynrg/Guardian",
+    "playUrl": "/games/green-circle-td/",
+    "category": "tower-defense",
+    "status": "live",
+    "framework": "other",
+    "supportsMobile": true,
+    "version": "1.0.0",
+    "lastUpdated": "2026-05-30T16:07:00.000Z",
+    "emoji": "🟢"
+  },
+  {
     "slug": "line-tower-wars",
     "title": "Line Tower Wars",
     "description": "Standalone web Line Tower Wars, inspired by the Warcraft 3 custom map — build a maze, leak creeps to your opponent.",
@@ -28,20 +42,6 @@
     "emoji": "🎙️"
   },
   {
-    "slug": "tower-wars",
-    "title": "Tower Wars",
-    "description": "Maze tower defense with income/sends, hero towers, and large-map pan/zoom control.",
-    "repo": "Brynrg/tower-wars",
-    "playUrl": "/games/tower-wars/",
-    "category": "tower-defense",
-    "status": "live",
-    "framework": "vanilla",
-    "supportsMobile": false,
-    "version": "1.0.0",
-    "lastUpdated": "2026-05-29T14:51:45.281Z",
-    "emoji": "🛡️"
-  },
-  {
     "slug": "tank-you-again",
     "title": "Tank You Again",
     "description": "Real-time multiplayer tank arena. 8-way movement, fuel-as-health, landmines, masked radar, 10-tier rank ladder.",
@@ -56,18 +56,18 @@
     "emoji": "🕹️"
   },
   {
-    "slug": "green-circle-td",
-    "title": "Green Circle TD",
-    "description": "A production-grade tower defense game with armor matrix, aura towers, and branching upgrades.",
-    "repo": "Brynrg/Guardian",
-    "playUrl": "/games/green-circle-td/",
+    "slug": "tower-wars",
+    "title": "Tower Wars",
+    "description": "Maze tower defense with income/sends, hero towers, and large-map pan/zoom control.",
+    "repo": "Brynrg/tower-wars",
+    "playUrl": "/games/tower-wars/",
     "category": "tower-defense",
     "status": "live",
-    "framework": "python-arcade",
-    "supportsMobile": true,
+    "framework": "vanilla",
+    "supportsMobile": false,
     "version": "1.0.0",
-    "lastUpdated": "2026-05-30T16:00:00.000Z",
-    "emoji": "🟢"
+    "lastUpdated": "2026-05-29T14:51:45.281Z",
+    "emoji": "🛡️"
   },
   {
     "slug": "tower-wars-2",
