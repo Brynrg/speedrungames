@@ -42,20 +42,6 @@
     "emoji": "🎙️"
   },
   {
-    "slug": "tank-you-again",
-    "title": "Tank You Again",
-    "description": "Real-time multiplayer tank arena. 8-way movement, fuel-as-health, landmines, masked radar, 10-tier rank ladder.",
-    "repo": "Brynrg/Tank-you-again",
-    "playUrl": "/games/tank-you-again/",
-    "category": "multiplayer-action",
-    "status": "live",
-    "framework": "vite",
-    "supportsMobile": false,
-    "version": "0.1.0",
-    "lastUpdated": "2026-05-29T14:42:16.458Z",
-    "emoji": "🕹️"
-  },
-  {
     "slug": "tower-wars",
     "title": "Tower Wars",
     "description": "Maze tower defense with income/sends, hero towers, and large-map pan/zoom control.",
@@ -68,6 +54,20 @@
     "version": "1.0.0",
     "lastUpdated": "2026-05-29T14:51:45.281Z",
     "emoji": "🛡️"
+  },
+  {
+    "slug": "tank-you-again",
+    "title": "Tank You Again",
+    "description": "Real-time multiplayer tank arena. 8-way movement, fuel-as-health, landmines, masked radar, 10-tier rank ladder.",
+    "repo": "Brynrg/Tank-you-again",
+    "playUrl": "/games/tank-you-again/",
+    "category": "multiplayer-action",
+    "status": "preview",
+    "framework": "vite",
+    "supportsMobile": false,
+    "version": "0.1.0",
+    "lastUpdated": "2026-05-31T23:57:06.776Z",
+    "emoji": "🕹️"
   },
   {
     "slug": "tower-wars-2",
