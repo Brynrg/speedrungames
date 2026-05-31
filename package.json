@@ -11,5 +11,11 @@
     "validate:games": "node scripts/validate-games.mjs",
     "ingest:game": "node scripts/ingest-game-build.mjs",
     "new:game": "node scripts/new-game.mjs"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "sharp",
+      "unrs-resolver"
+    ]
   }
 }
