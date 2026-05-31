@@ -5,14 +5,14 @@
   "repo": "Brynrg/Tank-you-again",
   "playUrl": "/games/tank-you-again/",
   "category": "multiplayer-action",
-  "status": "live",
+  "status": "preview",
   "framework": "vite",
   "supportsMobile": false,
   "version": "0.1.0",
   "sourceCommit": "0474e901471009900b5be5ac7361572d71312990",
   "buildHash": "e231bf7655ac8e0669c51c30c6f82661047c1db9f04ce7a036526c3cdf896813",
-  "buildTimestamp": "2026-05-29T14:42:16.458Z",
-  "lastUpdated": "2026-05-29T14:42:16.458Z",
+  "buildTimestamp": "2026-05-31T22:24:14.573Z",
+  "lastUpdated": "2026-05-31T22:24:14.573Z",
   "emoji": "🕹️",
   "assetsDocumented": true
 }
