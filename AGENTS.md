@@ -2,6 +2,18 @@
 
 **Read this file before adding or updating any game in this repo.**
 
+## Repo scope (read before exploring)
+
+Only these top-level paths are part of the portal and in scope for game work:
+
+- `apps/` — the Next.js portal site (games are served from `apps/web/public/games/<slug>/`).
+- `games/` — vendored game source kept in-repo (most games live in their own repos; see §2).
+- `scripts/`, `bin/`, `commands/` — the ingest / registry / new-game tooling.
+- `docs/`, `schemas/` — the contracts and manifest schemas.
+- `reports/` — agent run reports (§12).
+
+Everything else at the repo root is **out of scope** — ignore it. Do not build, edit, or reason about it when working on a game, and never wire it into the portal build (`pnpm-workspace.yaml` globs only `apps/*` and `games/*`; Netlify builds only `apps/web`).
+
 ## 0. Canonical commands (read first)
 
 There is exactly ONE way to create a game and ONE way to deploy/update one. Do
@@ -72,8 +84,7 @@ Games must not assume parent-window access. Any future portal↔game communicati
 ## 4. Path rule
 
 - Games are playable at `/games/<slug>/`.
-- Vite games must set `base: '/games/<slug>/'`, derived from `game.manifest.json` or a `GAME_SLUG` env var. See [docs/browser-game-template-contract.md](./docs/browser-game-template-contract.md).
-- **Do not rely on root-relative `/assets/...` paths.** Use the configured `base`.
+- **Asset URLs must be relative, never root-absolute (`/assets/...`).** For Vite, the canonical config is `base: "./"` (what the template ships); a slug-absolute `base: '/games/<slug>/'` derived from `game.manifest.json` is also accepted. For Next.js static export, set `basePath`/`assetPrefix` to `/games/<slug>` and prefix raw `<img src>` strings yourself. See [docs/browser-game-template-contract.md](./docs/browser-game-template-contract.md) §3.
 - After ingest, every `live` or `preview` game must have `apps/web/public/games/<slug>/index.html`.
 
 ## 5. Game source repo contract (summary — full spec in `docs/browser-game-template-contract.md`)

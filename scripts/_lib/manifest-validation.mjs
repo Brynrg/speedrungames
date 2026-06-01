@@ -24,6 +24,7 @@ const FRAMEWORKS = [
   "vite-pixi",
   "vite-react",
   "vanilla",
+  "nextjs",
   "other",
 ];
 

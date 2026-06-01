@@ -28,24 +28,30 @@ The portal's ingest step calls `npm run build` indirectly — by reading `dist/`
 
 ## 3. Required Vite configuration
 
-**The game must be built with `base = '/games/<slug>/'`.** Without this, asset URLs in the built `index.html` will be root-absolute (`/assets/foo.js`) and break when the portal serves the game under `/games/<slug>/`.
+**Asset URLs in the built `index.html` must be relative, never root-absolute.** Root-absolute URLs (`/assets/foo.js`) break when the portal serves the game under `/games/<slug>/`.
 
-Preferred pattern:
+**Canonical pattern — `base: "./"` (recommended).** This is what `speedrungames-game-template` ships. Relative asset URLs resolve correctly under any mount point, so the build is slug-decoupled and needs no env wiring:
 
 ```ts
 // vite.config.ts
 import { defineConfig } from "vite";
-import manifest from "./game.manifest.json" with { type: "json" };
-
-const slug = process.env.GAME_SLUG || manifest.slug;
-if (!slug) throw new Error("GAME_SLUG (or game.manifest.json#slug) is required");
 
 export default defineConfig({
-  base: `/games/${slug}/`,
+  base: "./",
 });
 ```
 
-If for some reason you can't read from `game.manifest.json` (older toolchain, etc.), the `GAME_SLUG` env var alone is acceptable as long as your CI sets it.
+**Alternative — slug-absolute base.** Also valid if you prefer absolute URLs (e.g. for apps with deep client-side routing). Derive the slug from `game.manifest.json` so it stays in sync:
+
+```ts
+import manifest from "./game.manifest.json" with { type: "json" };
+const slug = process.env.GAME_SLUG || manifest.slug;
+export default defineConfig({ base: `/games/${slug}/` });
+```
+
+Either approach passes ingest; the only hard rule is **no root-absolute asset paths**. `scripts/validate-games.mjs` and the Playwright smoke test (§4) catch violations.
+
+> **Non-Vite builds (e.g. Next.js static export):** the same rule applies. Set `basePath`/`assetPrefix` to `/games/<slug>` and remember that raw `<img src="/...">` strings are NOT rewritten by Next's `basePath` — prefix them yourself (use `next/image`/`next/link`, or read `process.env.NEXT_PUBLIC_BASE_PATH`).
 
 ## 4. Required smoke test (Playwright)
 
@@ -65,7 +71,7 @@ The portal's `/gamedeploy` flow calls this test. If the test isn't green, ingest
 - **Fully static by default.** No backend, no API calls, no auth, no analytics — unless the operator explicitly requested it.
 - **No external CDNs without a vendored fallback.** Self-host fonts, libraries, sounds.
 - **No unlicensed assets.** Every asset must be either authored by you, public domain, or under a license listed in `ASSETS.md`.
-- **localStorage keys must be prefixed `srg:<slug>:`** to avoid cross-game collisions inside the portal's iframe context.
+- **localStorage keys must be prefixed `speedrungames:<slug>:`** to avoid cross-game collisions inside the portal's iframe context. This matches `speedrungames-sdk`'s `createStorage(slug)` (see `src/storage.ts`); use the SDK rather than hand-rolling keys.
 - **Must run inside a sandboxed iframe.** Specifically: must not require parent DOM access, `window.parent`, or escape from the sandbox attributes the portal applies (`allow-scripts allow-same-origin allow-pointer-lock allow-gamepad`).
 - **Must not assume the user can navigate up.** No `window.top.location = ...` etc.
 
