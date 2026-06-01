@@ -64,9 +64,9 @@
     "category": "multiplayer-action",
     "status": "preview",
     "framework": "vite",
-    "supportsMobile": false,
+    "supportsMobile": true,
     "version": "0.1.0",
-    "lastUpdated": "2026-05-31T23:57:06.776Z",
+    "lastUpdated": "2026-06-01T01:30:01.930Z",
     "emoji": "🕹️"
   },
   {
