@@ -1,13 +1,16 @@
 "use strict";
 /*
- * Green Circle TD — web port for speedrungames.net.
- * Single-path tower defense with an armor-vs-damage matrix, aura towers, a
- * detector for invisibles, status effects (slow/poison), and 30 escalating
- * waves. Content (towers/enemies/armor/waves) is ported from the original
- * Python game's data. Fully static, no backend.
+ * Green Circle TD — web tower defense for speedrungames.net.
  *
- * v1 simplification: the original spawns from 4 corners; here all spawns share
- * one winding path (the armor/tower/wave systems are preserved verbatim).
+ * Faithful to the original: creeps spawn from the FOUR CORNERS and follow
+ * logarithmic spiral paths that wind inward to the center (the "green circle").
+ * Leak = a creep reaches the center. Place towers in the gaps between the
+ * spiral arms; match damage type to enemy armor. 30 escalating waves to a boss.
+ *
+ * The world is larger than the viewport: pan (drag / WASD / arrows) and zoom
+ * (wheel) the field, while the top bar + sidebar stay fixed. Content
+ * (towers/enemies/armor/waves) and the spiral geometry are ported from the
+ * original Python game's data + core/path.py.
  */
 
 // ----------------------------------------------------------------- data (ported)
@@ -30,23 +33,23 @@ const ENEMIES = {
   Boss:      { color: "rgb(255,94,94)",   count_bonus: -4, health_mult: 4.2,  speed_mult: 0.72, bounty_bonus: 20, flags: ["boss", "immune"], armor: "fortified" },
 };
 
-const RANGE_SCALE = 0.62;
+const RANGE_SCALE = 0.78;
 const T = (o) => ({ ...o, range: (o.range || 0) * RANGE_SCALE });
 const TOWERS = {
   basic:    T({ name: "Basic",   key: "1", range: 200, damage: 25, cd: 30, cost: 100, color: "rgb(42,178,84)",  dtype: "normal", desc: "Normal dmg, cheap" }),
-  sniper:   T({ name: "Sniper",  key: "2", range: 350, damage: 75, cd: 90, cost: 200, color: "rgb(64,215,255)", dtype: "pierce", desc: "Long range pierce" }),
+  sniper:   T({ name: "Sniper",  key: "2", range: 350, damage: 75, cd: 90, cost: 200, color: "rgb(64,215,255)", dtype: "pierce", desc: "Long-range pierce" }),
   rapid:    T({ name: "Rapid",   key: "3", range: 120, damage: 10, cd: 10, cost: 150, color: "rgb(255,146,41)", dtype: "pierce", desc: "Fast pierce" }),
   splash:   T({ name: "Splash",  key: "4", range: 180, damage: 40, cd: 60, cost: 180, color: "rgb(178,92,255)", dtype: "siege", splash: 80, desc: "Siege AoE" }),
-  frost:    T({ name: "Frost",   key: "5", range: 175, damage: 14, cd: 34, cost: 165, color: "rgb(102,185,255)",dtype: "magic", slow: 0.55, slowDur: 95, desc: "Magic, slows 55%" }),
+  frost:    T({ name: "Frost",   key: "5", range: 175, damage: 14, cd: 34, cost: 165, color: "rgb(102,185,255)",dtype: "magic", slow: 0.55, slowDur: 95, desc: "Magic · slows 55%" }),
   poison:   T({ name: "Poison",  key: "6", range: 185, damage: 12, cd: 36, cost: 145, color: "rgb(100,224,66)", dtype: "magic", poison: 4, poisonDur: 140, desc: "Magic + poison DoT" }),
   detector: T({ name: "Detector",key: "7", range: 230, damage: 8,  cd: 24, cost: 125, color: "rgb(255,214,78)", dtype: "normal", detect: true, desc: "Reveals invisible" }),
-  damage_aura: T({ name: "Dmg Aura", key: "8", range: 0, damage: 0, cd: 0, cost: 220, color: "rgb(200,50,50)",   dtype: null, aura: { type: "dmg", radius: 160, value: 0.20 }, desc: "+20% dmg near" }),
-  speed_aura:  T({ name: "Spd Aura", key: "9", range: 0, damage: 0, cd: 0, cost: 200, color: "rgb(200,200,50)",  dtype: null, aura: { type: "cd", radius: 150, value: 0.15 }, desc: "-15% cooldown near" }),
+  damage_aura: T({ name: "Dmg Aura", key: "8", range: 0, damage: 0, cd: 0, cost: 220, color: "rgb(220,70,70)",   dtype: null, aura: { type: "dmg", radius: 160, value: 0.20 }, desc: "+20% dmg nearby" }),
+  speed_aura:  T({ name: "Spd Aura", key: "9", range: 0, damage: 0, cd: 0, cost: 200, color: "rgb(220,200,70)",  dtype: null, aura: { type: "cd", radius: 150, value: 0.15 }, desc: "-15% cooldown nearby" }),
 };
 
 const WAVES = [
   { id: 1, name: "First Light", hint: "Light infantry. Build any tower.", reward: 50, spawns: [{ e: "Normal", n: 8, iv: 0.7, at: 0 }] },
-  { id: 2, name: "Patrol", hint: "Steady pressure. Add a second tower.", reward: 60, spawns: [{ e: "Normal", n: 10, iv: 0.7, at: 0 }, { e: "Normal", n: 10, iv: 0.7, at: 2 }] },
+  { id: 2, name: "Patrol", hint: "Two corners. Spread your defenses.", reward: 60, spawns: [{ e: "Normal", n: 10, iv: 0.7, at: 0 }, { e: "Normal", n: 10, iv: 0.7, at: 2 }] },
   { id: 3, name: "Swift Strike", hint: "Fast enemies. Freeze or pierce them.", reward: 55, spawns: [{ e: "Swift", n: 12, iv: 0.5, at: 0 }] },
   { id: 4, name: "First Mass", hint: "Swarm of small enemies. AoE shines.", reward: 55, spawns: [{ e: "Swarm", n: 18, iv: 0.3, at: 0 }] },
   { id: 5, name: "Iron Probe", hint: "Heavy armor — Pierce penalty. Try Siege/Magic.", reward: 70, spawns: [{ e: "Armored", n: 8, iv: 0.8, at: 0 }] },
@@ -61,34 +64,59 @@ const WAVES = [
   { id: 14, name: "Dread Cavalry", hint: "Heavy + swift. Diversify.", reward: 80, spawns: [{ e: "Armored", n: 8, iv: 0.8, at: 0 }, { e: "Swift", n: 4, iv: 0.4, at: 4 }] },
   { id: 15, name: "Bound Watchers", hint: "Heavy flyers. Pierce anti-air weak.", reward: 90, spawns: [{ e: "Air", n: 8, iv: 0.7, at: 0 }, { e: "Air", n: 4, iv: 0.7, at: 0 }] },
   { id: 16, name: "The Pulse", hint: "Immune + invisible. Detector + non-slow.", reward: 85, spawns: [{ e: "Immune", n: 5, iv: 0.9, at: 0 }, { e: "Invisible", n: 3, iv: 0.9, at: 0 }] },
-  { id: 17, name: "The Bound Flame", hint: "Hero creeps.", reward: 250, spawns: [{ e: "Hero", n: 4, iv: 4.0, at: 0 }, { e: "Hero", n: 4, iv: 4.0, at: 1 }] },
+  { id: 17, name: "The Bound Flame", hint: "Hero creeps from many corners.", reward: 250, spawns: [{ e: "Hero", n: 4, iv: 4.0, at: 0 }, { e: "Hero", n: 4, iv: 4.0, at: 1 }] },
   { id: 18, name: "Ash Swarm", hint: "Swarm of flyers. AoE + anti-air.", reward: 90, spawns: [{ e: "Air", n: 24, iv: 0.25, at: 0 }] },
   { id: 19, name: "Iron Ghosts", hint: "Invisible mass. Detector + Siege/Magic.", reward: 95, spawns: [{ e: "Invisible", n: 10, iv: 0.7, at: 0 }] },
   { id: 20, name: "The Verdant Maw", hint: "MEGA BOSS.", boss: true, reward: 500, spawns: [{ e: "Armored", n: 6, iv: 0.6, at: 0 }, { e: "Invisible", n: 4, iv: 0.6, at: 0 }, { e: "Boss", n: 1, iv: 0, at: 4 }] },
   { id: 21, name: "Hollow March", hint: "Hero + swarm.", reward: 100, spawns: [{ e: "Hero", n: 1, iv: 0, at: 0 }, { e: "Swarm", n: 18, iv: 0.25, at: 1 }] },
   { id: 22, name: "Spectral Wing", hint: "Flyers. Detector + Sniper.", reward: 95, spawns: [{ e: "Air", n: 12, iv: 0.5, at: 0 }] },
   { id: 23, name: "The Brand", hint: "Immune + heavy. Magic/Siege dominate.", reward: 100, spawns: [{ e: "Immune", n: 10, iv: 0.7, at: 0 }] },
-  { id: 24, name: "Storm Tide", hint: "Everything at once.", reward: 120, spawns: [{ e: "Normal", n: 8, iv: 0.5, at: 0 }, { e: "Swift", n: 8, iv: 0.5, at: 0 }, { e: "Armored", n: 8, iv: 0.5, at: 0 }, { e: "Swarm", n: 8, iv: 0.5, at: 0 }] },
-  { id: 25, name: "The Crucible", hint: "Mixed armor. Tower diversity mandatory.", reward: 130, spawns: [{ e: "Normal", n: 6, iv: 0.5, at: 0 }, { e: "Swift", n: 6, iv: 0.5, at: 0 }, { e: "Armored", n: 6, iv: 0.5, at: 0 }, { e: "Immune", n: 6, iv: 0.5, at: 0 }] },
+  { id: 24, name: "Storm Tide", hint: "All four corners flooding. Defend everywhere.", reward: 120, spawns: [{ e: "Normal", n: 8, iv: 0.5, at: 0 }, { e: "Swift", n: 8, iv: 0.5, at: 0 }, { e: "Armored", n: 8, iv: 0.5, at: 0 }, { e: "Swarm", n: 8, iv: 0.5, at: 0 }] },
+  { id: 25, name: "The Crucible", hint: "Mixed armor, all corners. Tower diversity mandatory.", reward: 130, spawns: [{ e: "Normal", n: 6, iv: 0.5, at: 0 }, { e: "Swift", n: 6, iv: 0.5, at: 0 }, { e: "Armored", n: 6, iv: 0.5, at: 0 }, { e: "Immune", n: 6, iv: 0.5, at: 0 }] },
   { id: 26, name: "Final Sentinels", hint: "Heroes + escorts.", reward: 150, spawns: [{ e: "Hero", n: 4, iv: 3.0, at: 0 }, { e: "Hero", n: 4, iv: 3.0, at: 0 }, { e: "Armored", n: 8, iv: 0.5, at: 2 }] },
   { id: 27, name: "The Long Dark", hint: "Immune + invisible puzzle.", reward: 120, spawns: [{ e: "Immune", n: 8, iv: 0.5, at: 0 }, { e: "Invisible", n: 8, iv: 0.4, at: 0 }] },
   { id: 28, name: "Sky Plague", hint: "Flyers + fast.", reward: 110, spawns: [{ e: "Air", n: 10, iv: 0.4, at: 0 }, { e: "Swift", n: 4, iv: 0.3, at: 2 }] },
-  { id: 29, name: "The Coronation", hint: "Heroes + swarm. Total war.", reward: 200, spawns: [{ e: "Hero", n: 5, iv: 3.0, at: 0 }, { e: "Hero", n: 5, iv: 3.0, at: 0 }, { e: "Swarm", n: 20, iv: 0.2, at: 1 }] },
+  { id: 29, name: "The Coronation", hint: "Heroes from every corner + swarm.", reward: 200, spawns: [{ e: "Hero", n: 5, iv: 3.0, at: 0 }, { e: "Hero", n: 5, iv: 3.0, at: 0 }, { e: "Swarm", n: 20, iv: 0.2, at: 1 }] },
   { id: 30, name: "The Pale Crown", hint: "FINAL BOSS.", boss: true, reward: 1000, spawns: [{ e: "Boss", n: 1, iv: 0, at: 0 }, { e: "Armored", n: 6, iv: 0.5, at: 3 }, { e: "Invisible", n: 4, iv: 0.5, at: 3 }, { e: "Hero", n: 2, iv: 2.0, at: 5 }] },
 ];
 
-// path waypoints (serpentine); enemies travel start -> base
-const PATH = [
-  [-20, 80], [850, 80], [850, 190], [110, 190], [110, 300],
-  [850, 300], [850, 410], [110, 410], [110, 520], [980, 520],
-];
-const BASE = { x: 905, y: 520 };
-const PATH_CLEAR = 26;     // min px from path to allow building
-const CELL = 40, GCOLS = 24, GROWS = 15;
+// ----------------------------------------------------------------- world geometry
+const WORLD = 1600;            // square world (px), larger than the viewport
+const CENTER = { x: WORLD / 2, y: WORLD / 2 };
+const CELL = 40, GRID = WORLD / CELL;
+const PATH_W = 34;             // visual path width
+const PATH_CLEAR = 30;         // min distance from any path to build
+const BASE_SPEED = 92;         // px/s before speed_mult
 
 const START_GOLD = 250, START_LIVES = 20;
-const BASE_SPEED = 56;     // px/s before speed_mult
 const PB_KEY = "speedrungames:green-circle-td:pb";
+const MIN_ZOOM = 0.35, MAX_ZOOM = 2.2;
+
+// Logarithmic spiral from `start` to `end` (port of core/path.py spiral_path).
+function spiralPath(start, end, turns, samples) {
+  const [sx, sy] = start, [ex, ey] = end;
+  const dx = ex - sx, dy = ey - sy;
+  const dist = Math.hypot(dx, dy);
+  if (dist === 0) return [start];
+  const dirx = dx / dist, diry = dy / dist;
+  const perpx = -diry, perpy = dirx;
+  const pts = [];
+  for (let i = 0; i < samples; i++) {
+    const t = i / (samples - 1);
+    const angle = t * turns * 2 * Math.PI;
+    const radius = dist * t;
+    const scale = 1 - Math.pow(t, 1.5); // tighten near the center
+    pts.push([
+      sx + dirx * radius + perpx * Math.sin(angle) * radius * scale,
+      sy + diry * radius + perpy * Math.sin(angle) * radius * scale,
+    ]);
+  }
+  return pts;
+}
+// Four spirals, one per corner, all converging on the center.
+const PATHS = [[0, 0], [WORLD, 0], [0, WORLD], [WORLD, WORLD]].map((c) =>
+  spiralPath(c, [CENTER.x, CENTER.y], 1.5, 48),
+);
 
 // ----------------------------------------------------------------- helpers
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -105,9 +133,11 @@ function distToSeg(px, py, ax, ay, bx, by) {
   t = clamp(t, 0, 1);
   return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
 }
-function distToPath(px, py) {
+function distToPaths(px, py) {
   let m = Infinity;
-  for (let i = 0; i < PATH.length - 1; i++) m = Math.min(m, distToSeg(px, py, PATH[i][0], PATH[i][1], PATH[i + 1][0], PATH[i + 1][1]));
+  for (const path of PATHS)
+    for (let i = 0; i < path.length - 1; i++)
+      m = Math.min(m, distToSeg(px, py, path[i][0], path[i][1], path[i + 1][0], path[i + 1][1]));
   return m;
 }
 const loadPB = () => { try { const v = localStorage.getItem(PB_KEY); return v ? +v : null; } catch { return null; } };
@@ -118,16 +148,23 @@ class Game {
   constructor() {
     this.canvas = document.getElementById("gameCanvas");
     this.ctx = this.canvas.getContext("2d");
+    this.stage = document.getElementById("stage");
+    this.dpr = 1; this.cssW = 0; this.cssH = 0;
+    this.cam = { x: 0, y: 0, zoom: 1 };
+    this.keys = new Set();
+    this.hoverWorld = null;
     this.reset();
     this.pb = loadPB();
     this.selected = "basic";
-    this.hoverCell = null;
-    this.buildable = this.computeBuildable();
     this.bindUI();
     this.bindInput();
+    this.resize();
+    this.centerCamera();
     this.renderPB();
     this.last = nowMs();
     this.showStart();
+    window.addEventListener("resize", () => this.resize());
+    if (window.ResizeObserver) new ResizeObserver(() => this.resize()).observe(this.stage);
     requestAnimationFrame(() => this.loop());
   }
 
@@ -135,32 +172,66 @@ class Game {
     this.gold = START_GOLD;
     this.lives = START_LIVES;
     this.towers = [];
-    this.occupied = new Set();   // "c,r" cells with towers
+    this.occupied = new Set();
     this.enemies = [];
     this.bullets = [];
-    this.waveIndex = 0;          // 0 = none started
-    this.spawnQueue = [];        // pending {at, enemy, hp, ...} for active wave
+    this.waveIndex = 0;
+    this.spawnQueue = [];
     this.waveActive = false;
-    this.state = "ready";        // ready | running | won | lost
+    this.state = "ready";
     this.startMs = 0;
     this.elapsed = 0;
     this.waveClock = 0;
-    this.gameTime = 0;           // accumulated sim seconds (drives cooldowns/status, frame-rate independent)
+    this.gameTime = 0;
   }
 
-  computeBuildable() {
-    const cells = [];
-    for (let c = 0; c < GCOLS; c++) for (let r = 0; r < GROWS; r++) {
-      const x = c * CELL + CELL / 2, y = r * CELL + CELL / 2;
-      if (distToPath(x, y) > PATH_CLEAR) cells.push({ c, r, x, y });
+  // ---- camera / viewport
+  resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = this.stage.clientWidth || 800, h = this.stage.clientHeight || 600;
+    this.dpr = dpr; this.cssW = w; this.cssH = h;
+    this.canvas.width = Math.round(w * dpr);
+    this.canvas.height = Math.round(h * dpr);
+    if (!this._zoomInit) {
+      this.cam.zoom = clamp(Math.min(w, h) / 1050, MIN_ZOOM, MAX_ZOOM);
+      this._zoomInit = true;
     }
-    return cells;
+    this.clampCamera();
   }
+  centerCamera() {
+    this.cam.x = CENTER.x - this.cssW / this.cam.zoom / 2;
+    this.cam.y = CENTER.y - this.cssH / this.cam.zoom / 2;
+    this.clampCamera();
+  }
+  clampCamera() {
+    const vw = this.cssW / this.cam.zoom, vh = this.cssH / this.cam.zoom;
+    this.cam.x = vw >= WORLD ? (WORLD - vw) / 2 : clamp(this.cam.x, 0, WORLD - vw);
+    this.cam.y = vh >= WORLD ? (WORLD - vh) / 2 : clamp(this.cam.y, 0, WORLD - vh);
+  }
+  screenToWorld(clientX, clientY) {
+    const rect = this.canvas.getBoundingClientRect();
+    return {
+      x: this.cam.x + (clientX - rect.left) / this.cam.zoom,
+      y: this.cam.y + (clientY - rect.top) / this.cam.zoom,
+    };
+  }
+  zoomAt(clientX, clientY, factor) {
+    const before = this.screenToWorld(clientX, clientY);
+    this.cam.zoom = clamp(this.cam.zoom * factor, MIN_ZOOM, MAX_ZOOM);
+    const after = this.screenToWorld(clientX, clientY);
+    this.cam.x += before.x - after.x;
+    this.cam.y += before.y - after.y;
+    this.clampCamera();
+  }
+
+  // ---- buildable grid
+  cellOf(wx, wy) { return { c: Math.floor(wx / CELL), r: Math.floor(wy / CELL) }; }
+  cellCenter(c, r) { return { x: c * CELL + CELL / 2, y: r * CELL + CELL / 2 }; }
   cellBuildable(c, r) {
-    if (c < 0 || c >= GCOLS || r < 0 || r >= GROWS) return false;
+    if (c < 0 || c >= GRID || r < 0 || r >= GRID) return false;
     if (this.occupied.has(c + "," + r)) return false;
-    const x = c * CELL + CELL / 2, y = r * CELL + CELL / 2;
-    return distToPath(x, y) > PATH_CLEAR;
+    const ctr = this.cellCenter(c, r);
+    return distToPaths(ctr.x, ctr.y) > PATH_CLEAR;
   }
 
   // ---- UI
@@ -170,7 +241,10 @@ class Game {
     for (const [id, d] of Object.entries(TOWERS)) {
       const b = document.createElement("button");
       b.className = "gbtn"; b.dataset.tower = id;
-      b.innerHTML = `<span class="nm"><span><span class="dot" style="background:${d.color}"></span>${d.key}·${d.name}</span><span class="ct">${d.cost}</span></span><span class="ds">${d.desc}</span>`;
+      b.innerHTML =
+        `<span class="dot" style="background:${d.color}"></span>` +
+        `<span class="nm">${d.key}·${d.name}<span class="ds">${d.desc}</span></span>` +
+        `<span class="ct">${d.cost}</span>`;
       b.onclick = () => this.select(id);
       tb.appendChild(b);
     }
@@ -191,12 +265,17 @@ class Game {
     document.getElementById("lives").textContent = `❤ ${Math.max(0, this.lives)}`;
   }
   renderPB() { document.getElementById("pb").textContent = this.pb == null ? "PB —" : "PB " + fmt(this.pb); }
-  setWaveText(name, hint) { document.getElementById("waveName").textContent = name; document.getElementById("waveHint").textContent = hint; }
+  setWaveText(name, hint) {
+    document.getElementById("waveName").textContent = name;
+    document.getElementById("waveHint").textContent = hint;
+  }
 
   hideOverlay() { const o = document.getElementById("overlay"); o.className = "overlay hidden"; o.innerHTML = ""; }
   overlay(html) { const o = document.getElementById("overlay"); o.className = "overlay"; o.innerHTML = html; return o; }
   showStart() {
-    const o = this.overlay(`<h2>🟢 Green Circle TD</h2><p>Place towers along the path. Match damage types to enemy armor.<br>Survive all 30 waves — as fast as you can.</p><button id="goBtn">Begin</button>`);
+    const o = this.overlay(
+      `<h2>🟢 Green Circle TD</h2><p>Creeps spiral in from all four corners to the center. Build towers in the gaps to stop them — match damage type to armor. Survive 30 waves, as fast as you can.</p><button id="goBtn">Begin</button>`,
+    );
     o.querySelector("#goBtn").onclick = () => { this.hideOverlay(); this.state = "running"; };
   }
   end(won) {
@@ -207,41 +286,103 @@ class Game {
       if (this.pb == null || this.elapsed < this.pb) { this.pb = this.elapsed; savePB(this.pb); this.renderPB(); sub = "🏆 New personal best!"; }
       else sub = this.pb != null ? `PB ${fmt(this.pb)}` : "";
     } else sub = `Reached wave ${Math.min(this.waveIndex, WAVES.length)} / ${WAVES.length}.`;
-    const o = this.overlay(`<h2>${won ? "The Crown is Yours!" : "Overrun"}</h2><p>Time ${fmt(this.elapsed)}</p><p>${sub}</p><button id="rsBtn">${won ? "Play again" : "Retry"}</button>`);
+    const o = this.overlay(
+      `<h2>${won ? "The Crown is Yours!" : "Overrun"}</h2><p>Time ${fmt(this.elapsed)}</p><p>${sub}</p><button id="rsBtn">${won ? "Play again" : "Retry"}</button>`,
+    );
     o.querySelector("#rsBtn").onclick = () => this.restart();
     this.refreshButtons();
   }
-  restart() { this.reset(); this.state = "running"; this.hideOverlay(); this.renderPB(); this.refreshButtons(); this.setWaveText("Ready", "Build a tower, then start the first wave."); }
+  restart() {
+    this.reset();
+    this.state = "running";
+    this.hideOverlay();
+    this.renderPB();
+    this.refreshButtons();
+    this.setWaveText("Ready", "Build towers, then start the first wave.");
+  }
 
-  // ---- input
+  // ---- input (drag-to-pan vs click-to-build, wheel zoom, keyboard pan)
   bindInput() {
-    const scale = () => { const r = this.canvas.getBoundingClientRect(); return { r, sx: this.canvas.width / r.width, sy: this.canvas.height / r.height }; };
-    this.canvas.addEventListener("mousemove", (e) => {
-      const { r, sx, sy } = scale();
-      const x = (e.clientX - r.left) * sx, y = (e.clientY - r.top) * sy;
-      this.hoverCell = { c: Math.floor(x / CELL), r: Math.floor(y / CELL), x, y };
+    const c = this.canvas;
+    let down = false, dragged = false, downX = 0, downY = 0, lastX = 0, lastY = 0;
+
+    c.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) return;
+      down = true; dragged = false;
+      downX = lastX = e.clientX; downY = lastY = e.clientY;
+      c.setPointerCapture(e.pointerId);
     });
-    this.canvas.addEventListener("mouseleave", () => { this.hoverCell = null; });
-    this.canvas.addEventListener("click", () => {
-      if (this.state === "ready") { this.hideOverlay(); this.state = "running"; return; }
-      if (this.state !== "running" || !this.hoverCell) return;
-      this.build(this.hoverCell.c, this.hoverCell.r, this.selected);
+    c.addEventListener("pointermove", (e) => {
+      this.hoverWorld = this.screenToWorld(e.clientX, e.clientY);
+      if (!down) return;
+      if (!dragged && Math.hypot(e.clientX - downX, e.clientY - downY) > 5) {
+        dragged = true; c.classList.add("panning");
+      }
+      if (dragged) {
+        this.cam.x -= (e.clientX - lastX) / this.cam.zoom;
+        this.cam.y -= (e.clientY - lastY) / this.cam.zoom;
+        this.clampCamera();
+      }
+      lastX = e.clientX; lastY = e.clientY;
     });
+    const up = (e) => {
+      if (!down) return;
+      down = false; c.classList.remove("panning");
+      if (!dragged) this.onClick(e.clientX, e.clientY); // a click, not a drag → build
+    };
+    c.addEventListener("pointerup", up);
+    c.addEventListener("pointercancel", () => { down = false; c.classList.remove("panning"); });
+    c.addEventListener("mouseleave", () => { this.hoverWorld = null; });
+    c.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      this.zoomAt(e.clientX, e.clientY, e.deltaY < 0 ? 1.12 : 1 / 1.12);
+    }, { passive: false });
+
+    // right-click sells the hovered tower (keeps WASD free for panning)
+    c.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      if (this.state !== "running") return;
+      const w = this.screenToWorld(e.clientX, e.clientY);
+      const { c: cc, r } = this.cellOf(w.x, w.y);
+      this.sellAt(cc, r);
+    });
+
     window.addEventListener("keydown", (e) => {
       const k = e.key.toLowerCase();
+      if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) this.keys.add(k);
       for (const [id, d] of Object.entries(TOWERS)) if (d.key === k) this.select(id);
-      if (k === "escape") this.selected = "basic", this.refreshButtons();
-      else if (k === "s" && this.hoverCell) this.sellAt(this.hoverCell.c, this.hoverCell.r);
-      else if (k === " " || e.code === "Space") { e.preventDefault(); if (this.state === "running") this.startNextWave(); else if (this.state === "won" || this.state === "lost") this.restart(); }
+      if (k === "escape") { this.selected = "basic"; this.refreshButtons(); }
+      else if (k === " " || e.code === "Space") {
+        e.preventDefault();
+        if (this.state === "running") this.startNextWave();
+        else if (this.state === "won" || this.state === "lost") this.restart();
+      }
     });
+    window.addEventListener("keyup", (e) => this.keys.delete(e.key.toLowerCase()));
+  }
+
+  onClick(clientX, clientY) {
+    if (this.state === "ready") { this.hideOverlay(); this.state = "running"; return; }
+    if (this.state !== "running") return;
+    const w = this.screenToWorld(clientX, clientY);
+    const { c, r } = this.cellOf(w.x, w.y);
+    this.build(c, r, this.selected);
+  }
+
+  panFromKeys(dt) {
+    const v = 520 / this.cam.zoom * dt; // world px/s
+    if (this.keys.has("w") || this.keys.has("arrowup")) this.cam.y -= v;
+    if (this.keys.has("s") || this.keys.has("arrowdown")) this.cam.y += v;
+    if (this.keys.has("a") || this.keys.has("arrowleft")) this.cam.x -= v;
+    if (this.keys.has("d") || this.keys.has("arrowright")) this.cam.x += v;
+    this.clampCamera();
   }
 
   build(c, r, type) {
     const def = TOWERS[type];
     if (this.gold < def.cost || !this.cellBuildable(c, r)) return false;
-    const x = c * CELL + CELL / 2, y = r * CELL + CELL / 2;
-    const t = { c, r, x, y, type, def, lastFire: -999, dmgMult: 1, cdMult: 1 };
-    this.towers.push(t);
+    const ctr = this.cellCenter(c, r);
+    this.towers.push({ c, r, x: ctr.x, y: ctr.y, type, def, lastFire: -999, dmgMult: 1, cdMult: 1 });
     this.occupied.add(c + "," + r);
     this.gold -= def.cost;
     this.recomputeAuras();
@@ -278,32 +419,34 @@ class Game {
     this.waveIndex++;
     this.waveActive = true;
     this.waveClock = 0;
-    if (!this.startMs) this.startMs = nowMs();   // run timer starts on first wave
+    if (!this.startMs) this.startMs = nowMs();
     this.setWaveText(`Wave ${w.id}: ${w.name}`, w.hint);
-    // build spawn queue
     this.spawnQueue = [];
-    const hpBase = 30 + this.waveIndex * 9;
-    for (const sp of w.spawns) {
+    const hpBase = 32 + this.waveIndex * 11;
+    w.spawns.forEach((sp, gi) => {
       const e = ENEMIES[sp.e];
       const count = Math.max(1, sp.n + e.count_bonus);
+      // spread spawn groups across the four corners (faithful 4-corner play)
+      const corner = (sp.corner ?? (w.id + gi)) % 4;
       for (let i = 0; i < count; i++) {
         this.spawnQueue.push({
           time: sp.at + i * sp.iv,
-          enemy: sp.e, def: e,
+          enemy: sp.e, def: e, corner,
           hp: hpBase * e.health_mult,
           speed: BASE_SPEED * e.speed_mult,
           bounty: 3 + Math.floor(this.waveIndex / 3) + e.bounty_bonus,
           reward: w.reward,
         });
       }
-    }
+    });
     this.spawnQueue.sort((a, b) => a.time - b.time);
     this.refreshButtons();
   }
 
   spawnEnemy(s) {
+    const path = PATHS[s.corner];
     this.enemies.push({
-      x: PATH[0][0], y: PATH[0][1], wp: 0,
+      x: path[0][0], y: path[0][1], wp: 0, path,
       hp: s.hp, maxHp: s.hp, speed: s.speed,
       def: s.def, enemy: s.enemy, bounty: s.bounty, reward: s.reward,
       flags: s.def.flags, armor: s.def.armor, color: s.def.color,
@@ -320,12 +463,11 @@ class Game {
       while (this.spawnQueue.length && this.spawnQueue[0].time <= this.waveClock) this.spawnEnemy(this.spawnQueue.shift());
     }
 
-    // detector reveal for invisible enemies
     const detectors = this.towers.filter((t) => t.def.detect);
     for (const en of this.enemies) {
-      if (en.flags.includes("invisible")) {
+      if (en.flags.includes("invisible"))
         en.revealed = detectors.some((d) => Math.hypot(d.x - en.x, d.y - en.y) <= d.def.range);
-      } else en.revealed = true;
+      else en.revealed = true;
     }
 
     this.moveEnemies(dt);
@@ -333,7 +475,6 @@ class Game {
     for (const b of this.bullets) b.t -= dt;
     this.bullets = this.bullets.filter((b) => b.t > 0);
 
-    // poison ticks + cull
     for (const en of this.enemies) {
       if (en.hp <= 0) continue;
       if (en.poison > 0 && this.gameTime < en.poisonUntil) en.hp -= en.poison * dt;
@@ -341,7 +482,6 @@ class Game {
     }
     this.enemies = this.enemies.filter((e) => e.hp > 0 && !e.leaked);
 
-    // wave clear?
     if (this.waveActive && !this.spawnQueue.length && this.enemies.length === 0) {
       this.waveActive = false;
       const w = WAVES[this.waveIndex - 1];
@@ -358,13 +498,14 @@ class Game {
       if (en.hp <= 0) continue;
       const speed = en.speed * (this.gameTime < en.slowUntil ? 0.45 : 1);
       let remaining = speed * dt;
-      while (remaining > 0 && en.wp < PATH.length - 1) {
-        const tx = PATH[en.wp + 1][0], ty = PATH[en.wp + 1][1];
+      const path = en.path, last = path.length - 1;
+      while (remaining > 0 && en.wp < last) {
+        const tx = path[en.wp + 1][0], ty = path[en.wp + 1][1];
         const dx = tx - en.x, dy = ty - en.y, d = Math.hypot(dx, dy) || 1;
         if (d <= remaining) { en.x = tx; en.y = ty; en.wp++; remaining -= d; }
         else { en.x += (dx / d) * remaining; en.y += (dy / d) * remaining; remaining = 0; }
       }
-      if (en.wp >= PATH.length - 1) { en.leaked = true; this.onLeak(en); }
+      if (en.wp >= last) { en.leaked = true; this.onLeak(en); }
     }
   }
 
@@ -372,8 +513,8 @@ class Game {
     const t = this.gameTime;
     for (const tw of this.towers) {
       const d = tw.def;
-      if (!d.dtype && !d.detect) continue;        // pure aura towers don't shoot
-      const eff = (d.cd / 60) * tw.cdMult;        // seconds
+      if (!d.dtype && !d.detect) continue;
+      const eff = (d.cd / 60) * tw.cdMult;
       if (t - tw.lastFire < eff) continue;
       const target = this.pickTarget(tw);
       if (!target) continue;
@@ -394,10 +535,9 @@ class Game {
       if (en.hp <= 0) continue;
       if (en.flags.includes("invisible") && !en.revealed) continue;
       if (Math.hypot(en.x - tw.x, en.y - tw.y) > tw.def.range) continue;
-      // furthest along the path: primary = waypoint index, tiebreak = closeness to next waypoint
-      const next = PATH[Math.min(en.wp + 1, PATH.length - 1)];
-      const distToNext = Math.hypot(en.x - next[0], en.y - next[1]);
-      const prog = en.wp * 10000 - distToNext;
+      const last = en.path.length - 1;
+      const next = en.path[Math.min(en.wp + 1, last)];
+      const prog = en.wp * 10000 - Math.hypot(en.x - next[0], en.y - next[1]);
       if (prog > bestProg) { bestProg = prog; best = en; }
     }
     return best;
@@ -412,13 +552,18 @@ class Game {
     if (en.hp <= 0) this.onKill(en);
   }
   onKill(en) { if (en._dead) return; en._dead = true; this.gold += en.bounty; this.refreshButtons(); }
-  onLeak(en) { const cost = en.flags.includes("boss") ? 10 : en.flags.includes("hero") ? 4 : 1; this.lives -= cost; this.refreshButtons(); }
+  onLeak(en) {
+    const cost = en.flags.includes("boss") ? 10 : en.flags.includes("hero") ? 4 : 1;
+    this.lives -= cost;
+    this.refreshButtons();
+  }
 
   // ---- loop + render
   loop() {
     const t = nowMs();
     let dt = (t - this.last) / 1000; this.last = t;
     if (dt > 0.05) dt = 0.05;
+    this.panFromKeys(dt);
     this.update(dt);
     if (this.state === "running" && this.startMs) this.elapsed = t - this.startMs;
     document.getElementById("timer").textContent = fmt(this.elapsed);
@@ -428,30 +573,51 @@ class Game {
 
   draw() {
     const ctx = this.ctx;
-    ctx.clearRect(0, 0, 960, 600);
-    ctx.fillStyle = "#0c130d"; ctx.fillRect(0, 0, 960, 600);
-    // path
-    ctx.strokeStyle = "#243a29"; ctx.lineWidth = 30; ctx.lineCap = "round"; ctx.lineJoin = "round";
-    ctx.beginPath(); ctx.moveTo(PATH[0][0], PATH[0][1]); for (let i = 1; i < PATH.length; i++) ctx.lineTo(PATH[i][0], PATH[i][1]); ctx.stroke();
-    ctx.strokeStyle = "#172419"; ctx.lineWidth = 22; ctx.stroke();
-    // base
-    ctx.fillStyle = "#86efac"; ctx.beginPath(); ctx.arc(BASE.x, BASE.y, 16, 0, 7); ctx.fill();
-    ctx.fillStyle = "#07120a"; ctx.font = "bold 13px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("◎", BASE.x, BASE.y);
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    ctx.clearRect(0, 0, this.cssW, this.cssH);
+    ctx.fillStyle = "#0c130d"; ctx.fillRect(0, 0, this.cssW, this.cssH);
 
-    // hover build preview
-    if (this.hoverCell && this.state === "running") {
-      const { c, r } = this.hoverCell;
+    ctx.save();
+    ctx.scale(this.cam.zoom, this.cam.zoom);
+    ctx.translate(-this.cam.x, -this.cam.y);
+
+    // world border
+    ctx.strokeStyle = "#152017"; ctx.lineWidth = 2; ctx.strokeRect(0, 0, WORLD, WORLD);
+
+    // spiral paths (the green circle)
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+    for (const path of PATHS) {
+      ctx.strokeStyle = "#243a29"; ctx.lineWidth = PATH_W;
+      ctx.beginPath(); ctx.moveTo(path[0][0], path[0][1]);
+      for (let i = 1; i < path.length; i++) ctx.lineTo(path[i][0], path[i][1]);
+      ctx.stroke();
+      ctx.strokeStyle = "#172419"; ctx.lineWidth = PATH_W - 8; ctx.stroke();
+    }
+    // corner spawn markers
+    for (const path of PATHS) {
+      ctx.fillStyle = "rgba(248,113,113,.8)";
+      ctx.beginPath(); ctx.arc(path[0][0], path[0][1], 9, 0, 7); ctx.fill();
+    }
+    // center base
+    ctx.fillStyle = "#86efac"; ctx.beginPath(); ctx.arc(CENTER.x, CENTER.y, 18, 0, 7); ctx.fill();
+    ctx.fillStyle = "#07120a"; ctx.font = "bold 16px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("◎", CENTER.x, CENTER.y);
+
+    // build hover preview
+    if (this.hoverWorld && this.state === "running") {
+      const { c, r } = this.cellOf(this.hoverWorld.x, this.hoverWorld.y);
       const def = TOWERS[this.selected];
       const ok = this.gold >= def.cost && this.cellBuildable(c, r);
       ctx.fillStyle = ok ? "rgba(134,239,172,.22)" : "rgba(248,113,113,.22)";
       ctx.fillRect(c * CELL, r * CELL, CELL, CELL);
+      const ctr = this.cellCenter(c, r);
       if (ok && def.range > 0) {
-        ctx.strokeStyle = "rgba(255,255,255,.15)"; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.arc(c * CELL + CELL / 2, r * CELL + CELL / 2, def.range, 0, 7); ctx.stroke();
+        ctx.strokeStyle = "rgba(255,255,255,.18)"; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(ctr.x, ctr.y, def.range, 0, 7); ctx.stroke();
       }
       if (ok && def.aura) {
-        ctx.strokeStyle = "rgba(255,255,255,.12)"; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.arc(c * CELL + CELL / 2, r * CELL + CELL / 2, def.aura.radius, 0, 7); ctx.stroke();
+        ctx.strokeStyle = "rgba(255,255,255,.14)"; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(ctr.x, ctr.y, def.aura.radius, 0, 7); ctx.stroke();
       }
     }
 
@@ -461,11 +627,14 @@ class Game {
       ctx.fillStyle = tw.def.color;
       this.round(x + 5, y + 5, CELL - 10, CELL - 10, 6); ctx.fill();
       ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.beginPath(); ctx.arc(tw.x, tw.y, 4, 0, 7); ctx.fill();
-      if (tw.def.detect) { ctx.strokeStyle = "rgba(255,214,78,.12)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(tw.x, tw.y, tw.def.range, 0, 7); ctx.stroke(); }
+      if (tw.def.detect) { ctx.strokeStyle = "rgba(255,214,78,.10)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(tw.x, tw.y, tw.def.range, 0, 7); ctx.stroke(); }
     }
 
     // bullets
-    for (const b of this.bullets) { ctx.strokeStyle = b.color; ctx.lineWidth = 2; ctx.globalAlpha = b.t / 0.09; ctx.beginPath(); ctx.moveTo(b.x1, b.y1); ctx.lineTo(b.x2, b.y2); ctx.stroke(); }
+    for (const b of this.bullets) {
+      ctx.strokeStyle = b.color; ctx.lineWidth = 2; ctx.globalAlpha = b.t / 0.09;
+      ctx.beginPath(); ctx.moveTo(b.x1, b.y1); ctx.lineTo(b.x2, b.y2); ctx.stroke();
+    }
     ctx.globalAlpha = 1;
 
     // enemies
@@ -484,7 +653,36 @@ class Game {
       ctx.fillStyle = hpf > 0.5 ? "#4ade80" : hpf > 0.25 ? "#facc15" : "#f87171";
       ctx.fillRect(en.x - w / 2, en.y - rad - 7, w * hpf, 4);
     }
+    ctx.restore();
+
+    this.drawMinimap();
     ctx.lineWidth = 1;
+  }
+
+  // small fixed minimap so you always know where the action is while panning
+  drawMinimap() {
+    const ctx = this.ctx, S = 116, pad = 10;
+    const x0 = this.cssW - S - pad, y0 = this.cssH - S - pad, k = S / WORLD;
+    ctx.save();
+    ctx.globalAlpha = 0.92;
+    ctx.fillStyle = "#0a0f0b"; ctx.strokeStyle = "#294a33"; ctx.lineWidth = 1;
+    ctx.fillRect(x0, y0, S, S); ctx.strokeRect(x0, y0, S, S);
+    ctx.strokeStyle = "#1f3324";
+    for (const path of PATHS) {
+      ctx.beginPath(); ctx.moveTo(x0 + path[0][0] * k, y0 + path[0][1] * k);
+      for (let i = 1; i < path.length; i++) ctx.lineTo(x0 + path[i][0] * k, y0 + path[i][1] * k);
+      ctx.stroke();
+    }
+    ctx.fillStyle = "#86efac"; ctx.fillRect(x0 + CENTER.x * k - 2, y0 + CENTER.y * k - 2, 4, 4);
+    for (const en of this.enemies) {
+      if (en.hp <= 0) continue;
+      ctx.fillStyle = en.color; ctx.fillRect(x0 + en.x * k - 1, y0 + en.y * k - 1, 2, 2);
+    }
+    // viewport rectangle
+    const vw = this.cssW / this.cam.zoom, vh = this.cssH / this.cam.zoom;
+    ctx.strokeStyle = "rgba(255,255,255,.5)";
+    ctx.strokeRect(x0 + this.cam.x * k, y0 + this.cam.y * k, vw * k, vh * k);
+    ctx.restore();
   }
 
   round(x, y, w, h, r) {

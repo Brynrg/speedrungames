@@ -1,58 +1,88 @@
 * { box-sizing: border-box; }
+html, body { height: 100%; }
 body {
   margin: 0;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   background: #0a0f0b;
   color: #e8f3ea;
   -webkit-user-select: none; user-select: none;
+  overflow: hidden;
 }
-#app { max-width: 1000px; margin: 0 auto; padding: 12px; }
-#topbar { display: flex; align-items: center; gap: 14px; padding: 6px 4px 12px; flex-wrap: wrap; }
-.brand { font-size: 20px; font-weight: 700; }
-.stats { display: flex; gap: 14px; font-variant-numeric: tabular-nums; font-size: 15px; }
-.stats span { color: #c7e0cb; }
-.timer { margin-left: auto; font-variant-numeric: tabular-nums; font-size: 22px; font-weight: 700; color: #86efac; }
-.pb { font-variant-numeric: tabular-nums; color: #6f8a74; font-size: 14px; }
 
-#stage { position: relative; }
-canvas {
-  display: block; width: 100%; height: auto;
-  border-radius: 10px; background: #0c130d;
-  box-shadow: 0 6px 24px rgba(0,0,0,.45); cursor: crosshair;
-}
-.overlay {
-  position: absolute; inset: 0; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 12px; text-align: center;
-  background: rgba(6,10,7,.84); border-radius: 10px; padding: 24px;
-}
-.overlay.hidden { display: none; }
-.overlay h2 { margin: 0; font-size: 34px; }
-.overlay p { margin: 0; color: #b6ccba; }
-.overlay button, button.primary {
-  margin-top: 6px; padding: 10px 22px; font-size: 16px; font-weight: 700;
-  color: #07120a; background: #86efac; border: 0; border-radius: 8px; cursor: pointer;
-}
-.overlay button:hover, button.primary:hover { background: #a7f3c4; }
-button.primary:disabled { opacity: .5; cursor: not-allowed; }
+/* full-viewport app: fixed top bar + (fixed sidebar | scrollable field) */
+#app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
 
-#controls { display: grid; grid-template-columns: 2.2fr 1fr; gap: 12px; margin-top: 12px; }
-.panel { background: #101a13; border: 1px solid #1d3122; border-radius: 10px; padding: 10px 12px; }
-.panel h3 { margin: 0 0 8px; font-size: 14px; }
-.hint { color: #6f8a74; font-weight: 400; font-size: 12px; }
-.side .keys { color: #6f8a74; font-size: 11px; margin: 10px 0 0; }
-.side p { font-size: 12px; line-height: 1.4; color: #aec5b3; margin: 0 0 8px; }
+#topbar {
+  flex: 0 0 auto;
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 14px;
+  background: #0c150e;
+  border-bottom: 1px solid #1d3122;
+}
+.brand { font-size: 17px; font-weight: 700; white-space: nowrap; }
+#topbar .stat { font-variant-numeric: tabular-nums; font-size: 14px; color: #c7e0cb; white-space: nowrap; }
+#topbar .spacer { flex: 1 1 auto; }
+.timer { font-variant-numeric: tabular-nums; font-size: 20px; font-weight: 700; color: #86efac; }
+.pb { font-variant-numeric: tabular-nums; color: #6f8a74; font-size: 13px; }
 
-.btnrow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+#main { flex: 1 1 auto; display: flex; min-height: 0; }
+
+#sidebar {
+  flex: 0 0 220px;
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 10px;
+  background: #0c150e;
+  border-right: 1px solid #1d3122;
+  overflow-y: auto;
+}
+.panel { background: #101a13; border: 1px solid #1d3122; border-radius: 10px; padding: 10px; }
+.panel h3 { margin: 0 0 8px; font-size: 13px; letter-spacing: .02em; }
+.hint { color: #7d977f; font-size: 11px; line-height: 1.45; margin: 6px 0 0; }
+.help ul { margin: 0; padding-left: 16px; }
+.help li { font-size: 11px; line-height: 1.7; color: #aec5b3; }
+
+.towerlist { display: flex; flex-direction: column; gap: 6px; }
 .gbtn {
-  padding: 7px 6px; border-radius: 8px; border: 1px solid #294a33; background: #16271b;
-  color: #e8f3ea; cursor: pointer; font-size: 12px; line-height: 1.25; text-align: left;
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; border-radius: 8px;
+  border: 1px solid #294a33; background: #16271b; color: #e8f3ea;
+  cursor: pointer; text-align: left; font-size: 12px;
 }
-.gbtn .nm { display: flex; justify-content: space-between; font-weight: 700; }
-.gbtn .ds { display: block; color: #8fae97; font-size: 11px; margin-top: 2px; }
-.gbtn .ct { color: #fde047; }
+.gbtn .dot { flex: 0 0 auto; width: 11px; height: 11px; border-radius: 50%; }
+.gbtn .nm { flex: 1 1 auto; font-weight: 700; }
+.gbtn .ds { display: block; color: #8fae97; font-size: 10px; font-weight: 400; }
+.gbtn .ct { flex: 0 0 auto; color: #fde047; font-variant-numeric: tabular-nums; }
 .gbtn:hover { border-color: #3a6b4b; background: #1b3022; }
 .gbtn.selected { border-color: #86efac; background: #1d3a26; }
 .gbtn:disabled { opacity: .45; cursor: not-allowed; }
-.gbtn .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
 
-@media (max-width: 720px) { #controls { grid-template-columns: 1fr; } .btnrow { grid-template-columns: repeat(2,1fr); } }
+button.primary {
+  width: 100%; padding: 9px; font-size: 14px; font-weight: 700;
+  color: #07120a; background: #86efac; border: 0; border-radius: 8px; cursor: pointer;
+}
+button.primary:hover { background: #a7f3c4; }
+button.primary:disabled { opacity: .5; cursor: not-allowed; }
+
+/* the play field: fills the rest, the canvas is the scrollable world */
+#stage { position: relative; flex: 1 1 auto; min-width: 0; overflow: hidden; }
+#gameCanvas { display: block; width: 100%; height: 100%; background: #0c130d; cursor: crosshair; touch-action: none; }
+#gameCanvas.panning { cursor: grabbing; }
+
+.overlay {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 12px; text-align: center;
+  background: rgba(6,10,7,.82); padding: 24px;
+}
+.overlay.hidden { display: none; }
+.overlay h2 { margin: 0; font-size: 32px; }
+.overlay p { margin: 0; color: #b6ccba; max-width: 460px; }
+.overlay button {
+  margin-top: 6px; padding: 10px 24px; font-size: 16px; font-weight: 700;
+  color: #07120a; background: #86efac; border: 0; border-radius: 8px; cursor: pointer;
+}
+.overlay button:hover { background: #a7f3c4; }
+
+@media (max-width: 640px) {
+  #sidebar { flex-basis: 168px; }
+  .help { display: none; }
+}
