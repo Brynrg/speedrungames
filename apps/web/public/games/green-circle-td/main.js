@@ -193,7 +193,8 @@ class Game {
     this.canvas.width = Math.round(w * dpr);
     this.canvas.height = Math.round(h * dpr);
     if (!this._zoomInit) {
-      this.cam.zoom = clamp(Math.min(w, h) / 1050, MIN_ZOOM, MAX_ZOOM);
+      // fit a chunk of the world, but keep tiles big enough to tap on phones
+      this.cam.zoom = clamp(Math.max(Math.min(w, h) / 1050, 0.55), MIN_ZOOM, MAX_ZOOM);
       this._zoomInit = true;
     }
     this.clampCamera();
@@ -304,34 +305,98 @@ class Game {
   // ---- input (drag-to-pan vs click-to-build, wheel zoom, keyboard pan)
   bindInput() {
     const c = this.canvas;
-    let down = false, dragged = false, downX = 0, downY = 0, lastX = 0, lastY = 0;
+    // Unified Pointer Events drive both mouse and touch. One pointer = tap
+    // (build) / drag (pan); two pointers = pinch (zoom + pan). Mouse keeps its
+    // exact desktop behaviour (drag-pan, click-build, wheel-zoom, right-click
+    // sell); touch adds pinch-zoom and long-press-to-sell.
+    const pointers = new Map(); // id -> {x, y}
+    let mode = null;            // "tap" | "pan" | "pinch" | "done"
+    let downX = 0, downY = 0, lastX = 0, lastY = 0;
+    let pinchDist = 1, pinchMidX = 0, pinchMidY = 0;
+    let longPress = null;
+    const clearLong = () => { if (longPress) { clearTimeout(longPress); longPress = null; } };
 
     c.addEventListener("pointerdown", (e) => {
-      if (e.button !== 0) return;
-      down = true; dragged = false;
-      downX = lastX = e.clientX; downY = lastY = e.clientY;
-      c.setPointerCapture(e.pointerId);
+      if (e.pointerType === "mouse" && e.button !== 0) return; // let right-click → contextmenu
+      try { c.setPointerCapture(e.pointerId); } catch {} // can throw if already released
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      if (pointers.size === 1) {
+        mode = "tap";
+        downX = lastX = e.clientX; downY = lastY = e.clientY;
+        if (e.pointerType === "touch") {
+          const sx = e.clientX, sy = e.clientY;
+          longPress = setTimeout(() => {
+            if (mode === "tap" && this.state === "running") {
+              const w = this.screenToWorld(sx, sy);
+              const { c: cc, r } = this.cellOf(w.x, w.y);
+              this.sellAt(cc, r);
+              mode = "done"; // consumed — don't also build on release
+            }
+          }, 500);
+        }
+      } else if (pointers.size === 2) {
+        clearLong();
+        mode = "pinch";
+        const [a, b] = [...pointers.values()];
+        pinchDist = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+        pinchMidX = (a.x + b.x) / 2; pinchMidY = (a.y + b.y) / 2;
+        c.classList.add("panning");
+      }
     });
+
     c.addEventListener("pointermove", (e) => {
-      this.hoverWorld = this.screenToWorld(e.clientX, e.clientY);
-      if (!down) return;
-      if (!dragged && Math.hypot(e.clientX - downX, e.clientY - downY) > 5) {
-        dragged = true; c.classList.add("panning");
-      }
-      if (dragged) {
-        this.cam.x -= (e.clientX - lastX) / this.cam.zoom;
-        this.cam.y -= (e.clientY - lastY) / this.cam.zoom;
+      if (pointers.has(e.pointerId)) pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pointers.size <= 1) this.hoverWorld = this.screenToWorld(e.clientX, e.clientY);
+
+      if (mode === "pinch" && pointers.size >= 2) {
+        const [a, b] = [...pointers.values()];
+        const nd = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+        const nmx = (a.x + b.x) / 2, nmy = (a.y + b.y) / 2;
+        this.cam.x -= (nmx - pinchMidX) / this.cam.zoom; // two-finger pan
+        this.cam.y -= (nmy - pinchMidY) / this.cam.zoom;
         this.clampCamera();
+        this.zoomAt(nmx, nmy, nd / pinchDist);           // pinch zoom toward midpoint
+        pinchDist = nd; pinchMidX = nmx; pinchMidY = nmy;
+        return;
       }
-      lastX = e.clientX; lastY = e.clientY;
+      if (mode === "tap" || mode === "pan") {
+        if (mode === "tap" && Math.hypot(e.clientX - downX, e.clientY - downY) > 6) {
+          mode = "pan"; clearLong(); c.classList.add("panning");
+        }
+        if (mode === "pan") {
+          this.cam.x -= (e.clientX - lastX) / this.cam.zoom;
+          this.cam.y -= (e.clientY - lastY) / this.cam.zoom;
+          this.clampCamera();
+        }
+        lastX = e.clientX; lastY = e.clientY;
+      }
     });
-    const up = (e) => {
-      if (!down) return;
-      down = false; c.classList.remove("panning");
-      if (!dragged) this.onClick(e.clientX, e.clientY); // a click, not a drag → build
+
+    const endPointer = (e) => {
+      const wasTap = mode === "tap";
+      const px = e.clientX, py = e.clientY;
+      pointers.delete(e.pointerId);
+      clearLong();
+      if (mode === "pinch") {
+        if (pointers.size === 1) {
+          const p = [...pointers.values()][0]; lastX = p.x; lastY = p.y; mode = "pan";
+        } else { mode = null; c.classList.remove("panning"); }
+        return;
+      }
+      c.classList.remove("panning");
+      if (pointers.size === 0) {
+        if (wasTap) this.onClick(px, py); // a tap/click, not a drag → build
+        mode = null;
+      }
     };
-    c.addEventListener("pointerup", up);
-    c.addEventListener("pointercancel", () => { down = false; c.classList.remove("panning"); });
+    c.addEventListener("pointerup", endPointer);
+    c.addEventListener("pointercancel", (e) => {
+      pointers.delete(e.pointerId);
+      clearLong();
+      c.classList.remove("panning");
+      mode = pointers.size ? mode : null;
+    });
     c.addEventListener("mouseleave", () => { this.hoverWorld = null; });
     c.addEventListener("wheel", (e) => {
       e.preventDefault();

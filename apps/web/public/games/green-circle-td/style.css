@@ -82,7 +82,26 @@ button.primary:disabled { opacity: .5; cursor: not-allowed; }
 }
 .overlay button:hover { background: #a7f3c4; }
 
-@media (max-width: 640px) {
-  #sidebar { flex-basis: 168px; }
-  .help { display: none; }
+/* ---- mobile / narrow: field on top (full width), towers in a bottom bar ---- */
+@media (max-width: 760px) {
+  #main { flex-direction: column; }
+  #stage { order: 0; flex: 1 1 auto; min-height: 0; }
+  #sidebar {
+    order: 1; flex: 0 0 auto;
+    flex-direction: row; align-items: stretch; gap: 8px;
+    max-height: 40vh; overflow-x: auto; overflow-y: hidden;
+    border-right: none; border-top: 1px solid #1d3122; padding: 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+  #sidebar .panel { flex: 0 0 auto; padding: 8px; }
+  #sidebar .panel:nth-child(2) { order: 0; } /* wave + start button first */
+  #sidebar .panel:nth-child(1) { order: 1; } /* tower palette scrolls after */
+  .panel.help { display: none; }
+  .towerlist { flex-direction: row; gap: 6px; }
+  .gbtn { flex-direction: column; align-items: flex-start; gap: 2px; min-width: 96px; }
+  button.primary { width: auto; white-space: nowrap; padding: 8px 16px; }
+  #topbar { gap: 8px; padding: 6px 10px; flex-wrap: wrap; }
+  .brand { font-size: 14px; }
+  #topbar .stat { font-size: 12px; }
+  .timer { font-size: 16px; }
 }
