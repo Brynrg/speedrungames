@@ -6,9 +6,37 @@
   <title>Line Tower Wars</title>
   <link rel="stylesheet" href="style.css" />
 </head>
-<body>
-  <h1>Line Tower Wars</h1>
-  <canvas id="gameCanvas" width="800" height="600"></canvas>
+<body data-game-root>
+  <div id="app">
+    <header id="topbar">
+      <div class="brand">🏰 Line Tower Wars</div>
+      <div id="timer" class="timer">00:00.000</div>
+      <div id="pb" class="pb">PB —</div>
+    </header>
+
+    <div id="stage">
+      <canvas id="gameCanvas" width="960" height="640"></canvas>
+      <div id="overlay" class="overlay hidden"></div>
+    </div>
+
+    <section id="controls">
+      <div class="panel">
+        <h3>Build <span class="hint">(click your lane)</span></h3>
+        <div id="towerButtons" class="btnrow"></div>
+      </div>
+      <div class="panel">
+        <h3>Send <span class="hint">(attack the enemy lane)</span></h3>
+        <div id="sendButtons" class="btnrow"></div>
+      </div>
+      <div class="panel small">
+        <h3>How to play</h3>
+        <p>Maze your lane with towers to kill incoming creeps. <b>Send</b> creeps
+        at the enemy to raise your income and drain their lives. Leak = lose a
+        life. Drop the enemy to <b>0 lives</b> as fast as you can.</p>
+        <p class="keys">Keys: <b>1–3</b> pick tower · <b>Q/W/E</b> send · <b>Esc</b> deselect · <b>Space</b> restart</p>
+      </div>
+    </section>
+  </div>
   <script src="main.js"></script>
 </body>
 </html>
