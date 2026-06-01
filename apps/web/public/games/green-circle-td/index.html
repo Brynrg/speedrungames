@@ -1,61 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Green Circle TD</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #121212;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden;
-        }
-        #game-container {
-            width: 960px;
-            height: 720px;
-            background-color: #000;
-            border: 1px solid #333;
-        }
-        #loading {
-            color: white;
-            font-family: Arial, sans-serif;
-            font-size: 24px;
-            text-align: center;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Green Circle TD</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
-<body>
-    <div id="game-container">
-        <div id="loading">Loading Green Circle TD...</div>
+<body data-game-root>
+  <div id="app">
+    <header id="topbar">
+      <div class="brand">🟢 Green Circle TD</div>
+      <div id="stats" class="stats">
+        <span id="wave">Wave 0 / 30</span>
+        <span id="gold">💰 250</span>
+        <span id="lives">❤ 20</span>
+      </div>
+      <div id="timer" class="timer">00:00.000</div>
+      <div id="pb" class="pb">PB —</div>
+    </header>
+
+    <div id="stage">
+      <canvas id="gameCanvas" width="960" height="600"></canvas>
+      <div id="overlay" class="overlay hidden"></div>
     </div>
 
-    <script>
-        // This is a placeholder for the actual game
-        // In a real implementation, this would load the Python/Arcade game
-        // via a web wrapper or server-side rendering
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            const loading = document.getElementById('loading');
-            
-            // Simulate loading
-            setTimeout(() => {
-                loading.textContent = "Green Circle TD is running!";
-                loading.style.fontSize = "18px";
-                
-                // In a real implementation, we would:
-                // 1. Connect to a Python server running the game
-                // 2. Stream the game frames via WebSocket or similar
-                // 3. Handle input events and send them to the server
-                
-                // For now, just show a message
-                console.log("Green Circle TD is ready to deploy!");
-            }, 2000);
-        });
-    </script>
+    <section id="controls">
+      <div class="panel build">
+        <h3>Towers <span class="hint">(pick, then click a buildable tile)</span></h3>
+        <div id="towerButtons" class="btnrow"></div>
+      </div>
+      <div class="panel side">
+        <h3 id="waveName">Ready</h3>
+        <p id="waveHint" class="hint">Build a tower, then start the first wave.</p>
+        <button id="startWave" class="primary">Start wave ▶</button>
+        <p class="keys">Keys: <b>1–9</b> pick tower · <b>Space</b> start wave · <b>Esc</b> deselect · <b>S</b> sell (hover)</p>
+      </div>
+    </section>
+  </div>
+  <script src="main.js"></script>
 </body>
 </html>

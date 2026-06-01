@@ -2,17 +2,16 @@
   {
     "slug": "green-circle-td",
     "title": "Green Circle TD",
-    "description": "A production-grade tower defense game with armor matrix, aura towers, and branching upgrades.",
-    "repo": "Brynrg/Guardian",
+    "description": "A tower defense with an armor-vs-damage matrix, aura towers, detectors, and 30 escalating waves up to a multi-phase boss.",
+    "repo": "Brynrg/green-circle-td",
     "playUrl": "/games/green-circle-td/",
     "category": "tower-defense",
     "status": "live",
-    "framework": "other",
-    "supportsMobile": true,
+    "framework": "vanilla",
+    "supportsMobile": false,
     "version": "1.0.0",
-    "lastUpdated": "2026-05-30T16:07:00.000Z",
-    "emoji": "🟢",
-    "hidden": true
+    "lastUpdated": "2026-06-01T04:00:09.511Z",
+    "emoji": "🟢"
   },
   {
     "slug": "line-tower-wars",
