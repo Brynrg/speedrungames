@@ -7,11 +7,11 @@
   "category": "tower-defense",
   "status": "live",
   "framework": "vanilla",
-  "supportsMobile": false,
-  "version": "1.1.0",
-  "sourceCommit": "ecb841cdd5c867c6f3298f46d58631b40b6f5d14",
-  "buildHash": "58be2b002bc1185c08a26b55180a3ac4cab45786952a03183d55b378e25f776a",
-  "buildTimestamp": "2026-06-01T05:12:55.828Z",
-  "lastUpdated": "2026-06-01T05:12:55.828Z",
+  "supportsMobile": true,
+  "version": "1.2.0",
+  "sourceCommit": "4ecf2fb52b0ffa116c2fda01f7da3081957fd911",
+  "buildHash": "d0c2da93dc16259ca0313a766da432db9883a98b8631f71e5aa0af0fcf225d08",
+  "buildTimestamp": "2026-06-01T05:27:21.762Z",
+  "lastUpdated": "2026-06-01T05:27:21.762Z",
   "emoji": "🟢"
 }
