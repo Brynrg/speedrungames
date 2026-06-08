@@ -1,22 +1,25 @@
 import { visibleGames } from "@/lib/games";
-import RecentRuns from "@/components/RecentRuns";
+import GamesShowcase from "@/components/GamesShowcase";
 
 export default function HomePage() {
+  const count = visibleGames.length;
   return (
     <div className="home">
-      <h1>⚡ Speed Run Games</h1>
-      <p className="tagline">Play fast. Beat your record.</p>
-      <div className="games-grid">
-        {visibleGames.map((game) => (
-          <a key={game.slug} href={game.href} className="game-card">
-            <span className="emoji">{game.emoji}</span>
-            <h2>{game.title}</h2>
-            <p>{game.description}</p>
-            <span className="play-badge">Play →</span>
-          </a>
-        ))}
+      <div className="home-head">
+        <div>
+          <h1>Browser games, run against the clock</h1>
+          <p className="tagline">
+            Pick a game, post your time, climb the board. Tower defense, tank
+            arenas, and a voice-controlled Pokemon dash.
+          </p>
+        </div>
+        <span className="run-count">
+          <span className="dot" aria-hidden="true" />
+          <span className="num">{count}</span>
+          {count === 1 ? "game live" : "games live"}
+        </span>
       </div>
-      <RecentRuns />
+      <GamesShowcase />
     </div>
   );
 }
