@@ -92,31 +92,50 @@ const START_GOLD = 250, START_LIVES = 20;
 const PB_KEY = "speedrungames:green-circle-td:pb";
 const MIN_ZOOM = 0.35, MAX_ZOOM = 2.2;
 
-// Logarithmic spiral from `start` to `end` (port of core/path.py spiral_path).
-function spiralPath(start, end, turns, samples) {
-  const [sx, sy] = start, [ex, ey] = end;
-  const dx = ex - sx, dy = ey - sy;
-  const dist = Math.hypot(dx, dy);
-  if (dist === 0) return [start];
-  const dirx = dx / dist, diry = dy / dist;
-  const perpx = -diry, perpy = dirx;
-  const pts = [];
-  for (let i = 0; i < samples; i++) {
-    const t = i / (samples - 1);
-    const angle = t * turns * 2 * Math.PI;
-    const radius = dist * t;
-    const scale = 1 - Math.pow(t, 1.5); // tighten near the center
-    pts.push([
-      sx + dirx * radius + perpx * Math.sin(angle) * radius * scale,
-      sy + diry * radius + perpy * Math.sin(angle) * radius * scale,
-    ]);
+// ---- The maze --------------------------------------------------------
+// Faithful to the classic "Green Circle TD" board: creeps enter from the FOUR
+// corners, every stream merges into ONE shared serpentine that winds inward,
+// so every creep walks past every player position before it leaks at center.
+const RING = 70;                  // border feeder lane inset
+const MAZE_OUT = 250;             // outermost serpentine lap inset
+const MAZE_STEP = 150;            // spacing between laps (leaves a build gap)
+
+// A square spiral winding clockwise-inward, ending at the center.
+function serpentine() {
+  let L = MAZE_OUT, R = WORLD - MAZE_OUT, T = MAZE_OUT, B = WORLD - MAZE_OUT;
+  const p = [[L, T]];
+  while (R - L > MAZE_STEP * 1.5 && B - T > MAZE_STEP * 1.5) {
+    p.push([R, T]);               // → along the top
+    p.push([R, B]);               // ↓ along the right
+    p.push([L, B]);               // ← along the bottom
+    T += MAZE_STEP; p.push([L, T]); // ↑ along the left, one lap in
+    L += MAZE_STEP; p.push([L, T]); // → step inward
+    R -= MAZE_STEP; B -= MAZE_STEP;
   }
-  return pts;
+  p.push([CENTER.x, CENTER.y]);   // leak point — the green circle
+  return p;
 }
-// Four spirals, one per corner, all converging on the center.
-const PATHS = [[0, 0], [WORLD, 0], [0, WORLD], [WORLD, WORLD]].map((c) =>
-  spiralPath(c, [CENTER.x, CENTER.y], 1.5, 48),
-);
+const SPIRAL = serpentine();
+const MOUTH = [CENTER.x, RING];   // where all four feeders merge
+// Shared body: mouth → drop into the spiral's top-left corner → wind to center.
+const BODY = [MOUTH, [MAZE_OUT, RING], ...SPIRAL];
+// Four corner entries, each routed along the border ring to the shared mouth.
+const FEEDERS = [
+  [[RING, RING], MOUTH],                                  // NW
+  [[WORLD - RING, RING], MOUTH],                          // NE
+  [[RING, WORLD - RING], [RING, RING], MOUTH],            // SW
+  [[WORLD - RING, WORLD - RING], [WORLD - RING, RING], MOUTH], // SE
+];
+const PATHS = FEEDERS.map((f) => [...f, ...BODY.slice(1)]);
+
+// Eight colored "player" positions, set in the build pockets along the lane.
+const POS_COLORS = ["#f87171", "#a78bfa", "#60a5fa", "#22d3ee", "#fb923c", "#4ade80", "#facc15", "#f472b6"];
+const POSITIONS = POS_COLORS.map((color, k) => {
+  const idx = Math.floor(((k + 0.5) / POS_COLORS.length) * (SPIRAL.length - 1));
+  const [x, y] = SPIRAL[idx];
+  const dx = CENTER.x - x, dy = CENTER.y - y, d = Math.hypot(dx, dy) || 1;
+  return { x: x + (dx / d) * 75, y: y + (dy / d) * 75, color }; // nudge into the inner gap
+});
 
 // ----------------------------------------------------------------- helpers
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -663,6 +682,10 @@ class Game {
       ctx.fillStyle = "rgba(248,113,113,.8)";
       ctx.beginPath(); ctx.arc(path[0][0], path[0][1], 9, 0, 7); ctx.fill();
     }
+    // player positions (the colored marks every creep passes)
+    ctx.font = "bold 26px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    for (const p of POSITIONS) { ctx.fillStyle = p.color; ctx.fillText("✶", p.x, p.y); }
+
     // center base
     ctx.fillStyle = "#86efac"; ctx.beginPath(); ctx.arc(CENTER.x, CENTER.y, 18, 0, 7); ctx.fill();
     ctx.fillStyle = "#07120a"; ctx.font = "bold 16px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
