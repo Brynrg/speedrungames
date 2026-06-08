@@ -14,6 +14,15 @@
       <div class="stat" id="gold">💰 250</div>
       <div class="stat" id="lives">❤ 20</div>
       <div class="spacer"></div>
+      <div class="controls">
+        <div class="seg" id="speedSeg" role="group" aria-label="Game speed">
+          <button class="seg-btn" data-speed="1" aria-pressed="true">1×</button>
+          <button class="seg-btn" data-speed="2" aria-pressed="false">2×</button>
+          <button class="seg-btn" data-speed="3" aria-pressed="false">3×</button>
+        </div>
+        <button id="pauseBtn" class="ctrlbtn" title="Pause / resume (P)">⏸ Pause</button>
+        <button id="restartBtn" class="ctrlbtn" title="Restart the game">⟲ Restart</button>
+      </div>
       <div class="timer" id="timer">00:00.000</div>
       <div class="pb" id="pb">PB —</div>
     </header>
@@ -34,9 +43,9 @@
           <ul>
             <li><b>Click / tap</b> a tile to build · <b>1–9</b> pick tower</li>
             <li><b>Drag</b> pan · <b>Wheel / pinch</b> zoom · <b>WASD/↑↓←→</b> scroll</li>
-            <li><b>Right-click / long-press</b> sell · <b>Space</b> start wave · <b>Esc</b> deselect</li>
+            <li><b>Right-click / long-press</b> sell · <b>Space</b> send wave · <b>P</b> pause · <b>Esc</b> deselect</li>
           </ul>
-          <p class="hint">Creeps spiral in from all four corners to the center. Don't let them reach it. Match damage type to armor.</p>
+          <p class="hint">Creeps circle in from all four corners to the center. Send waves early to stack them, and use 1×/2×/3× speed. Don't let them reach the center. Match damage type to armor.</p>
         </div>
       </aside>
 

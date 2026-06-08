@@ -93,49 +93,45 @@ const PB_KEY = "speedrungames:green-circle-td:pb";
 const MIN_ZOOM = 0.35, MAX_ZOOM = 2.2;
 
 // ---- The maze --------------------------------------------------------
-// Faithful to the classic "Green Circle TD" board: creeps enter from the FOUR
-// corners, every stream merges into ONE shared serpentine that winds inward,
-// so every creep walks past every player position before it leaks at center.
-const RING = 70;                  // border feeder lane inset
-const MAZE_OUT = 250;             // outermost serpentine lap inset
-const MAZE_STEP = 150;            // spacing between laps (leaves a build gap)
+// Faithful to the classic "Green Circle TD" board: creeps spawn in the FOUR
+// corners and "run in circles to the center". Each stream circles the full
+// ring (its own player first, then the other three), steps inward a notch,
+// circles again — down to the leak. All four trace the same concentric
+// squares, so every creep passes every player position.
+const MAZE_IN = 160;              // outermost loop inset from the border
+const MAZE_STEP = 150;            // spacing between loops (leaves a build gap)
+const cornersAt = (i) => [[i, i], [WORLD - i, i], [WORLD - i, WORLD - i], [i, WORLD - i]]; // CW: NW,NE,SE,SW
 
-// A square spiral winding clockwise-inward, ending at the center.
-function serpentine() {
-  let L = MAZE_OUT, R = WORLD - MAZE_OUT, T = MAZE_OUT, B = WORLD - MAZE_OUT;
-  const p = [[L, T]];
-  while (R - L > MAZE_STEP * 1.5 && B - T > MAZE_STEP * 1.5) {
-    p.push([R, T]);               // → along the top
-    p.push([R, B]);               // ↓ along the right
-    p.push([L, B]);               // ← along the bottom
-    T += MAZE_STEP; p.push([L, T]); // ↑ along the left, one lap in
-    L += MAZE_STEP; p.push([L, T]); // → step inward
-    R -= MAZE_STEP; B -= MAZE_STEP;
+// One creep path: enter at corner k, full loop, right-angle step inward, repeat.
+function loopPath(k) {
+  const pts = [];
+  let inset = MAZE_IN;
+  while (WORLD - 2 * inset > MAZE_STEP * 1.4) {
+    const c = cornersAt(inset);
+    for (let j = 0; j <= 4; j++) pts.push(c[(k + j) % 4]); // full lap, start+end at corner k
+    const ci = cornersAt(inset + MAZE_STEP);
+    pts.push([ci[k][0], c[k][1]]);     // notch inward (right angle, no diagonal spoke)
+    inset += MAZE_STEP;                // next loop's first push completes the notch
   }
-  p.push([CENTER.x, CENTER.y]);   // leak point — the green circle
-  return p;
+  pts.push([CENTER.x, CENTER.y]);      // leak point — the green circle
+  return pts;
 }
-const SPIRAL = serpentine();
-const MOUTH = [CENTER.x, RING];   // where all four feeders merge
-// Shared body: mouth → drop into the spiral's top-left corner → wind to center.
-const BODY = [MOUTH, [MAZE_OUT, RING], ...SPIRAL];
-// Four corner entries, each routed along the border ring to the shared mouth.
-const FEEDERS = [
-  [[RING, RING], MOUTH],                                  // NW
-  [[WORLD - RING, RING], MOUTH],                          // NE
-  [[RING, WORLD - RING], [RING, RING], MOUTH],            // SW
-  [[WORLD - RING, WORLD - RING], [WORLD - RING, RING], MOUTH], // SE
-];
-const PATHS = FEEDERS.map((f) => [...f, ...BODY.slice(1)]);
+const PATHS = [0, 1, 2, 3].map(loopPath);
+const ENTRIES = cornersAt(MAZE_IN);    // four spawn corners
 
-// Eight colored "player" positions, set in the build pockets along the lane.
+// Eight colored "player" positions: four flanking the outer corners (each
+// first-shots its nearest spawn), four deeper on an inner loop.
 const POS_COLORS = ["#f87171", "#a78bfa", "#60a5fa", "#22d3ee", "#fb923c", "#4ade80", "#facc15", "#f472b6"];
-const POSITIONS = POS_COLORS.map((color, k) => {
-  const idx = Math.floor(((k + 0.5) / POS_COLORS.length) * (SPIRAL.length - 1));
-  const [x, y] = SPIRAL[idx];
-  const dx = CENTER.x - x, dy = CENTER.y - y, d = Math.hypot(dx, dy) || 1;
-  return { x: x + (dx / d) * 75, y: y + (dy / d) * 75, color }; // nudge into the inner gap
-});
+const POSITIONS = (() => {
+  const oc = cornersAt(MAZE_IN), mid = MAZE_IN + MAZE_STEP * 2, lo = mid, hi = WORLD - mid;
+  const out = [
+    { x: oc[0][0] + 58, y: oc[0][1] + 58 }, { x: oc[1][0] - 58, y: oc[1][1] + 58 },
+    { x: oc[2][0] - 58, y: oc[2][1] - 58 }, { x: oc[3][0] + 58, y: oc[3][1] - 58 },
+    { x: CENTER.x, y: lo + 75 }, { x: hi - 75, y: CENTER.y },
+    { x: CENTER.x, y: hi - 75 }, { x: lo + 75, y: CENTER.y },
+  ];
+  return out.map((p, i) => ({ ...p, color: POS_COLORS[i] }));
+})();
 
 // ----------------------------------------------------------------- helpers
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -172,6 +168,7 @@ class Game {
     this.cam = { x: 0, y: 0, zoom: 1 };
     this.keys = new Set();
     this.hoverWorld = null;
+    this.speed = 1;             // 1× / 2× / 3× game speed (persists across restarts)
     this.reset();
     this.pb = loadPB();
     this.selected = "basic";
@@ -195,12 +192,12 @@ class Game {
     this.enemies = [];
     this.bullets = [];
     this.waveIndex = 0;
-    this.spawnQueue = [];
-    this.waveActive = false;
+    this.spawnQueue = [];        // {time(abs sim sec), corner, hp, speed, bounty, def, enemy, rec}
+    this.activeWaves = [];       // wave records in flight: {id,name,reward,pending,alive,done}
     this.state = "ready";
-    this.startMs = 0;
+    this.started = false;        // becomes true on the first wave
+    this.runMs = 0;              // sim-time score (independent of game-speed multiplier)
     this.elapsed = 0;
-    this.waveClock = 0;
     this.gameTime = 0;
   }
 
@@ -263,13 +260,28 @@ class Game {
       b.className = "gbtn"; b.dataset.tower = id;
       b.innerHTML =
         `<span class="dot" style="background:${d.color}"></span>` +
-        `<span class="nm">${d.key}·${d.name}<span class="ds">${d.desc}</span></span>` +
+        `<span class="nm"><kbd>${d.key}</kbd>${d.name}<span class="ds">${d.desc}</span></span>` +
         `<span class="ct">${d.cost}</span>`;
       b.onclick = () => this.select(id);
       tb.appendChild(b);
     }
     document.getElementById("startWave").onclick = () => this.startNextWave();
+    document.querySelectorAll("#speedSeg .seg-btn").forEach((b) => {
+      b.onclick = () => { this.speed = +b.dataset.speed; this.syncSpeedSeg(); };
+    });
+    this.syncSpeedSeg();
+    const pauseBtn = document.getElementById("pauseBtn");
+    if (pauseBtn) pauseBtn.onclick = () => this.togglePause();
+    const restartBtn = document.getElementById("restartBtn");
+    if (restartBtn) restartBtn.onclick = () => this.restart();
     this.refreshButtons();
+  }
+  syncSpeedSeg() {
+    document.querySelectorAll("#speedSeg .seg-btn").forEach((b) => {
+      const on = +b.dataset.speed === this.speed;
+      b.classList.toggle("on", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
   }
   select(id) { this.selected = id; this.refreshButtons(); }
   refreshButtons() {
@@ -278,11 +290,16 @@ class Game {
       b.disabled = this.gold < TOWERS[b.dataset.tower].cost;
     });
     const sw = document.getElementById("startWave");
-    sw.disabled = this.waveActive || this.state === "won" || this.state === "lost";
-    sw.textContent = this.waveIndex >= WAVES.length ? "All waves done" : `Start wave ${this.waveIndex + 1} ▶`;
+    sw.disabled = (this.state !== "running" && this.state !== "paused") || this.waveIndex >= WAVES.length;
+    const live = this.activeWaves.length;
+    sw.textContent = this.waveIndex >= WAVES.length
+      ? (live ? `Final waves live (${live})` : "All waves done")
+      : `Send wave ${this.waveIndex + 1} ▶${live ? ` · ${live} live` : ""}`;
     document.getElementById("wave").textContent = `Wave ${Math.min(this.waveIndex, WAVES.length)} / ${WAVES.length}`;
     document.getElementById("gold").textContent = `💰 ${Math.floor(this.gold)}`;
-    document.getElementById("lives").textContent = `❤ ${Math.max(0, this.lives)}`;
+    const livesEl = document.getElementById("lives");
+    livesEl.textContent = `❤ ${Math.max(0, this.lives)}`;
+    livesEl.classList.toggle("low", this.lives <= 5 && this.state !== "won");
   }
   renderPB() { document.getElementById("pb").textContent = this.pb == null ? "PB —" : "PB " + fmt(this.pb); }
   setWaveText(name, hint) {
@@ -294,13 +311,14 @@ class Game {
   overlay(html) { const o = document.getElementById("overlay"); o.className = "overlay"; o.innerHTML = html; return o; }
   showStart() {
     const o = this.overlay(
-      `<h2>🟢 Green Circle TD</h2><p>Creeps spiral in from all four corners to the center. Build towers in the gaps to stop them — match damage type to armor. Survive 30 waves, as fast as you can.</p><button id="goBtn">Begin</button>`,
+      `<h2>🟢 Green Circle TD</h2><p>Creeps spawn at the four corners and circle inward to the center, passing every position on the way. Build towers in the gaps to stop them — match damage type to armor. Send waves early to stack them, change game speed, and survive all 30 as fast as you can.</p><button id="goBtn">Begin</button>`,
     );
     o.querySelector("#goBtn").onclick = () => { this.hideOverlay(); this.state = "running"; };
   }
   end(won) {
     this.state = won ? "won" : "lost";
-    this.elapsed = nowMs() - this.startMs;
+    this.elapsed = this.runMs;
+    this.updatePauseBtn();
     let sub = "";
     if (won) {
       if (this.pb == null || this.elapsed < this.pb) { this.pb = this.elapsed; savePB(this.pb); this.renderPB(); sub = "🏆 New personal best!"; }
@@ -317,8 +335,20 @@ class Game {
     this.state = "running";
     this.hideOverlay();
     this.renderPB();
+    this.updatePauseBtn();
     this.refreshButtons();
     this.setWaveText("Ready", "Build towers, then start the first wave.");
+  }
+  togglePause() {
+    if (this.state === "running") this.state = "paused";
+    else if (this.state === "paused") { this.state = "running"; this.last = nowMs(); }
+    else return;
+    this.updatePauseBtn();
+    this.refreshButtons();
+  }
+  updatePauseBtn() {
+    const b = document.getElementById("pauseBtn");
+    if (b) { b.textContent = this.state === "paused" ? "▶ Resume" : "⏸ Pause"; b.classList.toggle("active", this.state === "paused"); }
   }
 
   // ---- input (drag-to-pan vs click-to-build, wheel zoom, keyboard pan)
@@ -436,6 +466,7 @@ class Game {
       if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) this.keys.add(k);
       for (const [id, d] of Object.entries(TOWERS)) if (d.key === k) this.select(id);
       if (k === "escape") { this.selected = "basic"; this.refreshButtons(); }
+      else if (k === "p") this.togglePause();
       else if (k === " " || e.code === "Space") {
         e.preventDefault();
         if (this.state === "running") this.startNextWave();
@@ -496,16 +527,13 @@ class Game {
     }
   }
 
-  // ---- waves
+  // ---- waves (multiple may run at once — you can send the next early)
   startNextWave() {
-    if (this.waveActive || this.waveIndex >= WAVES.length || this.state !== "running") return;
+    if (this.state !== "running" || this.waveIndex >= WAVES.length) return;
     const w = WAVES[this.waveIndex];
     this.waveIndex++;
-    this.waveActive = true;
-    this.waveClock = 0;
-    if (!this.startMs) this.startMs = nowMs();
-    this.setWaveText(`Wave ${w.id}: ${w.name}`, w.hint);
-    this.spawnQueue = [];
+    this.started = true;
+    const rec = { id: w.id, name: w.name, reward: w.reward, pending: 0, alive: 0, done: false };
     const hpBase = 32 + this.waveIndex * 11;
     w.spawns.forEach((sp, gi) => {
       const e = ENEMIES[sp.e];
@@ -514,25 +542,29 @@ class Game {
       const corner = (sp.corner ?? (w.id + gi)) % 4;
       for (let i = 0; i < count; i++) {
         this.spawnQueue.push({
-          time: sp.at + i * sp.iv,
+          time: this.gameTime + sp.at + i * sp.iv, // absolute sim time → waves stack cleanly
           enemy: sp.e, def: e, corner,
           hp: hpBase * e.health_mult,
           speed: BASE_SPEED * e.speed_mult,
           bounty: 3 + Math.floor(this.waveIndex / 3) + e.bounty_bonus,
-          reward: w.reward,
+          rec,
         });
+        rec.pending++;
       }
     });
+    this.activeWaves.push(rec);
     this.spawnQueue.sort((a, b) => a.time - b.time);
+    this.setWaveText(`Wave ${w.id}: ${w.name}`, w.hint);
     this.refreshButtons();
   }
 
   spawnEnemy(s) {
     const path = PATHS[s.corner];
+    s.rec.pending--; s.rec.alive++;
     this.enemies.push({
       x: path[0][0], y: path[0][1], wp: 0, path,
       hp: s.hp, maxHp: s.hp, speed: s.speed,
-      def: s.def, enemy: s.enemy, bounty: s.bounty, reward: s.reward,
+      def: s.def, enemy: s.enemy, bounty: s.bounty, rec: s.rec,
       flags: s.def.flags, armor: s.def.armor, color: s.def.color,
       slowUntil: 0, poison: 0, poisonUntil: 0, revealed: false,
     });
@@ -542,10 +574,8 @@ class Game {
   update(dt) {
     if (this.state !== "running") return;
     this.gameTime += dt;
-    if (this.waveActive) {
-      this.waveClock += dt;
-      while (this.spawnQueue.length && this.spawnQueue[0].time <= this.waveClock) this.spawnEnemy(this.spawnQueue.shift());
-    }
+    if (this.started) this.runMs += dt * 1000; // score in sim-time, so game-speed never cheeses the PB
+    while (this.spawnQueue.length && this.spawnQueue[0].time <= this.gameTime) this.spawnEnemy(this.spawnQueue.shift());
 
     const detectors = this.towers.filter((t) => t.def.detect);
     for (const en of this.enemies) {
@@ -564,14 +594,21 @@ class Game {
       if (en.poison > 0 && this.gameTime < en.poisonUntil) en.hp -= en.poison * dt;
       if (en.hp <= 0) this.onKill(en);
     }
-    this.enemies = this.enemies.filter((e) => e.hp > 0 && !e.leaked);
+    this.enemies = this.enemies.filter((e) => {
+      const keep = e.hp > 0 && !e.leaked;
+      if (!keep && e.rec) e.rec.alive--;   // released from its wave's live count
+      return keep;
+    });
 
-    if (this.waveActive && !this.spawnQueue.length && this.enemies.length === 0) {
-      this.waveActive = false;
-      const w = WAVES[this.waveIndex - 1];
-      this.gold += w.reward;
-      this.setWaveText(`Wave ${w.id} cleared`, this.waveIndex >= WAVES.length ? "Final wave done!" : `+${w.reward}g. Next: ${WAVES[this.waveIndex].name}`);
-      if (this.waveIndex >= WAVES.length) { this.end(true); return; }
+    // a wave is cleared once all its creeps have spawned and are gone
+    const cleared = this.activeWaves.filter((r) => !r.done && r.pending <= 0 && r.alive <= 0);
+    if (cleared.length) {
+      for (const r of cleared) { r.done = true; this.gold += r.reward; }
+      this.activeWaves = this.activeWaves.filter((r) => !r.done);
+      const reward = cleared.reduce((s, r) => s + r.reward, 0);
+      const last = cleared[cleared.length - 1];
+      if (this.waveIndex >= WAVES.length && this.activeWaves.length === 0) { this.setWaveText("All clear", "Final wave done!"); this.end(true); return; }
+      this.setWaveText(`Wave ${last.id} cleared`, this.waveIndex >= WAVES.length ? `+${reward}g. Last waves still in flight.` : `+${reward}g. Next: ${WAVES[this.waveIndex].name}`);
       this.refreshButtons();
     }
     if (this.lives <= 0) this.end(false);
@@ -648,9 +685,10 @@ class Game {
     let dt = (t - this.last) / 1000; this.last = t;
     if (dt > 0.05) dt = 0.05;
     this.panFromKeys(dt);
-    this.update(dt);
-    if (this.state === "running" && this.startMs) this.elapsed = t - this.startMs;
-    document.getElementById("timer").textContent = fmt(this.elapsed);
+    // 2×/3× = run the fixed-step sim multiple times per frame (keeps physics stable)
+    const steps = this.state === "running" ? this.speed : 1;
+    for (let i = 0; i < steps; i++) this.update(dt);
+    document.getElementById("timer").textContent = fmt(this.runMs);
     this.draw();
     requestAnimationFrame(() => this.loop());
   }

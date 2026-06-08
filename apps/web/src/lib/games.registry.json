@@ -2,15 +2,15 @@
   {
     "slug": "green-circle-td",
     "title": "Green Circle TD",
-    "description": "Maze tower defense: creeps spiral in from four corners to the center. Armor-vs-damage matrix, aura towers, detectors, a scrollable map, and 30 escalating waves to a multi-phase boss.",
+    "description": "Maze tower defense: creeps circle in from four corners to the center, passing every position. Armor-vs-damage matrix, aura towers, detectors, stackable waves, 1×/2×/3× speed, pause/restart, and 30 escalating waves to a multi-phase boss.",
     "repo": "Brynrg/green-circle-td",
     "playUrl": "/games/green-circle-td/",
     "category": "tower-defense",
     "status": "live",
     "framework": "vanilla",
     "supportsMobile": true,
-    "version": "1.2.0",
-    "lastUpdated": "2026-06-08T21:53:17.861Z",
+    "version": "1.3.0",
+    "lastUpdated": "2026-06-08T22:59:26.965Z",
     "emoji": "🟢"
   },
   {
