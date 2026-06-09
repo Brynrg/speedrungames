@@ -61,7 +61,7 @@ body {
 
 /* keyboard focus visibility (a11y) */
 .gbtn:focus-visible, .ctrlbtn:focus-visible, .seg-btn:focus-visible,
-button.primary:focus-visible, .overlay button:focus-visible {
+button.primary:focus-visible, .overlay button:focus-visible, .ibtn:focus-visible {
   outline: 2px solid #86efac; outline-offset: 2px;
 }
 
@@ -103,6 +103,30 @@ button.primary:focus-visible, .overlay button:focus-visible {
 .gbtn:hover { border-color: #3a6b4b; background: #1b3022; }
 .gbtn.selected { border-color: #86efac; background: #1d3a26; }
 .gbtn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* tower inspect / upgrade panel */
+.inspector.hidden { display: none; }
+.inspector h3 { display: flex; align-items: center; gap: 7px; }
+.inspector .idot { width: 11px; height: 11px; border-radius: 50%; flex: 0 0 auto; }
+.inspector .lvtag { margin-left: auto; font-size: 11px; font-weight: 700; color: #07120a; background: #86efac; padding: 1px 7px; border-radius: 999px; }
+.inspstats { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; margin-bottom: 9px; }
+.inspstats > div { display: flex; justify-content: space-between; font-size: 11px; color: #8fae97; }
+.inspstats b { color: #e8f3ea; font-variant-numeric: tabular-nums; }
+.inspactions { display: flex; flex-direction: column; gap: 6px; }
+.ibtn {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 7px 9px; border-radius: 8px; cursor: pointer; text-align: left;
+  border: 1px solid #2c6b45; background: #16331f; color: #e8f3ea; font-size: 12px; font-weight: 700;
+  transition: background .12s, border-color .12s;
+}
+.ibtn:hover:not(:disabled) { background: #1d4429; border-color: #3a8a59; }
+.ibtn .isub { display: block; font-size: 10px; font-weight: 400; color: #8fae97; }
+.ibtn .icost { flex: 0 0 auto; color: #fde047; font-variant-numeric: tabular-nums; }
+.ibtn:disabled { opacity: .45; cursor: not-allowed; }
+.ibtn.sell { border-color: #6b3030; background: #2a1717; }
+.ibtn.sell:hover:not(:disabled) { background: #3a1f1f; border-color: #8a4a4a; }
+.ibtn.sell .icost { color: #fca5a5; }
+.imax { font-size: 11px; color: #8fae97; text-align: center; padding: 4px; }
 
 button.primary {
   width: 100%; padding: 9px; font-size: 14px; font-weight: 700;
