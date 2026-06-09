@@ -382,7 +382,7 @@ class Game {
   }
 
   hideOverlay() { const o = document.getElementById("overlay"); o.className = "overlay hidden"; o.innerHTML = ""; }
-  overlay(html, stateClass = "") { const o = document.getElementById("overlay"); o.className = "overlay" + (stateClass ? " " + stateClass : ""); o.innerHTML = html; return o; }
+  overlay(html) { const o = document.getElementById("overlay"); o.className = "overlay"; o.innerHTML = html; return o; }
   showStart() {
     const o = this.overlay(
       `<h2>🟢 Green Circle TD</h2><p>Creeps spawn at the four corners and circle inward to the center, passing every position on the way. Build towers in the gaps to stop them — match damage type to armor. Send waves early to stack them, change game speed, and survive all 30 as fast as you can.</p><button id="goBtn">Begin</button>`,
@@ -400,7 +400,6 @@ class Game {
     } else sub = `Reached wave ${Math.min(this.waveIndex, WAVES.length)} / ${WAVES.length}.`;
     const o = this.overlay(
       `<h2>${won ? "The Crown is Yours!" : "Overrun"}</h2><p>Time ${fmt(this.elapsed)}</p><p>${sub}</p><button id="rsBtn">${won ? "Play again" : "Retry"}</button>`,
-      won ? "state-won" : "state-lost",
     );
     o.querySelector("#rsBtn").onclick = () => this.restart();
     this.refreshButtons();
@@ -413,8 +412,6 @@ class Game {
     this.updatePauseBtn();
     this.refreshButtons();
     this.setWaveText("Ready", "Build towers, then start the first wave.");
-    const wavePanel = document.getElementById("wavePanel");
-    if (wavePanel) wavePanel.classList.remove("boss-wave");
   }
   togglePause() {
     if (this.state === "running") this.state = "paused";
@@ -719,9 +716,6 @@ class Game {
     // Show armor type pill so players know what's coming
     const armorTypes = [...new Set(w.spawns.map((sp) => ENEMIES[sp.e].armor))];
     this.setArmorPill(armorTypes);
-    // Boss wave: signal danger on the wave panel
-    const wavePanel = document.getElementById("wavePanel");
-    if (wavePanel) wavePanel.classList.toggle("boss-wave", !!w.boss);
     this.refreshButtons();
   }
 
@@ -796,8 +790,6 @@ class Game {
       if (interest > 0) extras.push(`+${interest}g interest`);
       const extStr = extras.length ? ` · ${extras.join(", ")}` : "";
 
-      const wavePanel = document.getElementById("wavePanel");
-      if (wavePanel) wavePanel.classList.remove("boss-wave");
       if (this.waveIndex >= WAVES.length && this.activeWaves.length === 0) { this.setWaveText("All clear", "Final wave done!"); this.setArmorPill([]); this.end(true); return; }
       const nextName = this.waveIndex < WAVES.length ? WAVES[this.waveIndex].name : "";
       const clearHint = this.waveIndex >= WAVES.length

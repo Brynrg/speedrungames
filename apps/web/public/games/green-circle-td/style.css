@@ -22,20 +22,8 @@ body {
 .brand { font-size: 17px; font-weight: 700; white-space: nowrap; }
 #topbar .stat { font-variant-numeric: tabular-nums; font-size: 14px; color: #c7e0cb; white-space: nowrap; }
 #topbar .spacer { flex: 1 1 auto; }
-/* Timer IS the product — it owns the topbar */
-.timer {
-  font-variant-numeric: tabular-nums;
-  font-size: 30px;
-  font-weight: 800;
-  color: #4ade80;
-  letter-spacing: -0.025em;
-  text-shadow: 0 0 16px rgba(74,222,128,.28);
-  padding: 3px 10px;
-  background: #050e07;
-  border: 1px solid #1a3422;
-  border-radius: 8px;
-}
-.pb { font-variant-numeric: tabular-nums; color: #4d6b53; font-size: 12px; letter-spacing: 0.01em; }
+.timer { font-variant-numeric: tabular-nums; font-size: 22px; font-weight: 800; color: #86efac; letter-spacing: -0.01em; }
+.pb { font-variant-numeric: tabular-nums; color: #6f8a74; font-size: 13px; }
 
 /* stats as quiet pills; gold + lives carry semantic color */
 #topbar .stat {
@@ -60,7 +48,7 @@ body {
   font-variant-numeric: tabular-nums; transition: background .12s, color .12s;
 }
 .seg-btn:hover { color: #e8f3ea; }
-.seg-btn.on { background: #4ade80; color: #031a09; font-weight: 800; }
+.seg-btn.on { background: #86efac; color: #07120a; }
 
 .ctrlbtn {
   padding: 5px 10px; border-radius: 8px; font-size: 12px; font-weight: 700;
@@ -74,7 +62,7 @@ body {
 /* keyboard focus visibility (a11y) */
 .gbtn:focus-visible, .ctrlbtn:focus-visible, .seg-btn:focus-visible,
 button.primary:focus-visible, .overlay button:focus-visible, .ibtn:focus-visible {
-  outline: 2px solid #4ade80; outline-offset: 2px;
+  outline: 2px solid #86efac; outline-offset: 2px;
 }
 
 /* hotkey chips on tower buttons */
@@ -113,7 +101,7 @@ button.primary:focus-visible, .overlay button:focus-visible, .ibtn:focus-visible
 .gbtn .ds { display: block; color: #8fae97; font-size: 10px; font-weight: 400; }
 .gbtn .ct { flex: 0 0 auto; color: #fde047; font-variant-numeric: tabular-nums; }
 .gbtn:hover { border-color: #3a6b4b; background: #1b3022; }
-.gbtn.selected { border-color: #4ade80; background: #1d3a26; box-shadow: inset 0 0 0 1px rgba(74,222,128,.2); }
+.gbtn.selected { border-color: #86efac; background: #1d3a26; }
 .gbtn:disabled { opacity: .45; cursor: not-allowed; }
 
 /* tower inspect / upgrade panel */
@@ -145,32 +133,12 @@ button.primary:focus-visible, .overlay button:focus-visible, .ibtn:focus-visible
 .armor-pill.hidden { display: none; }
 .apill { padding: 2px 7px; border-radius: 999px; font-size: 10px; font-weight: 700; border: 1px solid; line-height: 1.5; }
 
-/* Boss wave — the wave panel signals danger */
-@keyframes bosswarn {
-  0%, 100% { border-color: #7f1d1d; }
-  50% { border-color: #dc2626; box-shadow: 0 0 10px rgba(220,38,38,.15); }
-}
-#wavePanel.boss-wave {
-  animation: bosswarn 1.4s ease-in-out infinite;
-}
-#wavePanel.boss-wave #waveName { color: #fca5a5; font-weight: 800; }
-
-/* Primary CTA — the wave-send button is the most-pressed button in the game */
-@keyframes waveavail {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); }
-  55% { box-shadow: 0 0 10px 3px rgba(74,222,128,.16); }
-}
 button.primary {
-  width: 100%; padding: 11px; font-size: 13px; font-weight: 800;
-  letter-spacing: 0.04em; text-transform: uppercase;
-  color: #031a09; background: #4ade80;
-  border: 0; border-radius: 9px; cursor: pointer;
-  transition: background .12s, box-shadow .14s, transform .07s;
+  width: 100%; padding: 9px; font-size: 14px; font-weight: 700;
+  color: #07120a; background: #86efac; border: 0; border-radius: 8px; cursor: pointer;
 }
-button.primary:not(:disabled) { animation: waveavail 2.6s ease-in-out infinite; }
-button.primary:hover:not(:disabled) { background: #22c55e; box-shadow: 0 0 20px rgba(74,222,128,.28); }
-button.primary:active:not(:disabled) { transform: translateY(1px); }
-button.primary:disabled { opacity: .45; cursor: not-allowed; }
+button.primary:hover { background: #a7f3c4; }
+button.primary:disabled { opacity: .5; cursor: not-allowed; }
 
 /* the play field: fills the rest, the canvas is the scrollable world */
 #stage { position: relative; flex: 1 1 auto; min-width: 0; overflow: hidden; }
@@ -185,19 +153,15 @@ button.primary:disabled { opacity: .45; cursor: not-allowed; }
 }
 @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
 .overlay.hidden { display: none; }
-.overlay h2 { margin: 0; font-size: 46px; font-weight: 900; letter-spacing: -0.03em; text-wrap: balance; line-height: 1.05; }
-.overlay p { margin: 0; color: #b2ccb8; max-width: 460px; line-height: 1.58; text-wrap: pretty; font-size: 15px; }
+.overlay h2 { margin: 0; font-size: 34px; font-weight: 800; letter-spacing: -0.02em; text-wrap: balance; }
+.overlay p { margin: 0; color: #c4d8c8; max-width: 460px; line-height: 1.55; text-wrap: pretty; }
 .overlay button {
-  margin-top: 10px; padding: 14px 32px; font-size: 16px; font-weight: 800;
-  letter-spacing: 0.04em; text-transform: uppercase;
-  color: #031a09; background: #4ade80; border: 0; border-radius: 10px; cursor: pointer;
-  transition: background .12s, box-shadow .14s, transform .08s;
+  margin-top: 8px; padding: 11px 26px; font-size: 16px; font-weight: 700;
+  color: #07120a; background: #86efac; border: 0; border-radius: 9px; cursor: pointer;
+  transition: background .12s, transform .12s;
 }
-.overlay button:hover { background: #22c55e; box-shadow: 0 0 22px rgba(74,222,128,.3); }
+.overlay button:hover { background: #a7f3c4; }
 .overlay button:active { transform: translateY(1px); }
-/* State-specific overlay tints */
-.overlay.state-won h2 { color: #4ade80; text-shadow: 0 0 32px rgba(74,222,128,.25); }
-.overlay.state-lost h2 { color: #fca5a5; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
