@@ -203,6 +203,24 @@ button.primary:disabled { opacity: .45; cursor: not-allowed; }
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
 }
 
+/* Player count selector (start overlay) */
+.prow { display: flex; align-items: center; gap: 10px; margin: 4px 0; }
+.phint { font-size: 13px; color: #7d977f; }
+.pbtns { display: flex; gap: 6px; }
+.psb { padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 700; border: 1px solid #2c4a36; background: #16271b; color: #e8f3ea; cursor: pointer; transition: background .12s, border-color .12s; }
+.psb:hover { border-color: #3a6b4b; background: #1b3022; }
+.psb.psel { border-color: #4ade80; background: #1d3a26; color: #4ade80; }
+
+/* Co-op player panel */
+#playerPanel { padding: 10px; }
+#playerPanel h3 { margin: 0 0 8px; font-size: 13px; letter-spacing: .02em; }
+#playerGolds { display: flex; flex-direction: column; gap: 5px; }
+.pgrow { display: flex; align-items: center; gap: 7px; padding: 5px 7px; border-radius: 7px; border: 1px solid #1d3122; font-size: 12px; transition: background .12s, border-color .12s; }
+.pgrow.pgactive { border-color: #4ade80; background: #1a3322; }
+.pgdot { flex: 0 0 10px; height: 10px; border-radius: 50%; }
+.pgname { flex: 1 1 auto; font-weight: 700; color: #c7e0cb; }
+.pgcoin { flex: 0 0 auto; color: #fde047; font-variant-numeric: tabular-nums; }
+
 /* ---- mobile / narrow: field on top (full width), towers in a bottom bar ---- */
 @media (max-width: 760px) {
   #main { flex-direction: column; }
