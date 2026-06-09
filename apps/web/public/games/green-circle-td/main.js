@@ -45,6 +45,7 @@ const TOWERS = {
   detector: T({ name: "Detector",key: "7", range: 230, damage: 8,  cd: 24, cost: 125, color: "rgb(255,214,78)", dtype: "normal", detect: true, desc: "Reveals invisible" }),
   damage_aura: T({ name: "Dmg Aura", key: "8", range: 0, damage: 0, cd: 0, cost: 220, color: "rgb(220,70,70)",   dtype: null, aura: { type: "dmg", radius: 160, value: 0.20 }, desc: "+20% dmg nearby" }),
   speed_aura:  T({ name: "Spd Aura", key: "9", range: 0, damage: 0, cd: 0, cost: 200, color: "rgb(220,200,70)",  dtype: null, aura: { type: "cd", radius: 150, value: 0.15 }, desc: "-15% cooldown nearby" }),
+  mint:        T({ name: "Mint",    key: "0", range: 0, damage: 0, cd: 0, cost: 150, color: "rgb(253,224,71)", dtype: null, income: 8, desc: "+8g per wave cleared" }),
 };
 
 // ---- tower progression: linear Lv1→2→3, then a 2-way spec on the attackers
@@ -60,6 +61,7 @@ function scaled(base, level) {
   if (s.poisonDur) s.poisonDur = Math.round(s.poisonDur * (1 + k * 0.15));
   if (s.slowDur) s.slowDur = Math.round(s.slowDur * (1 + k * 0.15));
   if (s.aura) s.aura = { ...s.aura, radius: Math.round(s.aura.radius * (1 + k * 0.12)), value: +(s.aura.value * (1 + k * 0.45)).toFixed(3) };
+  if (s.income) s.income = Math.round(s.income * (1 + k * 0.5)); // Lv1: 8g, Lv2: 12g, Lv3: 16g
   return s;
 }
 // each spec takes the Lv3 stat object and returns a specialized copy
@@ -360,9 +362,27 @@ class Game {
     document.getElementById("waveName").textContent = name;
     document.getElementById("waveHint").textContent = hint;
   }
+  setArmorPill(types) {
+    const el = document.getElementById("armorPill");
+    if (!el) return;
+    if (!types || !types.length) { el.classList.add("hidden"); return; }
+    const ARMOR_INFO = {
+      light:     { color: "#67e8f9", counter: "Pierce best" },
+      medium:    { color: "#86efac", counter: "Normal best" },
+      heavy:     { color: "#fb923c", counter: "Siege / Magic" },
+      fortified: { color: "#a78bfa", counter: "Siege best" },
+      hero:      { color: "#fbbf24", counter: "Normal best" },
+    };
+    const unique = [...new Set(types)];
+    el.innerHTML = unique.map((a) => {
+      const info = ARMOR_INFO[a] || { color: "#e8f3ea", counter: "?" };
+      return `<span class="apill" style="border-color:${info.color}77;color:${info.color};background:${info.color}18">${a[0].toUpperCase()}${a.slice(1)} · ${info.counter}</span>`;
+    }).join("");
+    el.classList.remove("hidden");
+  }
 
   hideOverlay() { const o = document.getElementById("overlay"); o.className = "overlay hidden"; o.innerHTML = ""; }
-  overlay(html) { const o = document.getElementById("overlay"); o.className = "overlay"; o.innerHTML = html; return o; }
+  overlay(html, stateClass = "") { const o = document.getElementById("overlay"); o.className = "overlay" + (stateClass ? " " + stateClass : ""); o.innerHTML = html; return o; }
   showStart() {
     const o = this.overlay(
       `<h2>🟢 Green Circle TD</h2><p>Creeps spawn at the four corners and circle inward to the center, passing every position on the way. Build towers in the gaps to stop them — match damage type to armor. Send waves early to stack them, change game speed, and survive all 30 as fast as you can.</p><button id="goBtn">Begin</button>`,
@@ -380,6 +400,7 @@ class Game {
     } else sub = `Reached wave ${Math.min(this.waveIndex, WAVES.length)} / ${WAVES.length}.`;
     const o = this.overlay(
       `<h2>${won ? "The Crown is Yours!" : "Overrun"}</h2><p>Time ${fmt(this.elapsed)}</p><p>${sub}</p><button id="rsBtn">${won ? "Play again" : "Retry"}</button>`,
+      won ? "state-won" : "state-lost",
     );
     o.querySelector("#rsBtn").onclick = () => this.restart();
     this.refreshButtons();
@@ -392,6 +413,8 @@ class Game {
     this.updatePauseBtn();
     this.refreshButtons();
     this.setWaveText("Ready", "Build towers, then start the first wave.");
+    const wavePanel = document.getElementById("wavePanel");
+    if (wavePanel) wavePanel.classList.remove("boss-wave");
   }
   togglePause() {
     if (this.state === "running") this.state = "paused";
@@ -617,6 +640,7 @@ class Game {
     const dmg = s.damage ? Math.round(s.damage * tw.dmgMult) : "—";
     const rows = [];
     if (s.aura) rows.push([s.aura.type === "dmg" ? "Dmg aura" : "Speed aura", `${Math.round(s.aura.value * 100)}% · r${s.aura.radius}`]);
+    else if (s.income) rows.push(["Income", `+${s.income}g/wave`], ["Type", "Economy"]);
     else { rows.push(["Damage", dmg], ["Range", Math.round(s.range)], ["Rate", `${rate}/s`]); }
     if (s.splash) rows.push(["Splash", `r${s.splash}`]);
     if (s.slow) rows.push(["Slow", `${Math.round(s.slow * 100)}%`]);
@@ -662,11 +686,15 @@ class Game {
   // ---- waves (multiple may run at once — you can send the next early)
   startNextWave() {
     if (this.state !== "running" || this.waveIndex >= WAVES.length) return;
+    // Aggressive-stacking bonus: +15g for sending while a wave is still live
+    const stackBonus = this.activeWaves.length > 0 ? 15 : 0;
+    if (stackBonus) this.gold += stackBonus;
     const w = WAVES[this.waveIndex];
     this.waveIndex++;
     this.started = true;
     const rec = { id: w.id, name: w.name, reward: w.reward, pending: 0, alive: 0, done: false };
-    const hpBase = 32 + this.waveIndex * 11;
+    // Geometric HP scaling: ~+10% per wave — mid-game stays manageable, late-game gets brutal
+    const hpBase = Math.round(40 * Math.pow(1.1, this.waveIndex - 1));
     w.spawns.forEach((sp, gi) => {
       const e = ENEMIES[sp.e];
       const count = Math.max(1, sp.n + e.count_bonus);
@@ -686,7 +714,14 @@ class Game {
     });
     this.activeWaves.push(rec);
     this.spawnQueue.sort((a, b) => a.time - b.time);
-    this.setWaveText(`Wave ${w.id}: ${w.name}`, w.hint);
+    const waveTitle = stackBonus ? `Wave ${w.id}: ${w.name}  +${stackBonus}g ★` : `Wave ${w.id}: ${w.name}`;
+    this.setWaveText(waveTitle, w.hint);
+    // Show armor type pill so players know what's coming
+    const armorTypes = [...new Set(w.spawns.map((sp) => ENEMIES[sp.e].armor))];
+    this.setArmorPill(armorTypes);
+    // Boss wave: signal danger on the wave panel
+    const wavePanel = document.getElementById("wavePanel");
+    if (wavePanel) wavePanel.classList.toggle("boss-wave", !!w.boss);
     this.refreshButtons();
   }
 
@@ -741,8 +776,35 @@ class Game {
       this.activeWaves = this.activeWaves.filter((r) => !r.done);
       const reward = cleared.reduce((s, r) => s + r.reward, 0);
       const last = cleared[cleared.length - 1];
-      if (this.waveIndex >= WAVES.length && this.activeWaves.length === 0) { this.setWaveText("All clear", "Final wave done!"); this.end(true); return; }
-      this.setWaveText(`Wave ${last.id} cleared`, this.waveIndex >= WAVES.length ? `+${reward}g. Last waves still in flight.` : `+${reward}g. Next: ${WAVES[this.waveIndex].name}`);
+
+      // Mint income: each Mint tower pays out on wave clear
+      const mintIncome = this.towers.reduce((s, tw) => s + (tw.s.income || 0), 0);
+      if (mintIncome > 0) this.gold += mintIncome;
+
+      // Interest economy (2% of current gold, capped +80) — rewards saving
+      const interest = Math.min(80, Math.floor(this.gold * 0.02));
+      if (interest > 0) this.gold += interest;
+
+      // Income benchmarks: show "on pace / behind" at key waves (per Legion TD design)
+      const BENCHMARKS = { 5: 400, 10: 700, 15: 1000, 20: 1400 };
+      const benchTarget = BENCHMARKS[last.id];
+      let benchMsg = benchTarget ? (this.gold >= benchTarget ? " · ✦ On pace!" : ` · ⚠ Behind (target ${benchTarget}g)`) : "";
+
+      // Build the extras string
+      const extras = [];
+      if (mintIncome > 0) extras.push(`+${mintIncome}g mint`);
+      if (interest > 0) extras.push(`+${interest}g interest`);
+      const extStr = extras.length ? ` · ${extras.join(", ")}` : "";
+
+      const wavePanel = document.getElementById("wavePanel");
+      if (wavePanel) wavePanel.classList.remove("boss-wave");
+      if (this.waveIndex >= WAVES.length && this.activeWaves.length === 0) { this.setWaveText("All clear", "Final wave done!"); this.setArmorPill([]); this.end(true); return; }
+      const nextName = this.waveIndex < WAVES.length ? WAVES[this.waveIndex].name : "";
+      const clearHint = this.waveIndex >= WAVES.length
+        ? `+${reward}g${extStr}. Last waves still in flight.`
+        : `+${reward}g${extStr}. Next: ${nextName}${benchMsg}`;
+      this.setWaveText(`Wave ${last.id} cleared`, clearHint);
+      this.setArmorPill([]);
       this.refreshButtons();
     }
     if (this.lives <= 0) this.end(false);
@@ -917,7 +979,7 @@ class Game {
   // ---- procedural sprites
   drawTower(ctx, tw) {
     const x = tw.x, y = tw.y, s = tw.s, col = tw.def.color, t = this.gameTime;
-    const kind = s.aura ? "aura" : tw.type === "frost" ? "crystal" : (tw.type === "poison" && !s.splash) ? "orb" : tw.type === "detector" ? "radar" : "barrel";
+    const kind = s.aura ? "aura" : s.income ? "mint" : tw.type === "frost" ? "crystal" : (tw.type === "poison" && !s.splash) ? "orb" : tw.type === "detector" ? "radar" : "barrel";
     // aim
     if (kind === "barrel") {
       const tgt = this.pickTargets(tw, 1)[0];
@@ -952,6 +1014,16 @@ class Game {
     } else if (kind === "radar") {
       ctx.save(); ctx.translate(x, y); ctx.rotate(tw.angle); ctx.strokeStyle = col; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(13, 0); ctx.stroke();
       ctx.fillStyle = col; ctx.beginPath(); ctx.arc(13, 0, 2.5, 0, 7); ctx.fill(); ctx.restore();
+    } else if (kind === "mint") {
+      // Three stacked coins — top coin shines
+      const coinColors = ["#92400e", "#ca8a04", "#fde047"];
+      for (let i = 0; i < 3; i++) {
+        const cy = y + (1 - i) * 3.2; // bottom to top
+        ctx.fillStyle = coinColors[i]; ctx.beginPath(); ctx.ellipse(x, cy, 7, 3.6, 0, 0, 7); ctx.fill();
+        ctx.strokeStyle = "rgba(0,0,0,.35)"; ctx.lineWidth = 1; ctx.stroke();
+      }
+      ctx.fillStyle = "#713f12"; ctx.font = "bold 7px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText("g", x, y - 3);
     } else if (kind === "aura") {
       const pulse = 0.5 + 0.5 * Math.sin(t * 2.2); ctx.strokeStyle = col; ctx.globalAlpha = 0.35 + 0.4 * pulse; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(x, y, 6.5, 0, 7); ctx.stroke(); ctx.globalAlpha = 1;
     }
