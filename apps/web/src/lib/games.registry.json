@@ -2,15 +2,15 @@
   {
     "slug": "green-circle-td",
     "title": "Green Circle TD",
-    "description": "Maze tower defense: creeps circle in from four corners to the center, passing every position. Procedural turret + creep graphics, tower progression with Lv1-3 upgrades and 2-way specializations, armor-vs-damage matrix including WC3 chaos damage, air-targeting restriction (anti-air towers only), randomized wave order, distinct creep visual archetypes per enemy type, local 1–4 player hot-seat co-op with zone ownership, aura towers, Mint economy tower, interest economy, wave benchmarks, stackable waves, 1×/2×/3× speed, pause/restart, and 30 escalating waves to a multi-phase boss.",
+    "description": "Maze tower defense: creeps circle in from four corners to the center, passing every position. TRUE ONLINE MULTIPLAYER (2–4 players): WC3-style lobby with 4-letter room codes, authoritative server, per-player build zones, shared lives. Plus procedural turret + creep graphics, Lv1-3 upgrades and 2-way specializations, armor-vs-damage matrix including WC3 chaos damage, air-targeting restriction, randomized wave order, distinct creep archetypes, local hot-seat co-op, aura towers, Mint economy tower, interest economy, stackable waves, 1×/2×/3× speed, and 30 escalating waves to a multi-phase boss.",
     "repo": "Brynrg/green-circle-td",
     "playUrl": "/games/green-circle-td/",
     "category": "tower-defense",
     "status": "live",
     "framework": "vanilla",
     "supportsMobile": true,
-    "version": "1.7.0",
-    "lastUpdated": "2026-06-09T16:05:18.259Z",
+    "version": "1.8.0",
+    "lastUpdated": "2026-06-09T23:31:21.459Z",
     "emoji": "🟢"
   },
   {

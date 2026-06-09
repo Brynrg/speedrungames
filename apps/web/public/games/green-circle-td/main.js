@@ -352,7 +352,10 @@ class Game {
     }
     document.getElementById("startWave").onclick = () => this.startNextWave();
     document.querySelectorAll("#speedSeg .seg-btn").forEach((b) => {
-      b.onclick = () => { this.speed = +b.dataset.speed; this.syncSpeedSeg(); };
+      b.onclick = () => {
+        if (this.net) { this.net.send({ t: "speed", v: +b.dataset.speed }); return; } // host-only, server enforces
+        this.speed = +b.dataset.speed; this.syncSpeedSeg();
+      };
     });
     this.syncSpeedSeg();
     const pauseBtn = document.getElementById("pauseBtn");
@@ -426,8 +429,10 @@ class Game {
       `<h2>🟢 Green Circle TD</h2>` +
       `<p>Creeps spawn at the four corners and circle inward. Build towers to stop them — match damage type to armor. Survive all 30 waves as fast as you can.</p>` +
       `<div class="prow"><span class="phint">Players:</span><div class="pbtns">${[1, 2, 3, 4].map(mkpsb).join("")}</div></div>` +
-      `<button id="goBtn">Begin</button>`,
+      `<button id="goBtn">Begin</button>` +
+      `<button id="onlineBtn" class="nonline">🌐 Online Multiplayer</button>`,
     );
+    o.querySelector("#onlineBtn").onclick = () => window.GCTDNet?.openLobby(this);
     o.querySelectorAll(".psb").forEach(b => {
       b.onclick = () => { this.numPlayers = +b.dataset.n; o.querySelectorAll(".psb").forEach(bb => bb.classList.toggle("psel", bb === b)); };
     });
@@ -456,6 +461,7 @@ class Game {
     this.refreshButtons();
   }
   restart() {
+    if (this.net) { location.reload(); return; } // leave the online game
     this.reset();
     this.state = "running";
     this.hideOverlay();
@@ -467,6 +473,7 @@ class Game {
     if (wavePanel) wavePanel.classList.remove("boss-wave");
   }
   togglePause() {
+    if (this.net) return; // no pausing an online game
     if (this.state === "running") this.state = "paused";
     else if (this.state === "paused") { this.state = "running"; this.last = nowMs(); }
     else return;
@@ -474,6 +481,7 @@ class Game {
     this.refreshButtons();
   }
   cyclePlayer() {
+    if (this.net) return; // online: you ARE one fixed player
     if (this.players.length <= 1) return;
     this.activePlayer = (this.activePlayer + 1) % this.players.length;
     this.deselectTower();
@@ -644,6 +652,7 @@ class Game {
   build(c, r, type) {
     const def = TOWERS[type];
     if (this.gold < def.cost || !this.cellBuildable(c, r)) return false;
+    if (this.net) { this.net.send({ t: "build", c, r, tower: type }); return true; } // server confirms via towers sync
     const ctr = this.cellCenter(c, r);
     this.towers.push({ c, r, x: ctr.x, y: ctr.y, type, def, level: 1, spec: null, invested: def.cost, s: statsFor(type, 1, null), lastFire: -999, dmgMult: 1, cdMult: 1, angle: -Math.PI / 2, player: this.activePlayer });
     this.occupied.add(c + "," + r);
@@ -655,6 +664,7 @@ class Game {
   // upgrade the selected tower: "level" (Lv+1) or a spec id at max level
   upgradeTower(tw, choice) {
     if (!tw || this.state !== "running") return;
+    if (this.net) { this.net.send({ t: "upgrade", c: tw.c, r: tw.r, choice }); return; }
     if (this.players.length > 1 && tw.player !== this.activePlayer) return;
     if (choice === "level" && tw.level < MAX_LEVEL) {
       const cost = upgradeCost(tw.type, tw.level);
@@ -673,6 +683,7 @@ class Game {
   sellAt(c, r) {
     const idx = this.towers.findIndex((t) => t.c === c && t.r === r);
     if (idx < 0) return;
+    if (this.net) { this.net.send({ t: "sell", c, r }); return; }
     const tw = this.towers[idx];
     if (this.players.length > 1 && tw.player !== this.activePlayer) return;
     this.players[tw.player ?? 0].gold += Math.floor(tw.invested * 0.7);
@@ -758,6 +769,7 @@ class Game {
   // ---- waves (multiple may run at once — you can send the next early)
   startNextWave() {
     if (this.state !== "running" || this.waveIndex >= WAVES.length) return;
+    if (this.net) { this.net.send({ t: "wave" }); return; }
     // Aggressive-stacking bonus: +15g for sending while a wave is still live
     const stackBonus = this.activeWaves.length > 0 ? 15 : 0;
     if (stackBonus) this.players[this.activePlayer].gold += stackBonus;
@@ -813,6 +825,20 @@ class Game {
 
   // ---- simulation
   update(dt) {
+    if (this.net) {
+      // Online: the server simulates; this advances visuals only — enemy
+      // positions ease toward the latest snapshot, tracers/fx decay locally.
+      this.gameTime += dt;
+      if (this.started && this.state === "running") this.runMs += dt * 1000; // smoothed; snapshots correct drift
+      const k = Math.min(1, dt * 10);
+      for (const en of this.enemies) { en.x += (en.tx - en.x) * k; en.y += (en.ty - en.y) * k; }
+      for (const b of this.bullets) b.t -= dt;
+      this.bullets = this.bullets.filter((b) => b.t > 0);
+      for (const p of this.fx) { p.t -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.9; p.vy *= 0.9; }
+      if (this.fx.length) this.fx = this.fx.filter((p) => p.t > 0);
+      if (this._shake && this._shake.t > 0) { this._shake.t -= dt; if (this._shake.t <= 0) this._shake = null; }
+      return;
+    }
     if (this.state !== "running") return;
     this.gameTime += dt;
     if (this.started) this.runMs += dt * 1000; // score in sim-time, so game-speed never cheeses the PB
@@ -937,9 +963,11 @@ class Game {
       if (en.flags.includes("invisible") && !en.revealed) continue;
       if (en.flags.includes("air") && !tw.s.canAir) continue;
       if (Math.hypot(en.x - tw.x, en.y - tw.y) > tw.s.range) continue;
-      const last = en.path.length - 1;
-      const next = en.path[Math.min(en.wp + 1, last)];
-      en._prog = en.wp * 10000 - Math.hypot(en.x - next[0], en.y - next[1]);
+      if (en.path) {
+        const last = en.path.length - 1;
+        const next = en.path[Math.min(en.wp + 1, last)];
+        en._prog = en.wp * 10000 - Math.hypot(en.x - next[0], en.y - next[1]);
+      } else en._prog = en.netProg ?? 0; // online: server-computed progress
       inRange.push(en);
     }
     if (inRange.length > 1) inRange.sort((a, b) => b._prog - a._prog);
@@ -981,7 +1009,7 @@ class Game {
     if (dt > 0.05) dt = 0.05;
     this.panFromKeys(dt);
     // 2×/3× = run the fixed-step sim multiple times per frame (keeps physics stable)
-    const steps = this.state === "running" ? this.speed : 1;
+    const steps = this.net ? 1 : this.state === "running" ? this.speed : 1;
     for (let i = 0; i < steps; i++) this.update(dt);
     document.getElementById("timer").textContent = fmt(this.runMs);
     this.draw();
@@ -1170,8 +1198,9 @@ class Game {
     const t = this.gameTime, boss = en.flags.includes("boss"), hero = en.flags.includes("hero"), air = en.flags.includes("air");
     const rad = boss ? 17 : hero ? 12 : en.enemy === "Swarm" ? 6 : 9;
     const inv = en.flags.includes("invisible") && !en.revealed;
-    const last = en.path.length - 1, nx = en.path[Math.min(en.wp + 1, last)];
-    const ang = Math.atan2(nx[1] - en.y, nx[0] - en.x);
+    const ang = en.path
+      ? Math.atan2(en.path[Math.min(en.wp + 1, en.path.length - 1)][1] - en.y, en.path[Math.min(en.wp + 1, en.path.length - 1)][0] - en.x)
+      : (en.netAng ?? 0); // online: server-sent heading
     const bob = Math.sin(t * 6 + (en.x + en.y) * 0.05);
     const lift = air ? 7 + bob * 2 : 0;
     if (air) { ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(en.x, en.y + rad + 4, rad * 0.9, rad * 0.4, 0, 0, 7); ctx.fill(); }
