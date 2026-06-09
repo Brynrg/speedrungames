@@ -2,15 +2,15 @@
   {
     "slug": "green-circle-td",
     "title": "Green Circle TD",
-    "description": "Maze tower defense: creeps circle in from four corners to the center, passing every position. Tower progression with Lv1-3 upgrades and 2-way specializations, armor-vs-damage matrix, aura towers, stackable waves, 1×/2×/3× speed, pause/restart, and 30 escalating waves to a multi-phase boss.",
+    "description": "Maze tower defense: creeps circle in from four corners to the center, passing every position. Procedural turret + creep graphics, tower progression with Lv1-3 upgrades and 2-way specializations, armor-vs-damage matrix, aura towers, stackable waves, 1×/2×/3× speed, pause/restart, and 30 escalating waves to a multi-phase boss.",
     "repo": "Brynrg/green-circle-td",
     "playUrl": "/games/green-circle-td/",
     "category": "tower-defense",
     "status": "live",
     "framework": "vanilla",
     "supportsMobile": true,
-    "version": "1.4.0",
-    "lastUpdated": "2026-06-09T01:03:43.042Z",
+    "version": "1.5.0",
+    "lastUpdated": "2026-06-09T01:13:47.195Z",
     "emoji": "🟢"
   },
   {

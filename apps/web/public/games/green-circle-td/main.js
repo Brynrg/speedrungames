@@ -243,6 +243,7 @@ class Game {
     this.occupied = new Set();
     this.enemies = [];
     this.bullets = [];
+    this.fx = [];                // muzzle flashes, hit sparks, death puffs
     this.waveIndex = 0;
     this.spawnQueue = [];        // {time(abs sim sec), corner, hp, speed, bounty, def, enemy, rec}
     this.activeWaves = [];       // wave records in flight: {id,name,reward,pending,alive,done}
@@ -552,7 +553,7 @@ class Game {
     const def = TOWERS[type];
     if (this.gold < def.cost || !this.cellBuildable(c, r)) return false;
     const ctr = this.cellCenter(c, r);
-    this.towers.push({ c, r, x: ctr.x, y: ctr.y, type, def, level: 1, spec: null, invested: def.cost, s: statsFor(type, 1, null), lastFire: -999, dmgMult: 1, cdMult: 1 });
+    this.towers.push({ c, r, x: ctr.x, y: ctr.y, type, def, level: 1, spec: null, invested: def.cost, s: statsFor(type, 1, null), lastFire: -999, dmgMult: 1, cdMult: 1, angle: -Math.PI / 2 });
     this.occupied.add(c + "," + r);
     this.gold -= def.cost;
     this.recomputeAuras();
@@ -646,6 +647,18 @@ class Game {
     actions.appendChild(sell);
   }
 
+  // ---- effects (muzzle flashes, hit sparks, death puffs)
+  spawnFx(x, y, color, kind, angle = 0) {
+    if (this.fx.length > 280) return; // cap for 3× speed / mass waves
+    if (kind === "muzzle") {
+      this.fx.push({ x: x + Math.cos(angle) * 14, y: y + Math.sin(angle) * 14, vx: Math.cos(angle) * 30, vy: Math.sin(angle) * 30, t: 0.07, max: 0.07, color, r: 5, kind });
+    } else if (kind === "spark") {
+      for (let i = 0; i < 4; i++) { const a = Math.random() * 7, sp = 45 + Math.random() * 70; this.fx.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: 0.18, max: 0.18, color, r: 2.4, kind }); }
+    } else if (kind === "puff") {
+      for (let i = 0; i < 8; i++) { const a = Math.random() * 7, sp = 25 + Math.random() * 80; this.fx.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: 0.32, max: 0.32, color, r: 3.6, kind }); }
+    }
+  }
+
   // ---- waves (multiple may run at once — you can send the next early)
   startNextWave() {
     if (this.state !== "running" || this.waveIndex >= WAVES.length) return;
@@ -707,6 +720,8 @@ class Game {
     this.fireTowers();
     for (const b of this.bullets) b.t -= dt;
     this.bullets = this.bullets.filter((b) => b.t > 0);
+    for (const p of this.fx) { p.t -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.9; p.vy *= 0.9; }
+    if (this.fx.length) this.fx = this.fx.filter((p) => p.t > 0);
 
     for (const en of this.enemies) {
       if (en.hp <= 0) continue;
@@ -760,6 +775,7 @@ class Game {
       if (!targets.length) continue;
       tw.lastFire = t;
       const base = d.damage * tw.dmgMult;
+      if (d.dtype) this.spawnFx(tw.x, tw.y, tw.def.color, "muzzle", Math.atan2(targets[0].y - tw.y, targets[0].x - tw.x));
       for (const target of targets) {
         this.bullets.push({ x1: tw.x, y1: tw.y, x2: target.x, y2: target.y, color: tw.def.color, t: 0.09 });
         if (d.splash) {
@@ -792,9 +808,10 @@ class Game {
     const immune = en.flags.includes("immune");
     if (d.slow && !immune) en.slowUntil = this.gameTime + d.slowDur / 60;
     if (d.poison && !immune) { en.poison = d.poison; en.poisonUntil = this.gameTime + d.poisonDur / 60; }
+    if (en.hp > 0) this.spawnFx(en.x, en.y, "#fde68a", "spark");
     if (en.hp <= 0) this.onKill(en);
   }
-  onKill(en) { if (en._dead) return; en._dead = true; this.gold += en.bounty; this.refreshButtons(); }
+  onKill(en) { if (en._dead) return; en._dead = true; this.gold += en.bounty; this.spawnFx(en.x, en.y, en.color, "puff"); this.refreshButtons(); }
   onLeak(en) {
     const cost = en.flags.includes("boss") ? 10 : en.flags.includes("hero") ? 4 : 1;
     this.lives -= cost;
@@ -870,20 +887,7 @@ class Game {
     }
 
     // towers
-    for (const tw of this.towers) {
-      const x = tw.c * CELL, y = tw.r * CELL;
-      ctx.fillStyle = tw.def.color;
-      this.round(x + 5, y + 5, CELL - 10, CELL - 10, 6); ctx.fill();
-      ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.beginPath(); ctx.arc(tw.x, tw.y, 4, 0, 7); ctx.fill();
-      if (tw.s.detect) { ctx.strokeStyle = "rgba(255,214,78,.10)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(tw.x, tw.y, tw.s.range, 0, 7); ctx.stroke(); }
-      // level pips along the top edge; a diamond once specialized
-      if (tw.spec) {
-        ctx.fillStyle = "#fef08a"; ctx.beginPath();
-        ctx.moveTo(tw.x, y + 3); ctx.lineTo(tw.x + 5, y + 8); ctx.lineTo(tw.x, y + 13); ctx.lineTo(tw.x - 5, y + 8); ctx.closePath(); ctx.fill();
-      } else {
-        for (let i = 0; i < tw.level; i++) { ctx.fillStyle = "#f8fafc"; ctx.beginPath(); ctx.arc(x + 9 + i * 7, y + 8, 2.1, 0, 7); ctx.fill(); }
-      }
-    }
+    for (const tw of this.towers) this.drawTower(ctx, tw);
     // selected-tower highlight + range
     const sel = this.selectedTower;
     if (sel && this.towers.includes(sel)) {
@@ -901,25 +905,100 @@ class Game {
     ctx.globalAlpha = 1;
 
     // enemies
-    for (const en of this.enemies) {
-      if (en.hp <= 0) continue;
-      const boss = en.flags.includes("boss"), hero = en.flags.includes("hero");
-      const rad = boss ? 16 : hero ? 12 : en.enemy === "Swarm" ? 6 : 9;
-      const inv = en.flags.includes("invisible") && !en.revealed;
-      ctx.globalAlpha = inv ? 0.28 : 1;
-      ctx.fillStyle = en.color; ctx.beginPath(); ctx.arc(en.x, en.y, rad, 0, 7); ctx.fill();
-      if (en.flags.includes("air")) { ctx.strokeStyle = "rgba(255,255,255,.6)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(en.x, en.y, rad + 3, 0, 7); ctx.stroke(); }
-      if (this.gameTime < en.slowUntil) { ctx.strokeStyle = "#67e8f9"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(en.x, en.y, rad, 0, 7); ctx.stroke(); }
-      ctx.globalAlpha = 1;
-      const w = rad * 2 + 6, hpf = clamp(en.hp / en.maxHp, 0, 1);
-      ctx.fillStyle = "#000"; ctx.fillRect(en.x - w / 2, en.y - rad - 7, w, 4);
-      ctx.fillStyle = hpf > 0.5 ? "#4ade80" : hpf > 0.25 ? "#facc15" : "#f87171";
-      ctx.fillRect(en.x - w / 2, en.y - rad - 7, w * hpf, 4);
-    }
+    for (const en of this.enemies) { if (en.hp > 0) this.drawCreep(ctx, en); }
+    // effects on top (world space)
+    this.drawFx(ctx);
     ctx.restore();
 
     this.drawMinimap();
     ctx.lineWidth = 1;
+  }
+
+  // ---- procedural sprites
+  drawTower(ctx, tw) {
+    const x = tw.x, y = tw.y, s = tw.s, col = tw.def.color, t = this.gameTime;
+    const kind = s.aura ? "aura" : tw.type === "frost" ? "crystal" : (tw.type === "poison" && !s.splash) ? "orb" : tw.type === "detector" ? "radar" : "barrel";
+    // aim
+    if (kind === "barrel") {
+      const tgt = this.pickTargets(tw, 1)[0];
+      if (tgt) { let a = Math.atan2(tgt.y - y, tgt.x - x), d = a - tw.angle; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; tw.angle += d * 0.3; }
+    } else if (kind === "radar") tw.angle += 0.06;
+    // base platform
+    ctx.fillStyle = "#0e1a12"; this.round(tw.c * CELL + 4, tw.r * CELL + 4, CELL - 8, CELL - 8, 7); ctx.fill();
+    // tier glow
+    if (tw.level >= 2 || tw.spec) {
+      ctx.save(); ctx.globalAlpha = tw.spec ? 0.55 : 0.3;
+      const g = ctx.createRadialGradient(x, y, 2, x, y, 19); g.addColorStop(0, col); g.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, 19, 0, 7); ctx.fill(); ctx.restore();
+    }
+    // base disc
+    ctx.fillStyle = "#16271b"; ctx.beginPath(); ctx.arc(x, y, 11, 0, 7); ctx.fill();
+    ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, 11, 0, 7); ctx.stroke();
+    // turret
+    ctx.fillStyle = col;
+    if (kind === "barrel") {
+      ctx.save(); ctx.translate(x, y); ctx.rotate(tw.angle);
+      const n = s.multishot || (tw.type === "rapid" ? 2 : 1), len = 9 + Math.min(15, s.range / 42);
+      for (let i = 0; i < n; i++) { const off = (i - (n - 1) / 2) * 4.2; ctx.fillRect(2, off - 1.7, len, 3.4); }
+      if (s.splash) { ctx.beginPath(); ctx.arc(2 + len, 0, 4, 0, 7); ctx.fill(); }
+      ctx.restore();
+    } else if (kind === "crystal") {
+      ctx.save(); ctx.translate(x, y); ctx.rotate(t * 0.7);
+      ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(6, 0); ctx.lineTo(0, 8); ctx.lineTo(-6, 0); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,.4)"; ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(3, 0); ctx.lineTo(0, 0); ctx.closePath(); ctx.fill(); ctx.restore();
+    } else if (kind === "orb") {
+      ctx.beginPath(); ctx.arc(x, y - 1, 6.5, 0, 7); ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,.35)"; ctx.beginPath(); ctx.arc(x - 2, y - 3, 2, 0, 7); ctx.fill();
+    } else if (kind === "radar") {
+      ctx.save(); ctx.translate(x, y); ctx.rotate(tw.angle); ctx.strokeStyle = col; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(13, 0); ctx.stroke();
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(13, 0, 2.5, 0, 7); ctx.fill(); ctx.restore();
+    } else if (kind === "aura") {
+      const pulse = 0.5 + 0.5 * Math.sin(t * 2.2); ctx.strokeStyle = col; ctx.globalAlpha = 0.35 + 0.4 * pulse; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(x, y, 6.5, 0, 7); ctx.stroke(); ctx.globalAlpha = 1;
+    }
+    // tier marks
+    const tx = tw.c * CELL, ty = tw.r * CELL;
+    if (tw.spec) { ctx.fillStyle = "#fef08a"; ctx.beginPath(); ctx.moveTo(x, ty + 3); ctx.lineTo(x + 5, ty + 8); ctx.lineTo(x, ty + 13); ctx.lineTo(x - 5, ty + 8); ctx.closePath(); ctx.fill(); }
+    else for (let i = 0; i < tw.level; i++) { ctx.fillStyle = "#f8fafc"; ctx.beginPath(); ctx.arc(tx + 9 + i * 7, ty + 8, 2.1, 0, 7); ctx.fill(); }
+  }
+
+  drawCreep(ctx, en) {
+    const t = this.gameTime, boss = en.flags.includes("boss"), hero = en.flags.includes("hero"), air = en.flags.includes("air");
+    const rad = boss ? 17 : hero ? 12 : en.enemy === "Swarm" ? 6 : 9;
+    const inv = en.flags.includes("invisible") && !en.revealed;
+    const last = en.path.length - 1, nx = en.path[Math.min(en.wp + 1, last)];
+    const ang = Math.atan2(nx[1] - en.y, nx[0] - en.x);
+    const bob = Math.sin(t * 6 + (en.x + en.y) * 0.05);
+    const lift = air ? 7 + bob * 2 : 0;
+    if (air) { ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(en.x, en.y + rad + 4, rad * 0.9, rad * 0.4, 0, 0, 7); ctx.fill(); }
+    ctx.save(); ctx.globalAlpha = inv ? 0.22 : 1; ctx.translate(en.x, en.y - lift);
+    ctx.fillStyle = en.color;
+    if (en.enemy === "Swift" || air) {
+      ctx.rotate(ang); ctx.beginPath(); ctx.moveTo(rad, 0); ctx.lineTo(-rad * 0.7, rad * 0.7); ctx.lineTo(-rad * 0.3, 0); ctx.lineTo(-rad * 0.7, -rad * 0.7); ctx.closePath(); ctx.fill();
+    } else if (en.enemy === "Armored" || en.enemy === "Immune") {
+      ctx.beginPath(); for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2, px = Math.cos(a) * rad, py = Math.sin(a) * rad; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); } ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,.35)"; ctx.lineWidth = 1.5; ctx.stroke();
+    } else {
+      const r = rad * (boss ? 1 + 0.06 * Math.sin(t * 3) : 1); ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,.22)"; ctx.beginPath(); ctx.arc(-rad * 0.28, -rad * 0.28, rad * 0.38, 0, 7); ctx.fill();
+    }
+    if (boss || hero) { ctx.strokeStyle = boss ? "#fca5a5" : "#fdba74"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, rad + 3, 0, 7); ctx.stroke(); }
+    ctx.restore();
+    // status overlays
+    if (t < en.slowUntil) { ctx.strokeStyle = "#67e8f9"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(en.x, en.y - lift, rad + 2.5, 0, 7); ctx.stroke(); }
+    if (en.poison > 0 && t < en.poisonUntil) { ctx.fillStyle = "rgba(132,204,22,.6)"; for (let i = 0; i < 2; i++) { ctx.beginPath(); ctx.arc(en.x + Math.sin(t * 5 + i * 3) * rad * 0.8, en.y - lift - rad - (t * 30 + i * 8) % 8, 1.7, 0, 7); ctx.fill(); } }
+    if (inv) { ctx.setLineDash([3, 3]); ctx.strokeStyle = "rgba(214,175,255,.45)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(en.x, en.y - lift, rad + 1.5, 0, 7); ctx.stroke(); ctx.setLineDash([]); }
+    // hp bar when damaged
+    const hpf = clamp(en.hp / en.maxHp, 0, 1);
+    if (hpf < 0.999) { const w = rad * 2 + 6, yb = en.y - lift - rad - 8; ctx.fillStyle = "rgba(0,0,0,.6)"; this.round(en.x - w / 2, yb, w, 3.6, 1.6); ctx.fill(); ctx.fillStyle = hpf > 0.5 ? "#4ade80" : hpf > 0.25 ? "#facc15" : "#f87171"; this.round(en.x - w / 2, yb, w * hpf, 3.6, 1.6); ctx.fill(); }
+  }
+
+  drawFx(ctx) {
+    for (const p of this.fx) {
+      const a = clamp(p.t / p.max, 0, 1);
+      ctx.globalAlpha = a; ctx.fillStyle = p.color;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.kind === "muzzle" ? p.r * a + 2 : p.r * a, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
   }
 
   // small fixed minimap so you always know where the action is while panning
