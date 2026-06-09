@@ -47,6 +47,57 @@ const TOWERS = {
   speed_aura:  T({ name: "Spd Aura", key: "9", range: 0, damage: 0, cd: 0, cost: 200, color: "rgb(220,200,70)",  dtype: null, aura: { type: "cd", radius: 150, value: 0.15 }, desc: "-15% cooldown nearby" }),
 };
 
+// ---- tower progression: linear Lv1→2→3, then a 2-way spec on the attackers
+const MAX_LEVEL = 3;
+const LVL = [null, { dmg: 1.0, rng: 1.0, cd: 1.0 }, { dmg: 1.7, rng: 1.08, cd: 0.88 }, { dmg: 2.6, rng: 1.16, cd: 0.80 }];
+function scaled(base, level) {
+  const m = LVL[level], k = level - 1, s = { ...base };
+  if (s.damage) s.damage = Math.round(s.damage * m.dmg);
+  if (s.range) s.range = Math.round(s.range * m.rng);
+  if (s.cd) s.cd = Math.max(4, Math.round(s.cd * m.cd));
+  if (s.splash) s.splash = Math.round(s.splash * (1 + k * 0.12));
+  if (s.poison) s.poison = +(s.poison * (1 + k * 0.6)).toFixed(1);
+  if (s.poisonDur) s.poisonDur = Math.round(s.poisonDur * (1 + k * 0.15));
+  if (s.slowDur) s.slowDur = Math.round(s.slowDur * (1 + k * 0.15));
+  if (s.aura) s.aura = { ...s.aura, radius: Math.round(s.aura.radius * (1 + k * 0.12)), value: +(s.aura.value * (1 + k * 0.45)).toFixed(3) };
+  return s;
+}
+// each spec takes the Lv3 stat object and returns a specialized copy
+const SPECS = {
+  basic: [
+    { id: "gatling", name: "Gatling", desc: "Rapid pierce stream", mod: (s) => ({ ...s, cd: Math.max(4, Math.round(s.cd * 0.4)), damage: Math.round(s.damage * 0.55), range: Math.round(s.range * 1.1), dtype: "pierce" }) },
+    { id: "cannon", name: "Cannon", desc: "Heavy siege splash", mod: (s) => ({ ...s, splash: 95, damage: Math.round(s.damage * 1.5), cd: Math.round(s.cd * 1.5), dtype: "siege" }) },
+  ],
+  sniper: [
+    { id: "railgun", name: "Railgun", desc: "Massive single hit", mod: (s) => ({ ...s, damage: Math.round(s.damage * 2.0), range: Math.round(s.range * 1.25), cd: Math.round(s.cd * 1.5) }) },
+    { id: "marksman", name: "Marksman", desc: "Fires at 3 targets", mod: (s) => ({ ...s, multishot: 3, damage: Math.round(s.damage * 0.7), cd: Math.max(4, Math.round(s.cd * 0.85)) }) },
+  ],
+  rapid: [
+    { id: "tempest", name: "Tempest", desc: "Blistering multi-shot", mod: (s) => ({ ...s, multishot: 2, cd: Math.max(3, Math.round(s.cd * 0.7)) }) },
+    { id: "shredder", name: "Shredder", desc: "Shreds heavy armor", mod: (s) => ({ ...s, dtype: "siege", damage: Math.round(s.damage * 1.6), cd: Math.round(s.cd * 1.2) }) },
+  ],
+  splash: [
+    { id: "mortar", name: "Mortar", desc: "Long-range artillery", mod: (s) => ({ ...s, splash: Math.round(s.splash * 1.6), range: Math.round(s.range * 1.3), damage: Math.round(s.damage * 1.1) }) },
+    { id: "inferno", name: "Inferno", desc: "Splash that ignites", mod: (s) => ({ ...s, poison: 9, poisonDur: 150 }) },
+  ],
+  frost: [
+    { id: "glacier", name: "Glacier", desc: "Slows a whole area", mod: (s) => ({ ...s, splash: 120, slow: 0.62 }) },
+    { id: "shatter", name: "Shatter", desc: "Heavy magic burst", mod: (s) => ({ ...s, damage: Math.round(s.damage * 2.4), slow: 0.45 }) },
+  ],
+  poison: [
+    { id: "plague", name: "Plague", desc: "Poison spreads on hit", mod: (s) => ({ ...s, splash: 110 }) },
+    { id: "venom", name: "Venom", desc: "Potent fast toxin", mod: (s) => ({ ...s, poison: +(s.poison * 2.4).toFixed(1), poisonDur: Math.round(s.poisonDur * 1.3) }) },
+  ],
+};
+function statsFor(type, level, spec) {
+  let s = scaled(TOWERS[type], level);
+  if (spec && SPECS[type]) { const sp = SPECS[type].find((x) => x.id === spec); if (sp) s = sp.mod(s); }
+  return s;
+}
+const hasSpec = (type) => !!SPECS[type];
+const upgradeCost = (type, level) => Math.round(TOWERS[type].cost * (level === 1 ? 0.8 : 1.3)); // level → level+1
+const specCost = (type) => Math.round(TOWERS[type].cost * 1.8);
+
 const WAVES = [
   { id: 1, name: "First Light", hint: "Light infantry. Build any tower.", reward: 50, spawns: [{ e: "Normal", n: 8, iv: 0.7, at: 0 }] },
   { id: 2, name: "Patrol", hint: "Two corners. Spread your defenses.", reward: 60, spawns: [{ e: "Normal", n: 10, iv: 0.7, at: 0 }, { e: "Normal", n: 10, iv: 0.7, at: 2 }] },
@@ -188,6 +239,7 @@ class Game {
     this.gold = START_GOLD;
     this.lives = START_LIVES;
     this.towers = [];
+    this.selectedTower = null;
     this.occupied = new Set();
     this.enemies = [];
     this.bullets = [];
@@ -300,6 +352,7 @@ class Game {
     const livesEl = document.getElementById("lives");
     livesEl.textContent = `❤ ${Math.max(0, this.lives)}`;
     livesEl.classList.toggle("low", this.lives <= 5 && this.state !== "won");
+    if (this.selectedTower) this.renderInspector();
   }
   renderPB() { document.getElementById("pb").textContent = this.pb == null ? "PB —" : "PB " + fmt(this.pb); }
   setWaveText(name, hint) {
@@ -465,7 +518,7 @@ class Game {
       const k = e.key.toLowerCase();
       if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) this.keys.add(k);
       for (const [id, d] of Object.entries(TOWERS)) if (d.key === k) this.select(id);
-      if (k === "escape") { this.selected = "basic"; this.refreshButtons(); }
+      if (k === "escape") { this.selected = "basic"; this.deselectTower(); this.refreshButtons(); }
       else if (k === "p") this.togglePause();
       else if (k === " " || e.code === "Space") {
         e.preventDefault();
@@ -478,10 +531,12 @@ class Game {
 
   onClick(clientX, clientY) {
     if (this.state === "ready") { this.hideOverlay(); this.state = "running"; return; }
-    if (this.state !== "running") return;
+    if (this.state !== "running" && this.state !== "paused") return;
     const w = this.screenToWorld(clientX, clientY);
     const { c, r } = this.cellOf(w.x, w.y);
-    this.build(c, r, this.selected);
+    const existing = this.towers.find((t) => t.c === c && t.r === r);
+    if (existing) { this.selectTower(existing); return; }  // click a tower → inspect/upgrade
+    if (this.state === "running" && this.build(c, r, this.selected)) this.deselectTower();
   }
 
   panFromKeys(dt) {
@@ -497,18 +552,37 @@ class Game {
     const def = TOWERS[type];
     if (this.gold < def.cost || !this.cellBuildable(c, r)) return false;
     const ctr = this.cellCenter(c, r);
-    this.towers.push({ c, r, x: ctr.x, y: ctr.y, type, def, lastFire: -999, dmgMult: 1, cdMult: 1 });
+    this.towers.push({ c, r, x: ctr.x, y: ctr.y, type, def, level: 1, spec: null, invested: def.cost, s: statsFor(type, 1, null), lastFire: -999, dmgMult: 1, cdMult: 1 });
     this.occupied.add(c + "," + r);
     this.gold -= def.cost;
     this.recomputeAuras();
     this.refreshButtons();
     return true;
   }
+  // upgrade the selected tower: "level" (Lv+1) or a spec id at max level
+  upgradeTower(tw, choice) {
+    if (!tw || this.state !== "running") return;
+    if (choice === "level" && tw.level < MAX_LEVEL) {
+      const cost = upgradeCost(tw.type, tw.level);
+      if (this.gold < cost) return;
+      this.gold -= cost; tw.invested += cost; tw.level++;
+    } else if (tw.level >= MAX_LEVEL && !tw.spec && hasSpec(tw.type) && SPECS[tw.type].some((x) => x.id === choice)) {
+      const cost = specCost(tw.type);
+      if (this.gold < cost) return;
+      this.gold -= cost; tw.invested += cost; tw.spec = choice;
+    } else return;
+    tw.s = statsFor(tw.type, tw.level, tw.spec);
+    this.recomputeAuras();
+    this.refreshButtons();
+    this.renderInspector();
+  }
   sellAt(c, r) {
     const idx = this.towers.findIndex((t) => t.c === c && t.r === r);
     if (idx < 0) return;
-    this.gold += Math.floor(this.towers[idx].def.cost * 0.7);
+    const tw = this.towers[idx];
+    this.gold += Math.floor(tw.invested * 0.7);
     this.occupied.delete(c + "," + r);
+    if (this.selectedTower === tw) this.deselectTower();
     this.towers.splice(idx, 1);
     this.recomputeAuras();
     this.refreshButtons();
@@ -516,15 +590,60 @@ class Game {
   recomputeAuras() {
     for (const t of this.towers) { t.dmgMult = 1; t.cdMult = 1; }
     for (const a of this.towers) {
-      if (!a.def.aura) continue;
+      if (!a.s.aura) continue;
       for (const t of this.towers) {
         if (t === a) continue;
-        if (Math.hypot(t.x - a.x, t.y - a.y) <= a.def.aura.radius) {
-          if (a.def.aura.type === "dmg") t.dmgMult += a.def.aura.value;
-          else if (a.def.aura.type === "cd") t.cdMult = Math.max(0.3, t.cdMult - a.def.aura.value);
+        if (Math.hypot(t.x - a.x, t.y - a.y) <= a.s.aura.radius) {
+          if (a.s.aura.type === "dmg") t.dmgMult += a.s.aura.value;
+          else if (a.s.aura.type === "cd") t.cdMult = Math.max(0.3, t.cdMult - a.s.aura.value);
         }
       }
     }
+  }
+  // ---- tower inspect / upgrade panel
+  selectTower(tw) { this.selectedTower = tw; this.renderInspector(); }
+  deselectTower() { this.selectedTower = null; this.renderInspector(); }
+  renderInspector() {
+    const panel = document.getElementById("inspector");
+    if (!panel) return;
+    const tw = this.selectedTower;
+    if (!tw || !this.towers.includes(tw)) { panel.classList.add("hidden"); return; }
+    panel.classList.remove("hidden");
+    const s = tw.s, specName = tw.spec ? SPECS[tw.type].find((x) => x.id === tw.spec)?.name : null;
+    const tier = tw.spec ? specName : `Lv ${tw.level}`;
+    document.getElementById("inspName").innerHTML = `<span class="idot" style="background:${tw.def.color}"></span>${tw.def.name} <span class="lvtag">${tier}</span>`;
+    const rate = s.cd ? (60 / (s.cd * tw.cdMult)).toFixed(1) : "—";
+    const dmg = s.damage ? Math.round(s.damage * tw.dmgMult) : "—";
+    const rows = [];
+    if (s.aura) rows.push([s.aura.type === "dmg" ? "Dmg aura" : "Speed aura", `${Math.round(s.aura.value * 100)}% · r${s.aura.radius}`]);
+    else { rows.push(["Damage", dmg], ["Range", Math.round(s.range)], ["Rate", `${rate}/s`]); }
+    if (s.splash) rows.push(["Splash", `r${s.splash}`]);
+    if (s.slow) rows.push(["Slow", `${Math.round(s.slow * 100)}%`]);
+    if (s.poison) rows.push(["Poison", `${s.poison}/t`]);
+    if (s.multishot) rows.push(["Targets", s.multishot]);
+    document.getElementById("inspStats").innerHTML = rows.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join("");
+    const actions = document.getElementById("inspActions");
+    actions.innerHTML = "";
+    const mkBtn = (label, cost, fn, sub) => {
+      const b = document.createElement("button");
+      b.className = "ibtn";
+      b.innerHTML = `<span>${label}${sub ? `<span class="isub">${sub}</span>` : ""}</span><span class="icost">${cost}g</span>`;
+      b.disabled = this.gold < cost || this.state !== "running";
+      b.onclick = fn;
+      actions.appendChild(b);
+    };
+    if (tw.level < MAX_LEVEL) {
+      mkBtn(`Upgrade → Lv ${tw.level + 1}`, upgradeCost(tw.type, tw.level), () => this.upgradeTower(tw, "level"));
+    } else if (!tw.spec && hasSpec(tw.type)) {
+      for (const sp of SPECS[tw.type]) mkBtn(sp.name, specCost(tw.type), () => this.upgradeTower(tw, sp.id), sp.desc);
+    } else {
+      const max = document.createElement("div"); max.className = "imax"; max.textContent = "Fully upgraded"; actions.appendChild(max);
+    }
+    const sell = document.createElement("button");
+    sell.className = "ibtn sell";
+    sell.innerHTML = `<span>Sell</span><span class="icost">+${Math.floor(tw.invested * 0.7)}g</span>`;
+    sell.onclick = () => this.sellAt(tw.c, tw.r);
+    actions.appendChild(sell);
   }
 
   // ---- waves (multiple may run at once — you can send the next early)
@@ -577,10 +696,10 @@ class Game {
     if (this.started) this.runMs += dt * 1000; // score in sim-time, so game-speed never cheeses the PB
     while (this.spawnQueue.length && this.spawnQueue[0].time <= this.gameTime) this.spawnEnemy(this.spawnQueue.shift());
 
-    const detectors = this.towers.filter((t) => t.def.detect);
+    const detectors = this.towers.filter((t) => t.s.detect);
     for (const en of this.enemies) {
       if (en.flags.includes("invisible"))
-        en.revealed = detectors.some((d) => Math.hypot(d.x - en.x, d.y - en.y) <= d.def.range);
+        en.revealed = detectors.some((d) => Math.hypot(d.x - en.x, d.y - en.y) <= d.s.range);
       else en.revealed = true;
     }
 
@@ -633,35 +752,38 @@ class Game {
   fireTowers() {
     const t = this.gameTime;
     for (const tw of this.towers) {
-      const d = tw.def;
+      const d = tw.s;
       if (!d.dtype && !d.detect) continue;
       const eff = (d.cd / 60) * tw.cdMult;
       if (t - tw.lastFire < eff) continue;
-      const target = this.pickTarget(tw);
-      if (!target) continue;
+      const targets = this.pickTargets(tw, d.multishot || 1);
+      if (!targets.length) continue;
       tw.lastFire = t;
-      this.bullets.push({ x1: tw.x, y1: tw.y, x2: target.x, y2: target.y, color: d.color, t: 0.09 });
       const base = d.damage * tw.dmgMult;
-      if (d.splash) {
-        for (const en of this.enemies) {
-          if (en.hp <= 0) continue;
-          if (Math.hypot(en.x - target.x, en.y - target.y) <= d.splash) this.hit(en, base, d);
-        }
-      } else this.hit(target, base, d);
+      for (const target of targets) {
+        this.bullets.push({ x1: tw.x, y1: tw.y, x2: target.x, y2: target.y, color: tw.def.color, t: 0.09 });
+        if (d.splash) {
+          for (const en of this.enemies) {
+            if (en.hp <= 0) continue;
+            if (Math.hypot(en.x - target.x, en.y - target.y) <= d.splash) this.hit(en, base, d);
+          }
+        } else this.hit(target, base, d);
+      }
     }
   }
-  pickTarget(tw) {
-    let best = null, bestProg = -Infinity;
+  pickTargets(tw, n) {
+    const inRange = [];
     for (const en of this.enemies) {
       if (en.hp <= 0) continue;
       if (en.flags.includes("invisible") && !en.revealed) continue;
-      if (Math.hypot(en.x - tw.x, en.y - tw.y) > tw.def.range) continue;
+      if (Math.hypot(en.x - tw.x, en.y - tw.y) > tw.s.range) continue;
       const last = en.path.length - 1;
       const next = en.path[Math.min(en.wp + 1, last)];
-      const prog = en.wp * 10000 - Math.hypot(en.x - next[0], en.y - next[1]);
-      if (prog > bestProg) { bestProg = prog; best = en; }
+      en._prog = en.wp * 10000 - Math.hypot(en.x - next[0], en.y - next[1]);
+      inRange.push(en);
     }
-    return best;
+    if (inRange.length > 1) inRange.sort((a, b) => b._prog - a._prog);
+    return n <= 1 ? (inRange.length ? [inRange[0]] : []) : inRange.slice(0, n);
   }
   hit(en, base, d) {
     if (en.hp <= 0) return;
@@ -753,7 +875,22 @@ class Game {
       ctx.fillStyle = tw.def.color;
       this.round(x + 5, y + 5, CELL - 10, CELL - 10, 6); ctx.fill();
       ctx.fillStyle = "rgba(0,0,0,.35)"; ctx.beginPath(); ctx.arc(tw.x, tw.y, 4, 0, 7); ctx.fill();
-      if (tw.def.detect) { ctx.strokeStyle = "rgba(255,214,78,.10)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(tw.x, tw.y, tw.def.range, 0, 7); ctx.stroke(); }
+      if (tw.s.detect) { ctx.strokeStyle = "rgba(255,214,78,.10)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(tw.x, tw.y, tw.s.range, 0, 7); ctx.stroke(); }
+      // level pips along the top edge; a diamond once specialized
+      if (tw.spec) {
+        ctx.fillStyle = "#fef08a"; ctx.beginPath();
+        ctx.moveTo(tw.x, y + 3); ctx.lineTo(tw.x + 5, y + 8); ctx.lineTo(tw.x, y + 13); ctx.lineTo(tw.x - 5, y + 8); ctx.closePath(); ctx.fill();
+      } else {
+        for (let i = 0; i < tw.level; i++) { ctx.fillStyle = "#f8fafc"; ctx.beginPath(); ctx.arc(x + 9 + i * 7, y + 8, 2.1, 0, 7); ctx.fill(); }
+      }
+    }
+    // selected-tower highlight + range
+    const sel = this.selectedTower;
+    if (sel && this.towers.includes(sel)) {
+      ctx.strokeStyle = "rgba(255,255,255,.85)"; ctx.lineWidth = 2;
+      this.round(sel.c * CELL + 3, sel.r * CELL + 3, CELL - 6, CELL - 6, 7); ctx.stroke();
+      if (sel.s.range > 0) { ctx.strokeStyle = "rgba(134,239,172,.35)"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(sel.x, sel.y, sel.s.range, 0, 7); ctx.stroke(); }
+      if (sel.s.aura) { ctx.strokeStyle = "rgba(255,255,255,.22)"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(sel.x, sel.y, sel.s.aura.radius, 0, 7); ctx.stroke(); }
     }
 
     // bullets
