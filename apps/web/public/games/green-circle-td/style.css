@@ -128,6 +128,11 @@ button.primary:focus-visible, .overlay button:focus-visible, .ibtn:focus-visible
 .ibtn.sell .icost { color: #fca5a5; }
 .imax { font-size: 11px; color: #8fae97; text-align: center; padding: 4px; }
 
+/* incoming armor type pills — shown while a wave is in flight */
+.armor-pill { display: flex; flex-wrap: wrap; gap: 4px; margin: 5px 0 4px; }
+.armor-pill.hidden { display: none; }
+.apill { padding: 2px 7px; border-radius: 999px; font-size: 10px; font-weight: 700; border: 1px solid; line-height: 1.5; }
+
 button.primary {
   width: 100%; padding: 9px; font-size: 14px; font-weight: 700;
   color: #07120a; background: #86efac; border: 0; border-radius: 8px; cursor: pointer;
