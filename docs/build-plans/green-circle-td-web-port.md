@@ -1,5 +1,13 @@
 # Build plan — Green Circle TD (web port)
 
+> ✅ **STATUS: COMPLETED AND SUPERSEDED.** The port shipped and the game is live
+> at v1.8.0 with WC3-parity features (chaos damage, anti-air, wave shuffle) and
+> **true online multiplayer** (authoritative server: [`Brynrg/gctd-server`](https://github.com/Brynrg/gctd-server)
+> on Fly.io, Pattern F in [`../multiplayer-architecture.md`](../multiplayer-architecture.md)).
+> This document is kept for historical context only. For current work, read the
+> source repo's `AGENTS.md` (`Brynrg/green-circle-td`) — especially the
+> duplicated-sim rule: balance changes must land in BOTH the game and server repos.
+
 **Slug:** `green-circle-td` · **Category:** tower-defense · **Goal:** replace the
 empty-grid stub currently served at `/games/green-circle-td/` with a real,
 playable web game that faithfully reproduces the existing Python desktop game.
