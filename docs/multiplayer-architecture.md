@@ -15,6 +15,7 @@ Pick the FIRST pattern that fits. Each later pattern is more capable but adds op
 3. **3+ players or strangers needed, real-time?** → Pattern C — PartyKit (Cloudflare-hosted free tier)
 4. **3+ players, want self-managed Cloudflare for higher free ceilings?** → Pattern D — Cloudflare Workers + Durable Objects
 5. **Turn-based / async / leaderboard-shaped?** → Pattern E — Netlify Blobs (already in this portal)
+6. **Server-authoritative real-time sim (anti-cheat, shared world state the clients can't be trusted to compute)?** → Pattern F — Fly.io scale-to-zero Node server
 
 Don't skip ahead. If a game can fit Pattern A, use A. The portal's overall multiplayer cost surface area is the sum of every game's choice — keep it small.
 
@@ -154,9 +155,32 @@ ws.send(JSON.stringify({ type: "move", ... }));
 
 ---
 
+## Pattern F — Fly.io scale-to-zero authoritative server
+
+**Use when:** the game needs a server-authoritative simulation — the server runs the one true game state and clients only send inputs (tower builds, commands) and render snapshots. This is the right shape when client-computed state can't be trusted (cheating) or when a continuous shared sim must outlive any one client.
+
+- Plain Node.js + `ws` in its own repo, deployed as a Fly.io app with `auto_stop_machines = "stop"`, `auto_start_machines = true`, `min_machines_running = 0` — the machine **sleeps when no one is connected** and cold-starts (~1s) on the first WebSocket connection. This satisfies the no-always-on-servers constraint: idle cost is ~$0; active cost at hobby scale is pennies/month on a shared-cpu-1x/256MB VM.
+- Lobby by room code (no auth, per §"NOT allowed"), all game rules validated server-side, compact snapshot broadcasting (tuples not objects, 10–15Hz, permessage-deflate).
+- **The big tradeoff:** if the server reuses the game's mechanics, the sim logic gets duplicated between the game repo and the server repo. Document this loudly in BOTH repos' `AGENTS.md` — every balance change must land twice.
+
+**Deployed example:** `green-circle-td` v1.8.0 — server repo [`Brynrg/gctd-server`](https://github.com/Brynrg/gctd-server), Fly app `gctd-server` (region `sjc` — `sea` is deprecated), endpoint `wss://gctd-server.fly.dev`. 2–4 player co-op, WC3-style lobby, per-player build zones, shared lives. See that repo's `AGENTS.md` for the protocol and operational details. (The `tank-you-again` Fly app is the same pattern for the tank game.)
+
+**Manifest:**
+```json
+{
+  "multiplayer": "realtime-server",
+  "multiplayerProvider": "fly-io",
+  "multiplayerEndpoint": "wss://<app>.fly.dev"
+}
+```
+
+**Cost:** ~$0 idle (scale-to-zero); cents/month active at hobby scale. Fly bills usage — keep VMs at shared-cpu-1x/256MB and verify `auto_stop_machines` is set before approving.
+
+---
+
 ## What multiplayer is NOT allowed to do
 
-- **No always-on dedicated game servers.** Every approved pattern is either client-side, peer-to-peer, or serverless.
+- **No always-on dedicated game servers.** Every approved pattern is client-side, peer-to-peer, serverless, or scale-to-zero (Pattern F: the machine must stop when idle — `min_machines_running = 0`).
 - **No proprietary multiplayer SDKs requiring paid plans** (PlayFab, GameLift, Photon paid tiers, etc.).
 - **No usage-billed APIs without a documented free ceiling.**
 - **No auth.** Multiplayer uses room codes / pairing handshakes only. No user accounts, no OAuth, no email collection — see AGENTS.md §9.

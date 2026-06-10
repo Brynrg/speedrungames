@@ -9,9 +9,12 @@
   "framework": "vanilla",
   "supportsMobile": true,
   "version": "1.8.0",
-  "sourceCommit": "810675224d6ff9dd2646ade00e34d5c640829121",
+  "sourceCommit": "bd894120159644edb63bbfab5d5f42eb5c9f2fa5",
   "buildHash": "0859ced7d70b603ba4dccdc73c45aefe050484c73d358649b72484445cb4a678",
-  "buildTimestamp": "2026-06-09T23:31:21.459Z",
-  "lastUpdated": "2026-06-09T23:31:21.459Z",
-  "emoji": "🟢"
+  "buildTimestamp": "2026-06-10T01:17:23.608Z",
+  "lastUpdated": "2026-06-10T01:17:23.608Z",
+  "emoji": "🟢",
+  "multiplayer": "realtime-server",
+  "multiplayerProvider": "fly-io",
+  "multiplayerEndpoint": "wss://gctd-server.fly.dev"
 }

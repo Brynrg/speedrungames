@@ -153,6 +153,17 @@ if (typeof srcManifest.assetsDocumented === "boolean") {
 if (typeof srcManifest.assetLicenseSummary === "string") {
   portalManifest.assetLicenseSummary = srcManifest.assetLicenseSummary;
 }
+// multiplayer declaration (docs/multiplayer-architecture.md): carry through so
+// the portal manifest records each game's pattern + provider + endpoint
+if (typeof srcManifest.multiplayer === "string") {
+  portalManifest.multiplayer = srcManifest.multiplayer;
+}
+if (typeof srcManifest.multiplayerProvider === "string") {
+  portalManifest.multiplayerProvider = srcManifest.multiplayerProvider;
+}
+if (typeof srcManifest.multiplayerEndpoint === "string") {
+  portalManifest.multiplayerEndpoint = srcManifest.multiplayerEndpoint;
+}
 
 {
   const { valid, errors } = validatePortalManifest(portalManifest, "<built portal manifest>");
