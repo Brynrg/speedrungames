@@ -183,7 +183,43 @@ export function validatePortalManifest(manifest, pathForErrors = "<manifest>") {
     errors.push(`${at("multiplayerEndpoint")}: must be string when present`);
   }
 
+  validateExpectedAssetsShape(manifest, at, errors);
+
   return { valid: errors.length === 0, errors };
+}
+
+/**
+ * Validate the optional `expectedAssets` declaration shape (pure; no fs).
+ * Entries are { dir: string (relative, no ".."), ext?: ".xxx", min?: positive int }.
+ * The fs-presence enforcement lives in _lib/asset-check.mjs.
+ * @param {Record<string, unknown>} manifest
+ * @param {(field: string) => string} at
+ * @param {string[]} errors
+ */
+function validateExpectedAssetsShape(manifest, at, errors) {
+  if (manifest.expectedAssets === undefined) return;
+  if (!Array.isArray(manifest.expectedAssets)) {
+    errors.push(`${at("expectedAssets")}: must be an array when present`);
+    return;
+  }
+  manifest.expectedAssets.forEach((entry, i) => {
+    const tag = `expectedAssets[${i}]`;
+    if (typeof entry !== "object" || entry === null || Array.isArray(entry)) {
+      errors.push(`${at(tag)}: must be an object { dir, ext?, min? }`);
+      return;
+    }
+    if (typeof entry.dir !== "string" || entry.dir.length === 0) {
+      errors.push(`${at(`${tag}.dir`)}: must be a non-empty string`);
+    } else if (entry.dir.includes("..") || entry.dir.startsWith("/") || entry.dir.startsWith("\\")) {
+      errors.push(`${at(`${tag}.dir`)}: must be a relative path inside the game (no "..", no leading slash)`);
+    }
+    if (entry.ext !== undefined && (typeof entry.ext !== "string" || !entry.ext.startsWith("."))) {
+      errors.push(`${at(`${tag}.ext`)}: must be a string starting with "." (e.g. ".png")`);
+    }
+    if (entry.min !== undefined && (!Number.isInteger(entry.min) || entry.min < 1)) {
+      errors.push(`${at(`${tag}.min`)}: must be a positive integer`);
+    }
+  });
 }
 
 /**
@@ -231,6 +267,8 @@ export function validateSourceManifest(manifest, pathForErrors = "<game.manifest
       );
     }
   }
+
+  validateExpectedAssetsShape(manifest, at, errors);
 
   return { valid: errors.length === 0, errors };
 }
