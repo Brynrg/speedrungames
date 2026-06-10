@@ -819,7 +819,7 @@ class Game {
       hp: s.hp, maxHp: s.hp, speed: s.speed,
       def: s.def, enemy: s.enemy, bounty: s.bounty, rec: s.rec,
       flags: s.def.flags, armor: s.def.armor, color: s.def.color,
-      slowUntil: 0, poison: 0, poisonUntil: 0, revealed: false,
+      slowUntil: 0, slowFactor: 0, poison: 0, poisonUntil: 0, revealed: false,
     });
   }
 
@@ -904,7 +904,7 @@ class Game {
 
       const wavePanel = document.getElementById("wavePanel");
       if (wavePanel) wavePanel.classList.remove("boss-wave");
-      if (this.waveIndex >= WAVES.length && this.activeWaves.length === 0) { this.setWaveText("All clear", "Final wave done!"); this.setArmorPill([]); this.end(true); return; }
+      if (this.waveIndex >= WAVES.length && this.activeWaves.length === 0 && this.lives > 0) { this.setWaveText("All clear", "Final wave done!"); this.setArmorPill([]); this.end(true); return; }
       const nextName = this.waves[this.waveIndex]?.name ?? "";
       const clearHint = this.waveIndex >= WAVES.length
         ? `+${reward}g${extStr}. Last waves still in flight.`
@@ -920,7 +920,7 @@ class Game {
   moveEnemies(dt) {
     for (const en of this.enemies) {
       if (en.hp <= 0) continue;
-      const speed = en.speed * (this.gameTime < en.slowUntil ? 0.45 : 1);
+      const speed = en.speed * (this.gameTime < en.slowUntil ? (1 - (en.slowFactor || 0)) : 1);
       let remaining = speed * dt;
       const path = en.path, last = path.length - 1;
       while (remaining > 0 && en.wp < last) {
@@ -979,8 +979,18 @@ class Game {
     if (tw) en.lastHitPlayer = tw.player ?? 0;
     en.hp -= base * mult;
     const immune = en.flags.includes("immune");
-    if (d.slow && !immune) en.slowUntil = this.gameTime + d.slowDur / 60;
-    if (d.poison && !immune) { en.poison = d.poison; en.poisonUntil = this.gameTime + d.poisonDur / 60; }
+    if (d.slow && !immune) {
+      // keep the strongest slow currently in effect (don't let a weaker hit dilute it)
+      const activeSlow = (en.slowUntil > this.gameTime) ? (en.slowFactor || 0) : 0;
+      en.slowFactor = Math.max(activeSlow, d.slow);
+      en.slowUntil = this.gameTime + d.slowDur / 60;
+    }
+    if (d.poison && !immune) {
+      // keep the strongest poison currently in effect (don't let a weaker DoT overwrite it)
+      const activePoison = (en.poisonUntil > this.gameTime) ? en.poison : 0;
+      en.poison = Math.max(activePoison, d.poison);
+      en.poisonUntil = this.gameTime + d.poisonDur / 60;
+    }
     if (en.hp > 0) this.spawnFx(en.x, en.y, "#fde68a", "spark");
     if (en.hp <= 0) this.onKill(en);
   }
