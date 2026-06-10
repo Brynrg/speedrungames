@@ -51,6 +51,7 @@ import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 
 import { validatePortalManifest, validateSourceManifest } from "./_lib/manifest-validation.mjs";
+import { checkExpectedAssets } from "./_lib/asset-check.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const GAMES_DIR = resolve(ROOT, "apps/web/public/games");
@@ -103,6 +104,20 @@ const distDir = resolve(gameDir, "dist");
 const distIndex = resolve(distDir, "index.html");
 if (!existsSync(distIndex)) {
   fail(`Expected built output at ${rel(distIndex)} — run \`npm run build\` in the game repo first`);
+}
+
+// Asset-presence contract: if the source manifest declares expectedAssets, the
+// freshly-built dist/ must actually contain them. This turns a runtime 404
+// (e.g. a game that ships 0 of its 151 sprites) into a deploy-time failure.
+if (srcManifest.expectedAssets !== undefined) {
+  const { ok, errors } = checkExpectedAssets(distDir, srcManifest.expectedAssets);
+  if (!ok) {
+    fail(
+      "Build is missing assets declared in game.manifest.json#expectedAssets:\n  - " +
+        errors.join("\n  - ") +
+        `\n  Build these into ${rel(distDir)} before ingest, or correct expectedAssets.`,
+    );
+  }
 }
 
 const targetDir = resolve(GAMES_DIR, slug);
@@ -163,6 +178,11 @@ if (typeof srcManifest.multiplayerProvider === "string") {
 }
 if (typeof srcManifest.multiplayerEndpoint === "string") {
   portalManifest.multiplayerEndpoint = srcManifest.multiplayerEndpoint;
+}
+// carry the asset contract into the portal manifest so validate-games.mjs can
+// re-check the served directory on every portal build (defense in depth)
+if (Array.isArray(srcManifest.expectedAssets)) {
+  portalManifest.expectedAssets = srcManifest.expectedAssets;
 }
 
 {

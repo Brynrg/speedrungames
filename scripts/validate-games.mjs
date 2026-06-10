@@ -21,6 +21,7 @@ import { dirname, resolve, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { validatePortalManifest, STATUS_PRIORITY } from "./_lib/manifest-validation.mjs";
+import { checkExpectedAssets } from "./_lib/asset-check.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const GAMES_DIR = resolve(ROOT, "apps/web/public/games");
@@ -171,6 +172,18 @@ function main() {
       warnings.push(
         `apps/web/public/games/${slug}/: contains asset files but manifest has no assetsDocumented/assetLicenseSummary — source repo should carry ASSETS.md and manifest should attest`,
       );
+    }
+
+    // declared asset contract — the served dir must actually contain the assets
+    // the game says it needs (catches a "no visible change" build that shipped
+    // an empty asset directory).
+    if (manifest.expectedAssets !== undefined) {
+      const { ok, errors: assetErrors } = checkExpectedAssets(dir, manifest.expectedAssets);
+      if (!ok) {
+        for (const e of assetErrors) {
+          errors.push(`apps/web/public/games/${slug}/: ${e}`);
+        }
+      }
     }
 
     summary.push({

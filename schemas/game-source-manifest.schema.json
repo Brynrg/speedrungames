@@ -76,6 +76,19 @@
     },
     "multiplayerEndpoint": {
       "type": "string"
+    },
+    "expectedAssets": {
+      "type": "array",
+      "description": "Optional asset-presence contract enforced at ingest: directories the build MUST contain. Each: { dir, ext?, min? }.",
+      "items": {
+        "type": "object",
+        "required": ["dir"],
+        "properties": {
+          "dir": { "type": "string" },
+          "ext": { "type": "string" },
+          "min": { "type": "integer", "minimum": 1 }
+        }
+      }
     }
   }
 }

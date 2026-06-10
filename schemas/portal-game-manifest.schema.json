@@ -128,6 +128,19 @@
     "multiplayerEndpoint": {
       "type": "string",
       "description": "Optional endpoint URL for the multiplayer transport (e.g. the PartyKit deploy URL). Documentary only; not validated."
+    },
+    "expectedAssets": {
+      "type": "array",
+      "description": "Optional asset-presence contract. Each entry names a directory the build MUST contain. Enforced at ingest (against dist/) and in validate-games (against the served dir) — turns a runtime 404 from an empty asset dir into a deploy-time failure.",
+      "items": {
+        "type": "object",
+        "required": ["dir"],
+        "properties": {
+          "dir": { "type": "string", "description": "Relative path inside the game (no '..', no leading slash), e.g. 'assets/gen1'." },
+          "ext": { "type": "string", "description": "Optional extension filter, e.g. '.png'. Only matching files are counted." },
+          "min": { "type": "integer", "minimum": 1, "description": "Minimum number of non-empty matching files required (default 1)." }
+        }
+      }
     }
   },
   "allOf": [
