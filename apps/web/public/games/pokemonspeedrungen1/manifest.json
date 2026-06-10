@@ -9,9 +9,17 @@
   "framework": "other",
   "supportsMobile": true,
   "version": "1.0.0",
-  "sourceCommit": "7d3bf858082b0cb583293148162cfc85c3c204fb",
-  "buildHash": "ae2154ef206a7f2df4daf0ed9466cc0269977d9f44f5d506637bcaadef2567b1",
-  "buildTimestamp": "2026-06-01T03:38:44.069Z",
-  "lastUpdated": "2026-06-01T03:38:44.069Z",
-  "emoji": "🎙️"
+  "sourceCommit": "78317e125379539f01950c63065e301e71e728e9",
+  "buildHash": "9d2383777af39170df1eccfdf44a5969537ee10dac415733a0e3e81d8f9ea0a7",
+  "buildTimestamp": "2026-06-10T03:11:19.176Z",
+  "lastUpdated": "2026-06-10T03:11:19.176Z",
+  "emoji": "🎙️",
+  "assetLicenseSummary": "Gen 1 (#001–151) official artwork sprites, © Nintendo / Game Freak / The Pokémon Company. Non-commercial fan project. See ASSETS.md.",
+  "expectedAssets": [
+    {
+      "dir": "assets/gen1",
+      "ext": ".png",
+      "min": 151
+    }
+  ]
 }
