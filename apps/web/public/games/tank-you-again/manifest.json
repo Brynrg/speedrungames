@@ -9,10 +9,13 @@
   "framework": "vite",
   "supportsMobile": true,
   "version": "0.1.0",
-  "sourceCommit": "1d499a7e7d94156c0e5cfbcd1d3d4e9121ec1e0d",
+  "sourceCommit": "a35993566e4869842a36093fb3178d315c62792e",
   "buildHash": "ec34f1230e3659c74934f4914257db7f66685762052c7720654395d3dbf44f2c",
-  "buildTimestamp": "2026-06-07T03:35:17.196Z",
-  "lastUpdated": "2026-06-07T03:35:17.196Z",
+  "buildTimestamp": "2026-06-11T02:38:27.037Z",
+  "lastUpdated": "2026-06-11T02:38:27.037Z",
   "emoji": "🕹️",
-  "assetsDocumented": true
+  "assetsDocumented": true,
+  "multiplayer": "realtime-server",
+  "multiplayerProvider": "Fly.io WebSocket (free tier — shared-cpu-1x, auto-stop on idle)",
+  "multiplayerEndpoint": "wss://tank-you-again.fly.dev/ws"
 }
