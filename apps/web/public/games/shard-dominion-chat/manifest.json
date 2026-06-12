@@ -1,0 +1,17 @@
+{
+  "slug": "shard-dominion-chat",
+  "title": "Shard Dominion: Chat Version",
+  "description": "Classic sci-fi RTS on Aether Prime — bake-off build 2, from the chat-version build package",
+  "repo": "Brynrg/shard-dominion-chat",
+  "playUrl": "/games/shard-dominion-chat/",
+  "category": "arcade",
+  "status": "live",
+  "framework": "vite-phaser",
+  "supportsMobile": true,
+  "version": "0.1.0",
+  "sourceCommit": "a58ed46d821da5244c1a2afbecbc9c54d99d7679",
+  "buildHash": "55aa6898b4a28fa1ae2f4b218556665050e64bd05b1177aedf477dbaaa0fdbee",
+  "buildTimestamp": "2026-06-12T16:33:26.378Z",
+  "lastUpdated": "2026-06-12T16:33:26.378Z",
+  "emoji": "🎮"
+}
