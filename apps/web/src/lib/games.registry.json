@@ -42,6 +42,20 @@
     "emoji": "🎙️"
   },
   {
+    "slug": "shard-dominion",
+    "title": "Shard Dominion",
+    "description": "Classic sci-fi RTS: asymmetric factions, harvester economy, concrete-and-power base building on Aether Prime",
+    "repo": "Brynrg/shard-dominion",
+    "playUrl": "/games/shard-dominion/",
+    "category": "arcade",
+    "status": "live",
+    "framework": "vite-phaser",
+    "supportsMobile": true,
+    "version": "0.1.0",
+    "lastUpdated": "2026-06-12T06:07:02.578Z",
+    "emoji": "🎮"
+  },
+  {
     "slug": "tank-you-again",
     "title": "Tank You Again",
     "description": "Real-time multiplayer tank arena. 8-way movement, fuel-as-health, landmines, masked radar, 10-tier rank ladder.",
