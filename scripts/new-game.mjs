@@ -136,7 +136,9 @@ gh(["repo", "clone", repo, workdir]);
 
 substituteManifest(resolve(workdir, "game.manifest.json"));
 substitutePlaceholders(resolve(workdir, "index.html"));
-substitutePlaceholders(resolve(workdir, ".github/workflows/deploy.yml"));
+// deploy.yml is deliberately NOT substituted: it reads the slug from
+// game.manifest.json at runtime, and replaceAll("__SLUG__") used to rewrite
+// its placeholder guard into an always-skip ("$SLUG" = "<real-slug>").
 substitutePlaceholders(resolve(workdir, "README.md"));
 
 // ── 4. commit + push ───────────────────────────────────────────────────────────
