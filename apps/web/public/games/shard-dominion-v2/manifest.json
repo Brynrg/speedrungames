@@ -1,0 +1,17 @@
+{
+  "slug": "shard-dominion-v2",
+  "title": "Shard Dominion v2",
+  "description": "Classic sci-fi RTS on Aether Prime — bake-off build 3, from the Hermes Execution Manifest v2.0 (veterancy, hazard zones)",
+  "repo": "Brynrg/shard-dominion-v2",
+  "playUrl": "/games/shard-dominion-v2/",
+  "category": "arcade",
+  "status": "live",
+  "framework": "vite-phaser",
+  "supportsMobile": true,
+  "version": "0.1.0",
+  "sourceCommit": "bf8317a01901967fea4235d49735f1e3b64f30d3",
+  "buildHash": "625df92a9798e8dee27f097e0ffc5641568711f57412cb46c3cce9e16c225ae9",
+  "buildTimestamp": "2026-06-12T16:33:37.132Z",
+  "lastUpdated": "2026-06-12T16:33:37.132Z",
+  "emoji": "🎮"
+}

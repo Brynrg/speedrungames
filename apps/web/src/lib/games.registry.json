@@ -56,6 +56,20 @@
     "emoji": "🎮"
   },
   {
+    "slug": "shard-dominion-v2",
+    "title": "Shard Dominion v2",
+    "description": "Classic sci-fi RTS on Aether Prime — bake-off build 3, from the Hermes Execution Manifest v2.0 (veterancy, hazard zones)",
+    "repo": "Brynrg/shard-dominion-v2",
+    "playUrl": "/games/shard-dominion-v2/",
+    "category": "arcade",
+    "status": "live",
+    "framework": "vite-phaser",
+    "supportsMobile": true,
+    "version": "0.1.0",
+    "lastUpdated": "2026-06-12T16:33:37.132Z",
+    "emoji": "🎮"
+  },
+  {
     "slug": "tank-you-again",
     "title": "Tank You Again",
     "description": "Real-time multiplayer tank arena. 8-way movement, fuel-as-health, landmines, masked radar, 10-tier rank ladder.",
