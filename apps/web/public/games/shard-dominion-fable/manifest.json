@@ -1,17 +1,17 @@
 {
   "slug": "shard-dominion-fable",
   "title": "Shard Dominion: Fable",
-  "description": "Classic sci-fi RTS on Aether Prime — bake-off build 4, from the Fable build package (deterministic sim, phase gates)",
+  "description": "A real-time strategy game where you harvest Aether Shards and expand your dominion across a procedurally generated world.",
   "repo": "Brynrg/shard-dominion-fable",
   "playUrl": "/games/shard-dominion-fable/",
-  "category": "arcade",
+  "category": "RTS",
   "status": "live",
-  "framework": "vite-phaser",
-  "supportsMobile": true,
+  "framework": "vite",
+  "supportsMobile": false,
   "version": "0.1.0",
-  "sourceCommit": "e4126b04263bb75bee80fea7887b2c88f3c19a76",
-  "buildHash": "c105674e0bd00836b024dc2694f8ec3988234c2499d9d4ab518dd97805c393d5",
-  "buildTimestamp": "2026-06-13T23:19:42.871Z",
-  "lastUpdated": "2026-06-13T23:19:42.871Z",
-  "emoji": "🎮"
+  "sourceCommit": "475b65273f61995f508e39c2fd81737c1477a76f",
+  "buildHash": "d75c9edb734f84e282aadfc92db79bc31af120e3d1b6bd47a317d533cdbd34a5",
+  "buildTimestamp": "2026-06-14T14:42:44.780Z",
+  "lastUpdated": "2026-06-14T14:42:44.780Z",
+  "emoji": "⚔️"
 }
