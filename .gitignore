@@ -4,6 +4,9 @@ out/
 dist/
 .vercel/
 .netlify/
+# Cloudflare / OpenNext adapter build output
+.open-next/
+.wrangler/
 .env
 .env.*
 *.log

@@ -3,16 +3,22 @@
 //  GET  /api/runs?game=<slug>&limit=<n>  → list runs (filtered by slug if given)
 //  POST /api/runs                        → submit a run
 //
-// Storage: Netlify Blobs, one blob per run, key = `<reverseTs>-<id>` so
-// lexicographic listing returns newest-first. This avoids any read-modify-
-// write race on concurrent writes.
+// Storage: Cloudflare KV, one entry per run, key = `<reverseTs>-<id>` so
+// KV's lexicographic key listing returns newest-first. This avoids any
+// read-modify-write race on concurrent writes.
 //
-// Deploy previews use a deploy-scoped store so PR testing can't pollute
-// production data.
+// The KV binding (RUNS_KV) is declared in wrangler.jsonc. Bind a separate
+// namespace per environment to isolate preview/test data from production.
 
 import { NextResponse } from "next/server";
-import { getStore, getDeployStore } from "@netlify/blobs";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { games } from "@/lib/games";
+
+declare global {
+  interface CloudflareEnv {
+    RUNS_KV?: KVNamespace;
+  }
+}
 
 export const dynamic = "force-dynamic";
 
@@ -46,12 +52,13 @@ function clamp(n: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, n));
 }
 
-// Isolate deploy-preview / branch-deploy storage from production so test
-// submits on a PR can't pollute the live leaderboard.
-function leaderboardStore() {
-  const ctx = process.env.CONTEXT;
-  const isPreview = ctx === "deploy-preview" || ctx === "branch-deploy";
-  return isPreview ? getDeployStore(STORE_NAME) : getStore(STORE_NAME);
+// The KV namespace bound as RUNS_KV (wrangler.jsonc). Throws if unavailable so
+// the GET/POST handlers fall back gracefully (GET → [], POST → 503).
+function leaderboardStore(): KVNamespace {
+  const { env } = getCloudflareContext();
+  const kv = env.RUNS_KV;
+  if (!kv) throw new Error(`KV binding "${STORE_NAME}" (RUNS_KV) not configured`);
+  return kv;
 }
 
 // 13-digit zero-padded reverse timestamp → lexicographic key sort yields
@@ -64,14 +71,14 @@ function runKey(run: Run): string {
 async function listRuns(limit: number, slugFilter?: string): Promise<Run[]> {
   const store = leaderboardStore();
   const scanCap = slugFilter ? FILTER_SCAN_CAP : limit;
-  const result = (await store.list({ paginate: false })) as {
-    blobs: { key: string }[];
-  };
-  const keys = (result.blobs ?? []).map((b) => b.key).sort().slice(0, scanCap);
+  // KV lists keys in lexicographic order; the reverse-ts key scheme makes that
+  // newest-first. scanCap (≤ 500) is within KV's 1000-key per-list limit.
+  const result = await store.list({ limit: scanCap });
+  const keys = result.keys.map((k) => k.name).sort().slice(0, scanCap);
   const runs = await Promise.all(
     keys.map(async (key) => {
       try {
-        return (await store.get(key, { type: "json" })) as Run | null;
+        return await store.get<Run>(key, "json");
       } catch {
         return null;
       }
@@ -84,7 +91,7 @@ async function listRuns(limit: number, slugFilter?: string): Promise<Run[]> {
 
 async function saveRun(run: Run): Promise<void> {
   const store = leaderboardStore();
-  await store.setJSON(runKey(run), run);
+  await store.put(runKey(run), JSON.stringify(run));
 }
 
 export async function GET(req: Request) {

@@ -15,9 +15,9 @@
     "cf:deploy": "pnpm run prebuild && opennextjs-cloudflare build && opennextjs-cloudflare deploy"
   },
   "dependencies": {
-    "@netlify/blobs": "^10.7.8",
+    "@opennextjs/cloudflare": "^1.19.11",
     "@speedrungames/pokemonspeedrungen1": "workspace:*",
-    "next": "16.1.6",
+    "next": "16.2.9",
     "react": "19.0.0",
     "react-dom": "19.0.0"
   },
@@ -27,6 +27,7 @@
     "@types/react-dom": "^19.0.0",
     "eslint": "^9.0.0",
     "eslint-config-next": "15.2.0",
-    "typescript": "^5.8.0"
+    "typescript": "^5.8.0",
+    "wrangler": "^4.104.0"
   }
 }

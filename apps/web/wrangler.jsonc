@@ -10,5 +10,8 @@
   "account_id": "f14fbd517a2319f53d206d16b640bbce",
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
   "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "speedrungames-web" }],
+  // Leaderboard store (apps/web/src/app/api/runs). Replaces Netlify Blobs.
+  // For production, bind a separate namespace per environment to isolate test data.
+  "kv_namespaces": [{ "binding": "RUNS_KV", "id": "529aa1c6e1fc442f84a1915dd035de39" }],
   "observability": { "enabled": true }
 }
