@@ -1,0 +1,14 @@
+{
+  // Cloudflare Workers config for the OpenNext-adapted Next.js portal (apps/web).
+  // PREVIEW ONLY — no custom domain / no DNS. `pnpm cf:deploy` ships to *.workers.dev.
+  // Games portal: no D1/DB binding needed (unlike solo-stack). Static game assets ship via ASSETS.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "speedrungames-web",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2024-12-30",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "account_id": "f14fbd517a2319f53d206d16b640bbce",
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "speedrungames-web" }],
+  "observability": { "enabled": true }
+}

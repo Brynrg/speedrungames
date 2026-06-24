@@ -10,7 +10,9 @@
     "start": "next start",
     "lint": "next lint",
     "discover": "node scripts/discover-games.mjs",
-    "generate-redirects": "node scripts/generate-redirects.mjs"
+    "generate-redirects": "node scripts/generate-redirects.mjs",
+    "cf:preview": "pnpm run prebuild && opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "cf:deploy": "pnpm run prebuild && opennextjs-cloudflare build && opennextjs-cloudflare deploy"
   },
   "dependencies": {
     "@netlify/blobs": "^10.7.8",
