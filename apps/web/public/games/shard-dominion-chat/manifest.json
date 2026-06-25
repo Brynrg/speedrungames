@@ -9,9 +9,9 @@
   "framework": "vite-phaser",
   "supportsMobile": true,
   "version": "0.1.0",
-  "sourceCommit": "8f4775e910fa8f24d6e7b7eb5c52f62cfc291331",
-  "buildHash": "fda52dd61b22fd59afe4f55ccd65036bf0593e5e30939029b4042b4d48d88ca1",
-  "buildTimestamp": "2026-06-24T21:00:23.921Z",
-  "lastUpdated": "2026-06-24T21:00:23.921Z",
+  "sourceCommit": "6f2c58716a59d0e9fee4e471a7bdb6b6a2dd7157",
+  "buildHash": "c68369779f3ca30454b0cbd307315e98bca52367c1abba127376939f4362627d",
+  "buildTimestamp": "2026-06-25T00:30:18.598Z",
+  "lastUpdated": "2026-06-25T00:30:18.598Z",
   "emoji": "🎮"
 }
