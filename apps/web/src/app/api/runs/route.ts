@@ -1,14 +1,13 @@
 // Leaderboard backend.
 //
-//  GET  /api/runs?game=<slug>&limit=<n>  → list runs (filtered by slug if given)
+//  GET  /api/runs?game=<slug>&limit=<n>  → list runs (filtered by slug if given), newest first
 //  POST /api/runs                        → submit a run
 //
-// Storage: Cloudflare KV, one entry per run, key = `<reverseTs>-<id>` so
-// KV's lexicographic key listing returns newest-first. This avoids any
-// read-modify-write race on concurrent writes.
-//
-// The KV binding (RUNS_KV) is declared in wrangler.jsonc. Bind a separate
-// namespace per environment to isolate preview/test data from production.
+// Storage: Cloudflare D1 (free tier). One row per run. D1 lists newest-N in a single
+// query (no per-item read amplification), is strongly consistent (a new run shows up
+// immediately), and the free tier allows 5M row-reads/day — the homepage fetches the
+// board on every load, which would blow KV's 100k-reads / 1k-list-ops free caps at
+// ~1k views/day. Schema: db/schema.sql. Binding: DB (wrangler.jsonc d1_databases).
 
 import { NextResponse } from "next/server";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
@@ -16,21 +15,17 @@ import { games } from "@/lib/games";
 
 declare global {
   interface CloudflareEnv {
-    RUNS_KV?: KVNamespace;
+    DB?: D1Database;
   }
 }
 
 export const dynamic = "force-dynamic";
 
-const STORE_NAME = "runs";
 const MAX_LIMIT = 100;
 const DEFAULT_LIMIT = 50;
 const MAX_MS = 86_400_000; // 24h sanity cap
 const MAX_RUNNER_LEN = 32;
 const MAX_SPLITS = 100;
-
-// When filtering by game, scan up to this many recent blobs to find matches.
-const FILTER_SCAN_CAP = 500;
 
 interface RunSplit {
   label: string;
@@ -46,52 +41,49 @@ interface Run {
   achievedAt: number;
 }
 
+// Shape of a `runs` row as stored in D1.
+interface RunRow {
+  id: string;
+  slug: string;
+  ms: number;
+  runner: string | null;
+  splits: string | null;
+  achieved_at: number;
+}
+
 const VALID_SLUGS = new Set(games.map((g) => g.slug));
 
 function clamp(n: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, n));
 }
 
-// The KV namespace bound as RUNS_KV (wrangler.jsonc). Throws if unavailable so
-// the GET/POST handlers fall back gracefully (GET → [], POST → 503).
-function leaderboardStore(): KVNamespace {
-  const { env } = getCloudflareContext();
-  const kv = env.RUNS_KV;
-  if (!kv) throw new Error(`KV binding "${STORE_NAME}" (RUNS_KV) not configured`);
-  return kv;
+// The D1 binding (wrangler.jsonc). Read inside handlers, not at module scope —
+// getCloudflareContext() needs a request context. Throws if unbound so the
+// handlers fall back gracefully (GET → [], POST → 503).
+function db(): D1Database {
+  const d1 = getCloudflareContext().env.DB;
+  if (!d1) throw new Error("D1 binding DB not configured");
+  return d1;
 }
 
-// 13-digit zero-padded reverse timestamp → lexicographic key sort yields
-// newest-first. 9999999999999 - now will stay positive until ~year 2286.
-function runKey(run: Run): string {
-  const reverse = (9999999999999 - run.achievedAt).toString().padStart(13, "0");
-  return `${reverse}-${run.id}`;
-}
-
-async function listRuns(limit: number, slugFilter?: string): Promise<Run[]> {
-  const store = leaderboardStore();
-  const scanCap = slugFilter ? FILTER_SCAN_CAP : limit;
-  // KV lists keys in lexicographic order; the reverse-ts key scheme makes that
-  // newest-first. scanCap (≤ 500) is within KV's 1000-key per-list limit.
-  const result = await store.list({ limit: scanCap });
-  const keys = result.keys.map((k) => k.name).sort().slice(0, scanCap);
-  const runs = await Promise.all(
-    keys.map(async (key) => {
-      try {
-        return await store.get<Run>(key, "json");
-      } catch {
-        return null;
-      }
-    }),
-  );
-  let out = runs.filter((r): r is Run => r != null);
-  if (slugFilter) out = out.filter((r) => r.slug === slugFilter);
-  return out.slice(0, limit);
-}
-
-async function saveRun(run: Run): Promise<void> {
-  const store = leaderboardStore();
-  await store.put(runKey(run), JSON.stringify(run));
+function rowToRun(r: RunRow): Run {
+  let splits: RunSplit[] | undefined;
+  if (r.splits) {
+    try {
+      const parsed = JSON.parse(r.splits);
+      if (Array.isArray(parsed) && parsed.length) splits = parsed;
+    } catch {
+      /* ignore malformed splits */
+    }
+  }
+  return {
+    id: r.id,
+    slug: r.slug,
+    ms: r.ms,
+    achievedAt: r.achieved_at,
+    ...(r.runner ? { runner: r.runner } : {}),
+    ...(splits ? { splits } : {}),
+  };
 }
 
 export async function GET(req: Request) {
@@ -104,8 +96,14 @@ export async function GET(req: Request) {
   );
 
   try {
-    const runs = await listRuns(limit, slug);
-    return NextResponse.json(runs);
+    const sql = slug
+      ? "SELECT id, slug, ms, runner, splits, achieved_at FROM runs WHERE slug = ?1 ORDER BY achieved_at DESC LIMIT ?2"
+      : "SELECT id, slug, ms, runner, splits, achieved_at FROM runs ORDER BY achieved_at DESC LIMIT ?1";
+    const stmt = slug
+      ? db().prepare(sql).bind(slug, limit)
+      : db().prepare(sql).bind(limit);
+    const { results } = await stmt.all<RunRow>();
+    return NextResponse.json((results ?? []).map(rowToRun));
   } catch {
     return NextResponse.json([], { status: 200 });
   }
@@ -142,16 +140,10 @@ export async function POST(req: Request) {
   const splits = sanitizeSplits(b.splits);
 
   if (!VALID_SLUGS.has(slug)) {
-    return NextResponse.json(
-      { error: `unknown slug "${slug}"` },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: `unknown slug "${slug}"` }, { status: 400 });
   }
   if (!Number.isFinite(ms) || ms <= 0 || ms > MAX_MS) {
-    return NextResponse.json(
-      { error: `invalid ms (got ${b.ms})` },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: `invalid ms (got ${b.ms})` }, { status: 400 });
   }
 
   const run: Run = {
@@ -164,13 +156,15 @@ export async function POST(req: Request) {
   };
 
   try {
-    await saveRun(run);
+    await db()
+      .prepare(
+        "INSERT INTO runs (id, slug, ms, runner, splits, achieved_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+      )
+      .bind(run.id, run.slug, run.ms, run.runner ?? null, run.splits ? JSON.stringify(run.splits) : null, run.achievedAt)
+      .run();
     return NextResponse.json(run);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "unknown";
-    return NextResponse.json(
-      { error: `storage unavailable: ${msg}` },
-      { status: 503 },
-    );
+    return NextResponse.json({ error: `storage unavailable: ${msg}` }, { status: 503 });
   }
 }

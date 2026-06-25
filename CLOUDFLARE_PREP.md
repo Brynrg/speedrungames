@@ -36,12 +36,14 @@ Deployed via authed wrangler to **https://speedrungames-web.brynrgarnett.workers
 - No hardcoded netlify/fly/localhost URLs in any page → games use relative paths, host-portable.
 - `/api/runs` (leaderboard) → see below.
 
-## Leaderboard — ported to Cloudflare KV 2026-06-23
-`apps/web/src/app/api/runs/route.ts` previously used **`@netlify/blobs`** (Netlify-only). Replaced with
-**Cloudflare KV** via `getCloudflareContext().env.RUNS_KV` (KV's lexicographic key order preserves the
-reverse-timestamp "newest-first" scheme). `@netlify/blobs` removed from deps. The KV namespace binding
-`RUNS_KV` is in `apps/web/wrangler.jsonc`. (Single namespace for now; bind a separate one per environment
-when production is set up.) Route keeps its graceful fallback (GET→`[]`, POST→503) if the binding is absent.
+## Leaderboard — Cloudflare D1 (2026-06-25; was KV 2026-06-23, was @netlify/blobs)
+`apps/web/src/app/api/runs/route.ts` now uses **Cloudflare D1** via `getCloudflareContext().env.DB`
+(binding `DB` → database `speedrungames-leaderboard`; schema `db/schema.sql`). It lists newest-N in a
+**single `ORDER BY achieved_at DESC` query** and is strongly consistent. **Why D1, not KV:** the homepage
+(`GamesShowcase.tsx`) fetches `/api/runs?limit=100` on every load → on KV that's ~101 reads + 1 list op
+per view, which blows KV's free caps (100k reads/day, **1k list-ops/day**) at ~1k views/day; D1's free
+tier is 5M row-reads/day. The earlier `@netlify/blobs` → KV step (RUNS_KV) is fully superseded; that KV
+namespace was deleted. Route keeps its graceful fallback (GET→`[]`, POST→503) if the binding is absent.
 
 ## Safe-first sequence
 1. Bump `apps/web` next 16.1.6 → 16.2.6+; verify `pnpm -C apps/web build` passes + smoke the pages.

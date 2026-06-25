@@ -10,8 +10,10 @@
   "account_id": "f14fbd517a2319f53d206d16b640bbce",
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
   "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "speedrungames-web" }],
-  // Leaderboard store (apps/web/src/app/api/runs). Replaces Netlify Blobs.
-  // For production, bind a separate namespace per environment to isolate test data.
-  "kv_namespaces": [{ "binding": "RUNS_KV", "id": "529aa1c6e1fc442f84a1915dd035de39" }],
+  // Leaderboard store (apps/web/src/app/api/runs) — Cloudflare D1 (free tier).
+  // D1 over KV: single-query newest-N listing, strong consistency, and 5M row-reads/day
+  // vs KV's 100k (the homepage fetches the board on every load → KV's list-op cap would
+  // break it at ~1k views/day). Schema in db/schema.sql.
+  "d1_databases": [{ "binding": "DB", "database_name": "speedrungames-leaderboard", "database_id": "d6c3c449-ed22-4132-9839-b4e784594aad" }],
   "observability": { "enabled": true }
 }
