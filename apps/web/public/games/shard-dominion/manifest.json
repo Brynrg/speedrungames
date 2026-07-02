@@ -1,17 +1,16 @@
 {
   "slug": "shard-dominion",
   "title": "Shard Dominion",
-  "description": "Classic sci-fi RTS: asymmetric factions, harvester economy, concrete-and-power base building on Aether Prime",
-  "repo": "Brynrg/shard-dominion",
+  "description": "Late-90s Westwood-style RTS: harvester economy, base building, fog of war, and an AI opponent that builds an army and attacks \u2014 on Aether Prime",
+  "repo": "local:Code/games/shard-dominion",
   "playUrl": "/games/shard-dominion/",
   "category": "arcade",
   "status": "live",
-  "framework": "vite-phaser",
-  "supportsMobile": true,
-  "version": "0.1.0",
-  "sourceCommit": "8d1a2bc2fa0d61274f6155e4b82d80da92c0d775",
-  "buildHash": "22c28d7811248f0e8c4b26ef137a1e55d240ee661d50dba6872008ab17097d14",
-  "buildTimestamp": "2026-06-21T21:59:23.318Z",
-  "lastUpdated": "2026-06-21T21:59:23.318Z",
-  "emoji": "🎮"
+  "framework": "vite-canvas2d",
+  "supportsMobile": false,
+  "version": "0.6.0",
+  "sourceCommit": "a4fa9dc10402df714b46a2fe1808bbfc457d56a1",
+  "buildTimestamp": "2026-07-02T03:23:24.000Z",
+  "lastUpdated": "2026-07-02T03:23:24.000Z",
+  "emoji": "\ud83c\udfae"
 }
