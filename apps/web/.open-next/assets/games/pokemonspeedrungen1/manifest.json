@@ -1,0 +1,25 @@
+{
+  "slug": "pokemonspeedrungen1",
+  "title": "Pokémon Speedrun Gen 1",
+  "description": "Voice-first (tap fallback) Gen 1 Pokémon speedrun. Name all 151 as fast as you can.",
+  "repo": "Brynrg/pokemon-voice-speedrun",
+  "playUrl": "/games/pokemonspeedrungen1/",
+  "category": "speedrun",
+  "status": "live",
+  "framework": "other",
+  "supportsMobile": true,
+  "version": "1.0.0",
+  "sourceCommit": "78317e125379539f01950c63065e301e71e728e9",
+  "buildHash": "9d2383777af39170df1eccfdf44a5969537ee10dac415733a0e3e81d8f9ea0a7",
+  "buildTimestamp": "2026-06-10T03:11:19.176Z",
+  "lastUpdated": "2026-06-10T03:11:19.176Z",
+  "emoji": "🎙️",
+  "assetLicenseSummary": "Gen 1 (#001–151) official artwork sprites, © Nintendo / Game Freak / The Pokémon Company. Non-commercial fan project. See ASSETS.md.",
+  "expectedAssets": [
+    {
+      "dir": "assets/gen1",
+      "ext": ".png",
+      "min": 151
+    }
+  ]
+}

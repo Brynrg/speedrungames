@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Green Circle TD</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-game-root>
+  <div id="app">
+    <header id="topbar">
+      <div class="brand">🟢 Green Circle TD</div>
+      <div class="stat" id="wave">Wave 0 / 30</div>
+      <div class="stat" id="gold">💰 250</div>
+      <div class="stat" id="lives">❤ 20</div>
+      <div class="spacer"></div>
+      <div class="controls">
+        <div class="seg" id="speedSeg" role="group" aria-label="Game speed">
+          <button class="seg-btn" data-speed="1" aria-pressed="true">1×</button>
+          <button class="seg-btn" data-speed="2" aria-pressed="false">2×</button>
+          <button class="seg-btn" data-speed="3" aria-pressed="false">3×</button>
+        </div>
+        <button id="pauseBtn" class="ctrlbtn" title="Pause / resume (P)">⏸ Pause</button>
+        <button id="restartBtn" class="ctrlbtn" title="Restart the game">⟲ Restart</button>
+      </div>
+      <div class="timer" id="timer">00:00.000</div>
+      <div class="pb" id="pb">PB —</div>
+    </header>
+
+    <div id="main">
+      <aside id="sidebar">
+        <div class="panel">
+          <h3>Towers</h3>
+          <div id="towerButtons" class="towerlist"></div>
+        </div>
+        <div class="panel" id="wavePanel">
+          <h3 id="waveName">Ready</h3>
+          <p id="waveHint" class="hint">Build towers, then start the first wave.</p>
+          <div id="armorPill" class="armor-pill hidden"></div>
+          <button id="startWave" class="primary">Start wave ▶</button>
+        </div>
+        <div class="panel hidden" id="playerPanel">
+          <h3>Co-op</h3>
+          <div id="playerGolds"></div>
+          <button id="nextPlayerBtn" class="ctrlbtn" style="width:100%;margin-top:6px" title="Switch active builder (Tab)">Next Player (Tab)</button>
+        </div>
+        <div class="panel inspector hidden" id="inspector">
+          <h3 id="inspName">Tower</h3>
+          <div class="inspstats" id="inspStats"></div>
+          <div class="inspactions" id="inspActions"></div>
+          <p class="hint">Click another tower to inspect it · Esc to close</p>
+        </div>
+        <div class="panel help">
+          <h3>Controls</h3>
+          <ul>
+            <li><b>Click / tap</b> a tile to build · a <b>tower</b> to upgrade · <b>1–9, 0, v</b> pick tower</li>
+            <li><b>Drag</b> pan · <b>Wheel / pinch</b> zoom · <b>WASD/↑↓←→</b> scroll</li>
+            <li><b>Right-click / long-press</b> sell · <b>Space</b> send wave · <b>P</b> pause · <b>Esc</b> deselect</li>
+            <li><b>Tab</b> next player (local co-op) · Sniper/Rapid/Frost are anti-air ✈ · <b>v</b> Void tower (chaos)</li>
+            <li><b>🌐 Online</b>: create a room, share the 4-letter code — up to 4 players, shared lives</li>
+          </ul>
+          <p class="hint">Creeps circle in from all four corners to the center. Send waves early to stack them, and use 1×/2×/3× speed. Don't let them reach the center. Match damage type to armor.</p>
+        </div>
+      </aside>
+
+      <div id="stage">
+        <canvas id="gameCanvas"></canvas>
+        <div id="overlay" class="overlay hidden"></div>
+      </div>
+    </div>
+  </div>
+  <script src="main.js"></script>
+  <script src="net.js"></script>
+</body>
+</html>

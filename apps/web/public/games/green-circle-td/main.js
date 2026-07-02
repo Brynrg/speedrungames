@@ -454,11 +454,32 @@ class Game {
       else sub = this.pb != null ? `PB ${fmt(this.pb)}` : "";
     } else sub = `Reached wave ${Math.min(this.waveIndex, WAVES.length)} / ${WAVES.length}.`;
     const o = this.overlay(
-      `<h2>${won ? "The Crown is Yours!" : "Overrun"}</h2><p>Time ${fmt(this.elapsed)}</p><p>${sub}</p><button id="rsBtn">${won ? "Play again" : "Retry"}</button>`,
+      `<h2>${won ? "The Crown is Yours!" : "Overrun"}</h2><p>Time ${fmt(this.elapsed)}</p><p>${sub}</p><p id="lbStatus" class="hint"></p><button id="rsBtn">${won ? "Play again" : "Retry"}</button>`,
       won ? "state-won" : "state-lost",
     );
     o.querySelector("#rsBtn").onclick = () => this.restart();
+    if (won) this.submitRun(o);
     this.refreshButtons();
+  }
+  // Fire-and-forget leaderboard submit to the portal (POST /api/runs).
+  // Solo/local runs only: in online mode every client would double-submit the
+  // same shared win. Standalone hosting (no portal API) fails silently.
+  submitRun(overlayEl) {
+    if (this.net) return;
+    let runner = "";
+    try { runner = (localStorage.getItem("gctd:name") || "").slice(0, 32); } catch {}
+    const body = { slug: "green-circle-td", ms: Math.round(this.elapsed) };
+    if (runner) body.runner = runner;
+    fetch("/api/runs", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    })
+      .then((res) => {
+        const el = overlayEl?.querySelector("#lbStatus");
+        if (el && res.ok) el.textContent = runner ? `Run submitted to the leaderboard as ${runner}.` : "Run submitted to the leaderboard.";
+      })
+      .catch(() => {});
   }
   restart() {
     if (this.net) { location.reload(); return; } // leave the online game

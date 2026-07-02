@@ -1,0 +1,21 @@
+{
+  "slug": "tank-you-again",
+  "title": "Tank You Again",
+  "description": "Real-time multiplayer tank arena. 8-way movement, fuel-as-health, landmines, masked radar, 10-tier rank ladder.",
+  "repo": "Brynrg/Tank-you-again",
+  "playUrl": "/games/tank-you-again/",
+  "category": "multiplayer-action",
+  "status": "live",
+  "framework": "vite",
+  "supportsMobile": true,
+  "version": "0.1.0",
+  "sourceCommit": "4ef3bc0b83fb6625d32645d3e73c72f1fa8568f5",
+  "buildHash": "571e7b8bbcd5485794130c87368bcb652ac96069aeb9f0a8e62e2cdc7ba45a19",
+  "buildTimestamp": "2026-06-12T01:13:07.394Z",
+  "lastUpdated": "2026-06-12T01:13:07.394Z",
+  "emoji": "🕹️",
+  "assetsDocumented": true,
+  "multiplayer": "realtime-server",
+  "multiplayerProvider": "Fly.io WebSocket (free tier — shared-cpu-1x, auto-stop on idle)",
+  "multiplayerEndpoint": "wss://tank-you-again.fly.dev/ws"
+}
