@@ -2,7 +2,7 @@ import { playSfx } from "./audio.js";
 import { DAMAGE_TABLE } from "./damage.js";
 import { Enemy } from "./enemies.js";
 import { Effect } from "./projectiles.js";
-import { effects, enemies, game, getEnemyDefenderState, syncActiveToLegacyIfDuel } from "./state.js";
+import { effects, enemies, game, getEnemyDefenderState, syncActiveToLegacyIfDuel, towers } from "./state.js";
 import { status } from "./status.js";
 
 export function getDamageMultiplier(damageType, armorType) {
@@ -56,10 +56,14 @@ export function dealDamageToEnemy(enemy, rawDamage, damageType, sourceTower, opt
   return { damageDealt: finalDamage, killed: false, immune: false };
 }
 
-export function onEnemyKilled(enemy) {
+export function onEnemyKilled(enemy, sourceTower = null) {
   const idx = enemies.indexOf(enemy);
   if (idx >= 0) {
     enemies.splice(idx, 1);
+  }
+
+  if (sourceTower && towers.includes(sourceTower)) {
+    sourceTower.kills += 1;
   }
 
   const defender = getEnemyDefenderState(enemy);

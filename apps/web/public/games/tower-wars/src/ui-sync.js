@@ -1,13 +1,43 @@
+import { syncPanelOffset } from "./camera.js";
 import { SPEED_LEVELS } from "./constants.js";
-import { autoWaveBtn, bestEl, duelActiveEl, duelBoardBodyEl, duelBoardCardEl, duelP1Btn, duelP1El, duelP2Btn, duelP2El, duelPlayerSwitchEl, duelStatsEl, goldEl, incomeEl, incomeTickEl, livesEl, menuBtn, modeClassicBtn, modeDuelBtn, modeMazeBtn, nextWaveBtn, pauseGameBtn, quickModeEl, quickSendsEl, quickStateEl, quickWaveTagEl, scoreEl, speedBtn, speedEl, speedGameBtn, waveEl } from "./dom.js";
+import { autoWaveBtn, bestEl, duelActiveEl, duelBoardBodyEl, duelBoardCardEl, duelP1Btn, duelP1El, duelP2Btn, duelP2El, duelPlayerSwitchEl, duelStatsEl, goldEl, incomeEl, incomeTickEl, livesEl, menuBtn, modeClassicBtn, modeDuelBtn, modeMazeBtn, nextWaveBtn, pauseGameBtn, quickModeEl, quickSendsEl, quickStateEl, quickWaveTagEl, scoreEl, speedBtn, speedEl, speedGameBtn, waveEl, defeatOverlayEl, defeatTitleEl, defeatStatsEl, quickNextWaveEl, wavePreviewEl } from "./dom.js";
 import { drawMiniMap } from "./minimap.js";
 import { highScores } from "./scores.js";
 import { updateSelectionPanel } from "./selection.js";
 import { updateSendUi } from "./sends.js";
+import { getWavePreview } from "./waves.js";
 import { game, getActivePlayerState, syncLegacyEconomyFromActive } from "./state.js";
 import { setCommandTab } from "./tooltip.js";
 
+function getDefeatSummary() {
+  return game.duelMode
+    ? `Wave ${game.wave} | P1 ${Math.floor(game.players[0].score)} vs P2 ${Math.floor(game.players[1].score)}`
+    : `You reached wave ${game.wave} | Score ${game.score} | Best wave ${game.bestWave}`;
+}
+
+function syncDefeatOverlay() {
+  if (!defeatOverlayEl) {
+    return;
+  }
+  const show = game.gameOver && !game.menuOpen;
+  const isHidden = defeatOverlayEl.classList.contains("hidden");
+  if (show && isHidden) {
+    if (defeatStatsEl) {
+      defeatStatsEl.textContent = getDefeatSummary();
+    }
+    if (defeatTitleEl) {
+      defeatTitleEl.textContent = game.duelMode ? "Match End" : "Defeat";
+    }
+    defeatOverlayEl.classList.remove("hidden");
+    defeatOverlayEl.setAttribute("aria-hidden", "false");
+  } else if (!show && !isHidden) {
+    defeatOverlayEl.classList.add("hidden");
+    defeatOverlayEl.setAttribute("aria-hidden", "true");
+  }
+}
+
 export function syncUi() {
+  syncDefeatOverlay();
   setCommandTab(game.commandTab);
 
   if (game.duelMode) {
@@ -68,6 +98,14 @@ export function syncUi() {
   if (quickWaveTagEl) {
     quickWaveTagEl.textContent = game.waveTag || "-";
   }
+  const preview = getWavePreview(game.wave + 1);
+  const perLane = game.duelMode ? " per lane" : "";
+  if (quickNextWaveEl) {
+    quickNextWaveEl.textContent = `${preview.tag} (${preview.count}${perLane})`;
+  }
+  if (wavePreviewEl) {
+    wavePreviewEl.textContent = `Next: wave ${game.wave + 1} - ${preview.tag}, ${preview.count} enemies${perLane}. ${preview.hint}`;
+  }
   if (quickSendsEl) {
     const queueState = game.duelMode ? getActivePlayerState() : game;
     const queued = Array.isArray(queueState.sendQueue) ? queueState.sendQueue.length : 0;
@@ -94,6 +132,10 @@ export function syncUi() {
     duelPlayerSwitchEl.classList.add("hidden");
     duelP1Btn.classList.remove("active");
     duelP2Btn.classList.remove("active");
+  }
+  if (document.body.classList.contains("duel-active") !== game.duelMode) {
+    document.body.classList.toggle("duel-active", game.duelMode);
+    syncPanelOffset();
   }
   if (duelBoardCardEl && duelBoardBodyEl) {
     duelBoardCardEl.classList.toggle("hidden", !game.duelMode);

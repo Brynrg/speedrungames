@@ -1,11 +1,12 @@
 import { playSfx } from "./audio.js";
 import { towerButtons } from "./dom.js";
+import { Effect } from "./projectiles.js";
 import { inBounds, worldFromCell } from "./grid.js";
 import { computeMazeDistanceMap, isMazeReservedCell, rebuildMazeDistances } from "./maze.js";
 import { DUEL_PATH_SET, PATH_SET } from "./paths.js";
 import { getTowerAtCell } from "./picking.js";
 import { saveRun } from "./save.js";
-import { enemies, game, getLaneOwnerForCell, getPlayerState, syncActiveToLegacyIfDuel, towers } from "./state.js";
+import { effects, enemies, game, getLaneOwnerForCell, getPlayerState, syncActiveToLegacyIfDuel, towers } from "./state.js";
 import { status } from "./status.js";
 import { TOWER_DATA, Tower } from "./towers.js";
 
@@ -125,6 +126,7 @@ export function tryUpgradeSelectedTower() {
 
   ownerState.gold -= cost;
   tower.upgrade();
+  tower.invested += cost;
   syncActiveToLegacyIfDuel();
   status(`${tower.data.name} upgraded to level ${tower.level}.`);
   playSfx("upgrade");
@@ -159,9 +161,44 @@ export function chooseBranch(branchKey) {
   }
 
   ownerState.gold -= cost;
+  tower.invested += cost;
   syncActiveToLegacyIfDuel();
   status(`${tower.data.name} specialized into ${tower.branchData.name}.`);
   playSfx("upgrade");
+}
+
+export function sellSelectedTower() {
+  const tower = game.selectedTower;
+  if (!tower || !towers.includes(tower)) {
+    status("Select a tower to sell.");
+    return;
+  }
+  if (game.duelMode && tower.owner !== game.activePlayer) {
+    status(`Switch to P${tower.owner + 1} to sell this tower.`);
+    return;
+  }
+
+  const ownerState = game.duelMode ? getPlayerState(tower.owner) : game;
+  const refund = tower.sellValue;
+  towers.splice(towers.indexOf(tower), 1);
+  ownerState.gold += refund;
+  game.selectedTower = null;
+
+  if (game.mode === "maze") {
+    rebuildMazeDistances();
+    for (const enemy of enemies) {
+      if (enemy.routeMode === "maze-ground") {
+        enemy.mazeTargetX = null;
+        enemy.mazeTargetY = null;
+      }
+    }
+  }
+
+  effects.push(new Effect(tower.x, tower.y, "text", { text: `+${refund}g`, color: "#f8e59f" }));
+  syncActiveToLegacyIfDuel();
+  status(`${tower.data.name} sold for ${refund} gold.`);
+  playSfx("build");
+  saveRun(false);
 }
 
 export function castSelectedAbility() {

@@ -216,15 +216,19 @@ export class Enemy {
       }
     }
 
-    if (!best) {
-      this.leaked = true;
+    // No strictly-better step right now (e.g. the distance map was just rebuilt or
+    // this cell became a local minimum). Wait in place and retry next tick instead of
+    // counting a false leak — the map refreshes on every build/sell. If an enemy stays
+    // route-less for ~10s of sim time it was genuinely sealed in, which we treat as a
+    // leak so trapping creeps forever is never a winning strategy.
+    if (!best || (here >= 0 && bestDistance > here)) {
+      this.mazeNoPathTicks = (this.mazeNoPathTicks || 0) + 1;
+      if (this.mazeNoPathTicks > 600) {
+        this.leaked = true;
+      }
       return false;
     }
-
-    if (here >= 0 && bestDistance > here) {
-      this.leaked = true;
-      return false;
-    }
+    this.mazeNoPathTicks = 0;
 
     const target = worldFromCell(best.cx, best.cy);
     this.mazeTargetX = target.x;
