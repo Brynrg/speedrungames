@@ -8,10 +8,10 @@
   "status": "live",
   "framework": "vanilla",
   "supportsMobile": true,
-  "version": "1.1.0",
-  "sourceCommit": "5049d30ca2e5d011351e0c3c7f294684b3458af5",
-  "buildHash": "010b9daf089b3b4cceaebe320d7d5046d9d081d17ebb12fa80cc9337fe3f103d",
-  "buildTimestamp": "2026-07-02T03:36:14.029Z",
-  "lastUpdated": "2026-07-02T03:36:14.029Z",
+  "version": "1.2.0",
+  "sourceCommit": "9b65a1b6eb64ef1c2e7ce8fdc887f789b2520573",
+  "buildHash": "e85850829cdbc493e85181a0969aab056b3a99bfe7449163a7dcf716b3c87bfb",
+  "buildTimestamp": "2026-07-02T03:49:27.553Z",
+  "lastUpdated": "2026-07-02T03:49:27.553Z",
   "emoji": "🛡️"
 }

@@ -226,8 +226,21 @@ export function drawTowerBasePad(tower) {
   ctx.fillStyle = "#566542";
   ctx.fill();
 
+  // Type identity ring: at fit zoom the models blur together — the colored
+  // ring is what tells Arrow from Cannon at a glance.
+  drawPolygon(x, y + 1, 18, 8, Math.PI / 8);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2.4;
+  ctx.globalAlpha = 0.9;
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  ctx.save();
+  ctx.translate(x, y - 3);
+  ctx.rotate(Math.PI / 4);
   ctx.fillStyle = color;
-  ctx.fillRect(x - 2, y - 3, 4, 4);
+  ctx.fillRect(-3, -3, 6, 6);
+  ctx.restore();
 }
 
 export function drawArrowTowerModel(tower) {
@@ -436,19 +449,46 @@ export function drawObeliskTowerModel(tower) {
 }
 
 export function drawTowerRankAndBranch(tower) {
+  // Level pips on a dark backing bar so they stay readable over any terrain.
+  const pipW = 4;
+  const pipGap = 1.6;
+  const totalW = tower.level * pipW + (tower.level - 1) * pipGap;
+  ctx.fillStyle = "rgba(9, 14, 8, 0.72)";
+  ctx.fillRect(tower.x - totalW / 2 - 1.5, tower.y + 10.5, totalW + 3, 6.5);
   for (let i = 0; i < tower.level; i += 1) {
-    ctx.fillStyle = "#f2d86e";
-    ctx.fillRect(tower.x - 11 + i * 4, tower.y + 11, 3, 3);
+    ctx.fillStyle = tower.level >= 5 ? "#ffe9a0" : "#f2d86e";
+    ctx.fillRect(tower.x - totalW / 2 + i * (pipW + pipGap), tower.y + 12, pipW, 3.6);
   }
 
+  // Branch marker: A = gold chevron up, B = cyan chevron down.
   if (tower.branchData) {
-    ctx.fillStyle = "#ffd78d";
+    const up = tower.branch === "a";
+    ctx.fillStyle = up ? "#ffd78d" : "#9fdcff";
     ctx.beginPath();
-    ctx.moveTo(tower.x, tower.y - 17);
-    ctx.lineTo(tower.x + 4, tower.y - 11);
-    ctx.lineTo(tower.x - 4, tower.y - 11);
+    if (up) {
+      ctx.moveTo(tower.x, tower.y - 19);
+      ctx.lineTo(tower.x + 5.5, tower.y - 11);
+      ctx.lineTo(tower.x - 5.5, tower.y - 11);
+    } else {
+      ctx.moveTo(tower.x, tower.y - 11);
+      ctx.lineTo(tower.x + 5.5, tower.y - 19);
+      ctx.lineTo(tower.x - 5.5, tower.y - 19);
+    }
     ctx.closePath();
     ctx.fill();
+    ctx.strokeStyle = "rgba(9, 14, 8, 0.8)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // Max-tier flex: soft pulsing glow ring.
+  if (tower.level >= 6) {
+    const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 320);
+    ctx.beginPath();
+    ctx.arc(tower.x, tower.y, 21 + pulse * 2, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(255, 226, 148, ${0.22 + pulse * 0.16})`;
+    ctx.lineWidth = 2;
+    ctx.stroke();
   }
 }
 
@@ -507,21 +547,64 @@ export function drawTower(tower) {
 }
 
 export function drawEnemy(enemy) {
+  const r = enemy.radius;
+
+  // Family silhouettes: shape carries the threat type before color does.
   ctx.fillStyle = enemy.color;
   ctx.beginPath();
-  ctx.arc(enemy.x, enemy.y, enemy.radius, 0, Math.PI * 2);
+  if (enemy.isBoss) {
+    drawPolygon(enemy.x, enemy.y, r + 2, 6, Math.PI / 6);
+  } else if (enemy.flying) {
+    // ground shadow + diamond body
+    ctx.save();
+    ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
+    ctx.beginPath();
+    ctx.ellipse(enemy.x + 3, enemy.y + r + 7, r * 0.9, r * 0.38, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    ctx.beginPath();
+    ctx.moveTo(enemy.x, enemy.y - r - 2);
+    ctx.lineTo(enemy.x + r, enemy.y);
+    ctx.lineTo(enemy.x, enemy.y + r);
+    ctx.lineTo(enemy.x - r, enemy.y);
+    ctx.closePath();
+  } else if (enemy.splitter) {
+    // clustered blob: main body + two lobes that read as "it will split"
+    ctx.arc(enemy.x, enemy.y, r * 0.86, 0, Math.PI * 2);
+    ctx.moveTo(enemy.x - r * 0.7 + r * 0.55, enemy.y - r * 0.55);
+    ctx.arc(enemy.x - r * 0.7, enemy.y - r * 0.55, r * 0.55, 0, Math.PI * 2);
+    ctx.moveTo(enemy.x + r * 0.75 + r * 0.5, enemy.y + r * 0.45);
+    ctx.arc(enemy.x + r * 0.75, enemy.y + r * 0.45, r * 0.5, 0, Math.PI * 2);
+  } else if (enemy.magicImmune) {
+    drawPolygon(enemy.x, enemy.y, r + 1, 6, 0);
+  } else if (enemy.armorType === "heavy" || enemy.armorType === "fortified") {
+    // angular plated body
+    drawPolygon(enemy.x, enemy.y, r + 1, 4, Math.PI / 4);
+  } else {
+    ctx.arc(enemy.x, enemy.y, r, 0, Math.PI * 2);
+  }
   ctx.fill();
 
   ctx.strokeStyle = enemy.rim;
   ctx.lineWidth = enemy.isBoss ? 2.6 : 1.5;
   ctx.stroke();
 
+  if (enemy.isBoss) {
+    ctx.beginPath();
+    ctx.arc(enemy.x, enemy.y, r + 6, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(249, 199, 109, 0.5)";
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+  }
+
   if (enemy.flying) {
     ctx.beginPath();
-    ctx.moveTo(enemy.x - enemy.radius - 4, enemy.y);
-    ctx.lineTo(enemy.x + enemy.radius + 4, enemy.y);
-    ctx.strokeStyle = "rgba(209, 236, 255, 0.65)";
-    ctx.lineWidth = 1;
+    ctx.moveTo(enemy.x - r - 5, enemy.y - 2);
+    ctx.lineTo(enemy.x - r + 1, enemy.y);
+    ctx.moveTo(enemy.x + r + 5, enemy.y - 2);
+    ctx.lineTo(enemy.x + r - 1, enemy.y);
+    ctx.strokeStyle = "rgba(209, 236, 255, 0.75)";
+    ctx.lineWidth = 1.6;
     ctx.stroke();
   }
 
@@ -642,9 +725,48 @@ export function drawEffect(effect) {
     return;
   }
 
+  if (effect.kind === "muzzle") {
+    // short-lived flash cone in the firing direction
+    const a = effect.meta.angle || 0;
+    const len = 10 * (1 - t) + 4;
+    ctx.save();
+    ctx.translate(effect.x, effect.y);
+    ctx.rotate(a);
+    ctx.fillStyle = `rgba(255, 240, 190, ${0.75 * (1 - t)})`;
+    ctx.beginPath();
+    ctx.moveTo(0, -2.4);
+    ctx.lineTo(len, 0);
+    ctx.lineTo(0, 2.4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+    return;
+  }
+
+  if (effect.kind === "kill") {
+    // radial sparks + fading core, all derived from t (no extra objects)
+    const seed = (effect.x * 7 + effect.y * 13) % 6.28;
+    ctx.strokeStyle = `rgba(255, 216, 140, ${0.7 * (1 - t)})`;
+    ctx.lineWidth = 1.6;
+    for (let i = 0; i < 5; i += 1) {
+      const a = seed + (i / 5) * Math.PI * 2;
+      const d1 = 3 + 11 * t;
+      const d2 = d1 + 4 * (1 - t) + 1;
+      ctx.beginPath();
+      ctx.moveTo(effect.x + Math.cos(a) * d1, effect.y + Math.sin(a) * d1);
+      ctx.lineTo(effect.x + Math.cos(a) * d2, effect.y + Math.sin(a) * d2);
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.arc(effect.x, effect.y, 5 * (1 - t) + 1, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255, 232, 170, ${0.6 * (1 - t)})`;
+    ctx.fill();
+    return;
+  }
+
   ctx.beginPath();
   ctx.arc(effect.x, effect.y, 6 * t + 2, 0, Math.PI * 2);
-  ctx.fillStyle = effect.kind === "kill" ? `rgba(255, 216, 140, ${0.55 * (1 - t)})` : `rgba(250, 245, 220, ${0.35 * (1 - t)})`;
+  ctx.fillStyle = `rgba(250, 245, 220, ${0.35 * (1 - t)})`;
   ctx.fill();
 }
 
