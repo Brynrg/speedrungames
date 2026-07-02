@@ -570,6 +570,8 @@ export class Tower {
       freezeOnHit,
     });
     projectiles.push(projectile);
+    const aim = Math.atan2(target.y - this.y, target.x - this.x);
+    effects.push(new Effect(this.x + Math.cos(aim) * 11, this.y - 6 + Math.sin(aim) * 11, "muzzle", { angle: aim }));
     playSfx("shoot");
   }
 
