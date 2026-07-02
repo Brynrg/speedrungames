@@ -17,7 +17,6 @@
     "supportsMobile",
     "version",
     "sourceCommit",
-    "buildHash",
     "buildTimestamp",
     "lastUpdated"
   ],
@@ -64,12 +63,19 @@
     },
     "status": {
       "type": "string",
-      "enum": ["draft", "preview", "live", "archived", "broken"]
+      "enum": [
+        "draft",
+        "preview",
+        "live",
+        "archived",
+        "broken"
+      ]
     },
     "framework": {
       "type": "string",
       "enum": [
         "vite",
+        "vite-canvas2d",
         "vite-phaser",
         "vite-pixi",
         "vite-react",
@@ -118,11 +124,20 @@
     },
     "multiplayer": {
       "type": "string",
-      "enum": ["none", "local", "p2p", "realtime-server", "async"],
+      "enum": [
+        "none",
+        "local",
+        "p2p",
+        "realtime-server",
+        "async"
+      ],
       "description": "Multiplayer pattern declared by the game. Defaults to 'none' if absent. See docs/multiplayer-architecture.md for the decision tree."
     },
     "multiplayerProvider": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Transport identifier when multiplayer is not 'none' or 'local'. Examples: webrtc, partykit, cloudflare-do, netlify-blobs. Required when multiplayer is p2p, realtime-server, or async."
     },
     "multiplayerEndpoint": {
@@ -131,14 +146,26 @@
     },
     "expectedAssets": {
       "type": "array",
-      "description": "Optional asset-presence contract. Each entry names a directory the build MUST contain. Enforced at ingest (against dist/) and in validate-games (against the served dir) — turns a runtime 404 from an empty asset dir into a deploy-time failure.",
+      "description": "Optional asset-presence contract. Each entry names a directory the build MUST contain. Enforced at ingest (against dist/) and in validate-games (against the served dir) \u2014 turns a runtime 404 from an empty asset dir into a deploy-time failure.",
       "items": {
         "type": "object",
-        "required": ["dir"],
+        "required": [
+          "dir"
+        ],
         "properties": {
-          "dir": { "type": "string", "description": "Relative path inside the game (no '..', no leading slash), e.g. 'assets/gen1'." },
-          "ext": { "type": "string", "description": "Optional extension filter, e.g. '.png'. Only matching files are counted." },
-          "min": { "type": "integer", "minimum": 1, "description": "Minimum number of non-empty matching files required (default 1)." }
+          "dir": {
+            "type": "string",
+            "description": "Relative path inside the game (no '..', no leading slash), e.g. 'assets/gen1'."
+          },
+          "ext": {
+            "type": "string",
+            "description": "Optional extension filter, e.g. '.png'. Only matching files are counted."
+          },
+          "min": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Minimum number of non-empty matching files required (default 1)."
+          }
         }
       }
     }
@@ -146,12 +173,22 @@
   "allOf": [
     {
       "if": {
-        "properties": { "status": { "const": "archived" } }
+        "properties": {
+          "status": {
+            "const": "archived"
+          }
+        }
       },
       "then": {
         "anyOf": [
-          { "required": ["redirectTo"] },
-          { "description": "OR index.html is preserved on disk; checked by validate-games.mjs at filesystem layer." }
+          {
+            "required": [
+              "redirectTo"
+            ]
+          },
+          {
+            "description": "OR index.html is preserved on disk; checked by validate-games.mjs at filesystem layer."
+          }
         ]
       }
     }

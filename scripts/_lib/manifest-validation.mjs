@@ -20,6 +20,7 @@ const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const STATUSES = ["draft", "preview", "live", "archived", "broken"];
 const FRAMEWORKS = [
   "vite",
+  "vite-canvas2d",
   "vite-phaser",
   "vite-pixi",
   "vite-react",
@@ -40,7 +41,6 @@ const REQUIRED_PORTAL_FIELDS = [
   "supportsMobile",
   "version",
   "sourceCommit",
-  "buildHash",
   "buildTimestamp",
   "lastUpdated",
 ];
