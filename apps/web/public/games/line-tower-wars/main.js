@@ -19,6 +19,7 @@ const GY = HUD_H;              // grid origin y (both fields)
 const SPAWN_COL = (GCOLS - 1) >> 1;
 
 const START_GOLD = 60;
+const SEND_COOLDOWN = 0.8;     // seconds between player sends — caps mash-rush APM
 const START_INCOME = 10;
 const START_LIVES = 20;
 const INCOME_INTERVAL = 5;     // seconds
@@ -127,7 +128,7 @@ class Field {
   build(c, r, type) {
     const def = TOWERS[type];
     if (this.gold < def.cost || !this.canBuildAt(c, r)) return false;
-    const t = { c, r, type, def, lastFire: 0, ...this.cellCenter(c, r) };
+    const t = { c, r, type, def, lastFire: -999, ...this.cellCenter(c, r) };
     this.grid[c][r] = t;
     this.towers.push(t);
     this.gold -= def.cost;
@@ -135,14 +136,16 @@ class Field {
     return true;
   }
 
-  // spawn `def.count` creeps of a send type at the top, sent by the other side
-  spawnSend(def, senderIsPlayer) {
+  // spawn `def.count` creeps of a send type at the top, sent by the other side.
+  // hpScale grows with elapsed time so sends stay viable against a grown maze.
+  spawnSend(def, senderIsPlayer, hpScale = 1) {
     for (let i = 0; i < def.count; i++) {
       const center = this.cellCenter(SPAWN_COL, 0);
+      const hp = Math.round(def.hp * hpScale);
       this.creeps.push({
         x: center.x + (Math.random() - 0.5) * CELL * 0.4,
         y: GY - CELL * 0.5 - i * CELL * 0.7,   // stagger above the field, walk in
-        hp: def.hp, maxHp: def.hp, speed: def.speed,
+        hp, maxHp: hp, speed: def.speed,
         bounty: def.bounty, kill: def.kill, color: def.color,
         slowUntil: 0, senderIsPlayer,
       });
@@ -159,8 +162,8 @@ class Game {
     this.ai = new Field(AX, false);
     this.selectedTower = "gun";
     this.hover = null;
-    this.state = "ready";       // ready | running | won | lost
-    this.startMs = 0;
+    this.state = "ready";       // ready | running | paused | won | lost
+    this.gameTime = 0;          // sim-time seconds — the ONLY clock for gameplay + the timer
     this.elapsed = 0;
     this.last = now();
     this.incomeTimer = INCOME_INTERVAL;
@@ -176,21 +179,34 @@ class Game {
   }
 
   // ---- run lifecycle
+  // Send HP grows ~35%/min so a banked burst can still crack a mature maze —
+  // without it the game is decided in the first minute (rush wins, or the AI
+  // snowball makes every later strategy hopeless).
+  sendHpScale() { return 1 + (this.gameTime / 60) * 0.35; }
+
   startRun() {
     this.player = new Field(PX, true);
     this.ai = new Field(AX, false);
+    // The AI starts with a free starter picket so an instant runner-mash rush
+    // can't win in the opening seconds before it ever builds.
+    for (const [c, r, type] of [[4, 2, "frost"], [3, 4, "gun"], [5, 5, "gun"], [4, 7, "frost"], [3, 9, "gun"], [5, 10, "gun"]]) {
+      const saved = this.ai.gold;
+      this.ai.gold = TOWERS[type].cost;
+      this.ai.build(c, r, type);
+      this.ai.gold = saved;
+    }
     this.incomeTimer = INCOME_INTERVAL;
-    this.aiBuildTimer = 2;
+    this.aiBuildTimer = 0.8;
     this.aiSendTimer = 4;
     this.bullets = [];
     this.elapsed = 0;
-    this.startMs = now();
+    this.gameTime = 0;
+    this.sendReadyAt = 0;
     this.state = "running";
     this.hideOverlay();
   }
   end(won) {
     this.state = won ? "won" : "lost";
-    this.elapsed = now() - this.startMs;
     if (won) {
       if (this.pb == null || this.elapsed < this.pb) { this.pb = this.elapsed; savePB(this.pb); this.renderPB(); this._newPB = true; }
       else this._newPB = false;
@@ -229,7 +245,7 @@ class Game {
       b.disabled = this.state === "running" && this.player.gold < TOWERS[id].cost;
     });
     document.querySelectorAll("[data-send]").forEach((b) => {
-      b.disabled = this.state !== "running" || this.player.gold < SENDS[b.dataset.send].cost;
+      b.disabled = this.state !== "running" || this.player.gold < SENDS[b.dataset.send].cost || this.gameTime < this.sendReadyAt;
     });
   }
   renderPB() { document.getElementById("pb").textContent = this.pb == null ? "PB —" : "PB " + formatTime(this.pb); }
@@ -240,11 +256,27 @@ class Game {
     this.showOverlay(`<h2>🏰 Line Tower Wars</h2><p>Maze your lane. Send creeps at the enemy. Drop them to 0 lives — fast.</p><button id="startBtn">Start</button>`);
     document.getElementById("startBtn").onclick = () => this.startRun();
   }
+  // Fire-and-forget leaderboard submit to the portal (POST /api/runs).
+  // Standalone hosting (no portal API) fails silently.
+  submitRun() {
+    const body = { slug: "line-tower-wars", ms: Math.round(this.elapsed) };
+    fetch("/api/runs", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    })
+      .then((res) => {
+        const el = document.getElementById("lbStatus");
+        if (el && res.ok) el.textContent = "Run submitted to the leaderboard.";
+      })
+      .catch(() => {});
+  }
   showEndOverlay(won) {
     const t = formatTime(this.elapsed);
     const sub = won ? (this._newPB ? `🏆 New personal best!` : (this.pb != null ? `PB ${formatTime(this.pb)}` : "")) : "The enemy overran your lane.";
-    this.showOverlay(`<h2>${won ? "Victory!" : "Defeated"}</h2><p>Time ${t}</p><p>${sub}</p><button id="againBtn">${won ? "Play again" : "Retry"}</button>`);
+    this.showOverlay(`<h2>${won ? "Victory!" : "Defeated"}</h2><p>Time ${t}</p><p>${sub}</p><p id="lbStatus" class="hint"></p><button id="againBtn">${won ? "Play again" : "Retry"}</button>`);
     document.getElementById("againBtn").onclick = () => this.startRun();
+    if (won) this.submitRun();
   }
 
   // ---- input
@@ -277,6 +309,10 @@ class Game {
       else if (k === "w") this.send("brute");
       else if (k === "e") this.send("swarm");
       else if (k === "escape") this.hover = null;
+      else if (k === "p") {
+        if (this.state === "running") this.state = "paused";
+        else if (this.state === "paused") this.state = "running";
+      }
       else if (k === " " || e.code === "Space") {
         if (this.state === "won" || this.state === "lost" || this.state === "ready") { e.preventDefault(); this.startRun(); }
       }
@@ -285,18 +321,20 @@ class Game {
 
   send(id) {
     if (this.state !== "running") return;
+    if (this.gameTime < this.sendReadyAt) return;
     const def = SENDS[id];
     if (this.player.gold < def.cost) return;
+    this.sendReadyAt = this.gameTime + SEND_COOLDOWN;
     this.player.gold -= def.cost;
     this.player.income += def.income;
-    this.ai.spawnSend(def, true);  // your creeps attack the AI field
+    this.ai.spawnSend(def, true, this.sendHpScale());  // your creeps attack the AI field
     this.refreshButtons();
   }
 
   // ---- AI opponent
   updateAI(dt) {
     // escalating aggression with elapsed time
-    const mins = (now() - this.startMs) / 60000;
+    const mins = this.gameTime / 60;
     this.aiBuildTimer -= dt;
     if (this.aiBuildTimer <= 0) {
       this.aiBuildTimer = 1.6;
@@ -339,13 +377,15 @@ class Game {
     if (f.gold >= def.cost) {
       f.gold -= def.cost;
       f.income += def.income;
-      this.player.spawnSend(def, false); // AI creeps attack the player field
+      this.player.spawnSend(def, false, this.sendHpScale()); // AI creeps attack the player field
     }
   }
 
   // ---- simulation
   update(dt) {
     if (this.state !== "running") return;
+    this.gameTime += dt;
+    this.elapsed = this.gameTime * 1000;
 
     this.incomeTimer -= dt;
     if (this.incomeTimer <= 0) {
@@ -372,7 +412,7 @@ class Game {
     // move creeps along the flow field
     for (const cr of f.creeps) {
       if (cr.hp <= 0) continue;
-      const speed = cr.speed * (now() < cr.slowUntil ? 0.55 : 1);
+      const speed = cr.speed * (this.gameTime < cr.slowUntil ? 0.55 : 1);
       // current cell
       let cc = Math.floor((cr.x - f.ox) / CELL);
       let rr = Math.floor((cr.y - GY) / CELL);
@@ -403,10 +443,11 @@ class Game {
       cr.y += (dy / dlen) * step;
     }
 
-    // towers fire
-    const t = now();
+    // towers fire (sim-time cooldowns — wall-clock here made towers burst-fire
+    // after a hidden-tab freeze and broke pause)
+    const t = this.gameTime;
     for (const tw of f.towers) {
-      if ((t - tw.lastFire) / 1000 < tw.def.interval) continue;
+      if (t - tw.lastFire < tw.def.interval) continue;
       const target = this.pickTarget(f, tw);
       if (!target) continue;
       tw.lastFire = t;
@@ -418,7 +459,7 @@ class Game {
         }
       } else {
         this.damage(f, target, tw.def.dmg);
-        if (tw.def.slow > 0) target.slowUntil = t + 1200;
+        if (tw.def.slow > 0) target.slowUntil = t + 1.2;
       }
     }
 
@@ -463,7 +504,6 @@ class Game {
     if (dt > 0.05) dt = 0.05;     // clamp after tab-away
     if (this.state === "ready") { this.draw(); this.showStartOverlayOnce(); }
     else { this.update(dt); this.draw(); }
-    if (this.state === "running") this.elapsed = t - this.startMs;
     document.getElementById("timer").textContent = formatTime(this.elapsed);
     requestAnimationFrame(() => this.loop());
   }
@@ -476,6 +516,15 @@ class Game {
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     this.drawField(this.player, "YOU", "#60a5fa");
     this.drawField(this.ai, "ENEMY", "#f87171");
+    if (this.state === "paused") {
+      const ctx2 = this.ctx;
+      ctx2.fillStyle = "rgba(13, 16, 24, 0.55)";
+      ctx2.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      ctx2.fillStyle = "#e2e8f0";
+      ctx2.font = "700 34px system-ui, sans-serif";
+      ctx2.textAlign = "center";
+      ctx2.fillText("Paused — press P to resume", this.canvas.width / 2, this.canvas.height / 2);
+    }
     this.drawDivider();
     // bullets
     for (const b of this.bullets) {
@@ -537,7 +586,7 @@ class Game {
       const rad = 8 + (cr.maxHp > 60 ? 4 : 0);
       ctx.fillStyle = cr.color;
       ctx.beginPath(); ctx.arc(cr.x, cr.y, rad, 0, Math.PI * 2); ctx.fill();
-      if (now() < cr.slowUntil) { ctx.strokeStyle = "#67e8f9"; ctx.lineWidth = 2; ctx.stroke(); }
+      if (this.gameTime < cr.slowUntil) { ctx.strokeStyle = "#67e8f9"; ctx.lineWidth = 2; ctx.stroke(); }
       // hp bar
       const w = 22, hpf = clamp(cr.hp / cr.maxHp, 0, 1);
       ctx.fillStyle = "#000"; ctx.fillRect(cr.x - w / 2, cr.y - rad - 7, w, 4);
