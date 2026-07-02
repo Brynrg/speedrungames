@@ -8,7 +8,7 @@
   "status": "live",
   "framework": "vite-canvas2d",
   "supportsMobile": false,
-  "version": "0.7.0",
-  "sourceCommit": "2745383ad23fcc1c1e8ff81b2837ad2f93a82c1e",
+  "version": "0.8.0",
+  "sourceCommit": "0d3be9e0789027970870963f7226a5bb3977d187",
   "emoji": "\ud83c\udfae"
 }
