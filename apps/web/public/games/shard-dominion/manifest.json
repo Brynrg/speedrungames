@@ -1,0 +1,14 @@
+{
+  "slug": "shard-dominion",
+  "title": "Shard Dominion",
+  "description": "Late-90s Westwood-style RTS on Aether Prime: harvest, train an army (T/R), base-build, fog of war, RPS combat \u2014 beat the AI that builds and attacks back.",
+  "repo": "local:Code/games/shard-dominion",
+  "playUrl": "/games/shard-dominion/",
+  "category": "arcade",
+  "status": "live",
+  "framework": "vite-canvas2d",
+  "supportsMobile": false,
+  "version": "0.7.0",
+  "sourceCommit": "2745383ad23fcc1c1e8ff81b2837ad2f93a82c1e",
+  "emoji": "\ud83c\udfae"
+}
