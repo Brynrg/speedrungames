@@ -1,0 +1,20 @@
+{
+  "slug": "green-circle-td",
+  "title": "Green Circle TD",
+  "description": "Maze tower defense: creeps circle in from four corners to the center, passing every position. TRUE ONLINE MULTIPLAYER (2–4 players): WC3-style lobby with 4-letter room codes, authoritative server, per-player build zones, shared lives. Plus procedural turret + creep graphics, Lv1-3 upgrades and 2-way specializations, armor-vs-damage matrix including WC3 chaos damage, air-targeting restriction, randomized wave order, distinct creep archetypes, local hot-seat co-op, aura towers, Mint economy tower, interest economy, stackable waves, 1×/2×/3× speed, and 30 escalating waves to a multi-phase boss.",
+  "repo": "Brynrg/green-circle-td",
+  "playUrl": "/games/green-circle-td/",
+  "category": "tower-defense",
+  "status": "live",
+  "framework": "vanilla",
+  "supportsMobile": true,
+  "version": "1.8.0",
+  "sourceCommit": "5bb2eb1b18d9a2595928b80878f5e697a1600a43",
+  "buildHash": "cb15297928a345e9e97573d2501a01970c57c4e960d3f82695247bebffc257f6",
+  "buildTimestamp": "2026-06-10T01:43:19.081Z",
+  "lastUpdated": "2026-06-10T01:43:19.081Z",
+  "emoji": "🟢",
+  "multiplayer": "realtime-server",
+  "multiplayerProvider": "fly-io",
+  "multiplayerEndpoint": "wss://gctd-server.fly.dev"
+}
