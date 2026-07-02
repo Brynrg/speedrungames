@@ -116,6 +116,8 @@ export function setActivePlayer(id) {
 }
 
 export function resetRun(options = {}) {
+  game.runMs = 0;
+  game.runSubmitted = false;
   const keepMode = options.keepMode !== undefined ? !!options.keepMode : true;
   const keepAutoWave = options.keepAutoWave !== undefined ? !!options.keepAutoWave : false;
   const modeValue = keepMode ? game.mode : "classic";

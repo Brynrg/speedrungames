@@ -37,6 +37,8 @@ export function getRunSnapshot() {
       gameOver: game.gameOver,
       message: game.message,
       scoreRecorded: game.scoreRecorded,
+      runMs: game.runMs,
+      runSubmitted: game.runSubmitted,
       players: game.players,
     },
     towers: towers.map((tower) => tower.serialize()),
@@ -126,6 +128,8 @@ export function loadRun(showMessage = true) {
     game.gameOver = !!parsed.game.gameOver;
     game.message = parsed.game.message || "Run loaded.";
     game.scoreRecorded = !!parsed.game.scoreRecorded;
+    game.runMs = parsed.game.runMs || 0;
+    game.runSubmitted = !!parsed.game.runSubmitted;
     game.players = [createPlayerState(0), createPlayerState(1)];
     if (Array.isArray(parsed.game.players) && parsed.game.players.length >= 2) {
       for (let i = 0; i < 2; i += 1) {

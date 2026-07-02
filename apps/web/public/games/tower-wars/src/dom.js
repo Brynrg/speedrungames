@@ -34,6 +34,7 @@ export const quickWaveTagEl = document.getElementById("quickWaveTag");
 export const quickSendsEl = document.getElementById("quickSends");
 export const quickNextWaveEl = document.getElementById("quickNextWave");
 export const wavePreviewEl = document.getElementById("wavePreview");
+export const quickRunTimeEl = document.getElementById("quickRunTime");
 export const miniMapEl = document.getElementById("miniMap");
 export const miniMapCtx = miniMapEl ? miniMapEl.getContext("2d") : null;
 export const duelBoardCardEl = document.getElementById("duelBoardCard");
