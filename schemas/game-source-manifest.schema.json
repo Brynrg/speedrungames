@@ -48,6 +48,7 @@
       "type": "string",
       "enum": [
         "vite",
+        "vite-canvas2d",
         "vite-phaser",
         "vite-pixi",
         "vite-react",
@@ -69,10 +70,19 @@
     },
     "multiplayer": {
       "type": "string",
-      "enum": ["none", "local", "p2p", "realtime-server", "async"]
+      "enum": [
+        "none",
+        "local",
+        "p2p",
+        "realtime-server",
+        "async"
+      ]
     },
     "multiplayerProvider": {
-      "type": ["string", "null"]
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "multiplayerEndpoint": {
       "type": "string"
@@ -82,11 +92,20 @@
       "description": "Optional asset-presence contract enforced at ingest: directories the build MUST contain. Each: { dir, ext?, min? }.",
       "items": {
         "type": "object",
-        "required": ["dir"],
+        "required": [
+          "dir"
+        ],
         "properties": {
-          "dir": { "type": "string" },
-          "ext": { "type": "string" },
-          "min": { "type": "integer", "minimum": 1 }
+          "dir": {
+            "type": "string"
+          },
+          "ext": {
+            "type": "string"
+          },
+          "min": {
+            "type": "integer",
+            "minimum": 1
+          }
         }
       }
     }
