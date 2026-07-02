@@ -7,6 +7,36 @@ import { DUEL_EXITS, DUEL_LANE_IDS, DUEL_SPAWNS, DUEL_WAYPOINTS, MAZE_EXIT, MAZE
 import { game, getActivePlayerState, statusBanners } from "./state.js";
 import { TOWER_DATA } from "./towers.js";
 
+// Animated spawn/exit portal: pulsing core + rotating dashed ring. Purely
+// visual — phase comes from wall-clock, never the sim.
+function drawPortal(x, y, color, radius) {
+  const t = performance.now() / 1000;
+  const pulse = 0.82 + 0.18 * Math.sin(t * 2.6 + x * 0.01);
+
+  const glow = ctx.createRadialGradient(x, y, 0, x, y, radius * 2.1);
+  glow.addColorStop(0, color + "55");
+  glow.addColorStop(1, color + "00");
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(x, y, radius * 2.1, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(x, y, radius * 0.52 * pulse, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2.4;
+  ctx.setLineDash([6, 7]);
+  ctx.lineDashOffset = -((t * 26) % 13);
+  ctx.beginPath();
+  ctx.arc(x, y, radius * pulse, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.lineDashOffset = 0;
+}
+
 export function drawBoard() {
   const grass = ctx.createLinearGradient(0, 0, 0, HEIGHT);
   grass.addColorStop(0, "#1c3e21");
@@ -61,16 +91,34 @@ export function drawBoard() {
     ctx.lineWidth = 24;
     ctx.stroke();
   } else if (game.mode === "maze") {
+    // Projected creep route as a translucent road ribbon (same visual language
+    // as the classic path) so the maze route is readable at a glance.
     const preview = getMazePreviewPoints();
     if (preview.length > 1) {
-      ctx.beginPath();
-      ctx.moveTo(preview[0].x, preview[0].y);
-      for (let i = 1; i < preview.length; i += 1) {
-        ctx.lineTo(preview[i].x, preview[i].y);
-      }
-      ctx.strokeStyle = "rgba(190, 216, 146, 0.45)";
-      ctx.lineWidth = 6;
+      const trace = () => {
+        ctx.beginPath();
+        ctx.moveTo(preview[0].x, preview[0].y);
+        for (let i = 1; i < preview.length; i += 1) {
+          ctx.lineTo(preview[i].x, preview[i].y);
+        }
+      };
+      trace();
+      ctx.strokeStyle = "rgba(109, 102, 87, 0.4)";
+      ctx.lineWidth = 31;
       ctx.stroke();
+      trace();
+      ctx.strokeStyle = "rgba(142, 132, 111, 0.42)";
+      ctx.lineWidth = 22;
+      ctx.stroke();
+      // Animated direction dashes marching toward the exit.
+      trace();
+      ctx.strokeStyle = "rgba(222, 234, 180, 0.5)";
+      ctx.lineWidth = 3;
+      ctx.setLineDash([10, 16]);
+      ctx.lineDashOffset = -((performance.now() / 40) % 26);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.lineDashOffset = 0;
     }
   } else {
     for (let lane = 0; lane < DUEL_WAYPOINTS.length; lane += 1) {
@@ -105,29 +153,15 @@ export function drawBoard() {
   if (game.mode === "duel") {
     for (let lane = 0; lane < DUEL_LANE_IDS.length; lane += 1) {
       const spawnPoint = worldFromCell(DUEL_SPAWNS[lane].cx, DUEL_SPAWNS[lane].cy);
-      ctx.fillStyle = lane === 0 ? "#9add7a" : "#7ab5e4";
-      ctx.beginPath();
-      ctx.arc(spawnPoint.x, spawnPoint.y, 8, 0, Math.PI * 2);
-      ctx.fill();
-
+      drawPortal(spawnPoint.x, spawnPoint.y, lane === 0 ? "#9add7a" : "#7ab5e4", 11);
       const exitPoint = worldFromCell(DUEL_EXITS[lane].cx, DUEL_EXITS[lane].cy);
-      ctx.fillStyle = lane === 0 ? "#e89a85" : "#e082a5";
-      ctx.beginPath();
-      ctx.arc(exitPoint.x, exitPoint.y, 8, 0, Math.PI * 2);
-      ctx.fill();
+      drawPortal(exitPoint.x, exitPoint.y, lane === 0 ? "#e89a85" : "#e082a5", 11);
     }
   } else {
     const spawnPoint = worldFromCell(MAZE_START.cx, MAZE_START.cy);
-    ctx.fillStyle = "#91d164";
-    ctx.beginPath();
-    ctx.arc(spawnPoint.x, spawnPoint.y, 9, 0, Math.PI * 2);
-    ctx.fill();
-
+    drawPortal(spawnPoint.x, spawnPoint.y, "#91d164", 13);
     const exitPoint = worldFromCell(MAZE_EXIT.cx, MAZE_EXIT.cy);
-    ctx.fillStyle = "#e98a75";
-    ctx.beginPath();
-    ctx.arc(exitPoint.x, exitPoint.y, 9, 0, Math.PI * 2);
-    ctx.fill();
+    drawPortal(exitPoint.x, exitPoint.y, "#e98a75", 13);
   }
 
   if (game.hoverCell) {

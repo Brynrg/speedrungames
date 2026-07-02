@@ -47,11 +47,47 @@ body {
 
 .game-wrap {
   position: fixed;
-  inset: 0;
+  /* Docked between the HUD and the side rails — measured by syncLayoutOffsets().
+     Nothing playable ever sits underneath UI. */
+  top: var(--board-top, 0);
+  left: var(--board-left, 0);
+  right: var(--board-right, 0);
+  bottom: var(--board-bottom, 0);
   border: 0;
   background: #0c1a0c;
   overflow: hidden;
   z-index: 1;
+}
+
+.panel-collapse {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.3rem;
+  z-index: 5;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 1px solid #739553;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #2e4728, #23371f);
+  color: var(--text);
+  font-size: 0.72rem;
+  line-height: 1;
+  cursor: pointer;
+  appearance: none;
+}
+
+.utility-panel.collapsed,
+.panel.collapsed {
+  width: 2.1rem;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0.3rem 0.2rem;
+}
+
+.utility-panel.collapsed > :not(.panel-collapse),
+.panel.collapsed > :not(.panel-collapse) {
+  display: none;
 }
 
 canvas {
@@ -732,22 +768,28 @@ code {
     top: 0.4rem;
   }
 
-  .utility-panel,
-  .panel {
-    width: calc(100vw - 0.8rem);
-    left: 0.4rem;
-    right: 0.4rem;
-    max-height: 34vh;
-  }
-
+  /* Mobile: board on top (full width), command card as a bottom sheet. The
+     utility panel (minimap/save/tips) is desktop-only chrome. */
   .utility-panel {
-    top: auto;
-    bottom: 35.8vh;
+    display: none;
   }
 
   .panel {
     top: auto;
-    bottom: 0.4rem;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100vw;
+    max-height: 38vh;
+    border-radius: 10px 10px 0 0;
+    border-bottom: 0;
+  }
+
+  .panel.collapsed {
+    width: 100vw;
+    max-height: none;
+    height: 2.1rem;
+    padding: 0.3rem 0.2rem;
   }
 
   .row2,

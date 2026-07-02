@@ -1,4 +1,4 @@
-import { syncPanelOffset } from "./camera.js";
+import { syncLayoutOffsets } from "./camera.js";
 import { SPEED_LEVELS } from "./constants.js";
 import { autoWaveBtn, bestEl, duelActiveEl, duelBoardBodyEl, duelBoardCardEl, duelP1Btn, duelP1El, duelP2Btn, duelP2El, duelPlayerSwitchEl, duelStatsEl, goldEl, incomeEl, incomeTickEl, livesEl, menuBtn, modeClassicBtn, modeDuelBtn, modeMazeBtn, nextWaveBtn, pauseGameBtn, quickModeEl, quickSendsEl, quickStateEl, quickWaveTagEl, scoreEl, speedBtn, speedEl, speedGameBtn, waveEl, defeatOverlayEl, defeatTitleEl, defeatStatsEl, quickNextWaveEl, wavePreviewEl } from "./dom.js";
 import { drawMiniMap } from "./minimap.js";
@@ -135,7 +135,7 @@ export function syncUi() {
   }
   if (document.body.classList.contains("duel-active") !== game.duelMode) {
     document.body.classList.toggle("duel-active", game.duelMode);
-    syncPanelOffset();
+    syncLayoutOffsets();
   }
   if (duelBoardCardEl && duelBoardBodyEl) {
     duelBoardCardEl.classList.toggle("hidden", !game.duelMode);

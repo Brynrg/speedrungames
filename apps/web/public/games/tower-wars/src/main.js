@@ -2,7 +2,7 @@ import { ensureAudioActive } from "./audio.js";
 import { castSelectedAbility, chooseBranch, sellSelectedTower, setSelectedType, tryUpgradeSelectedTower } from "./build.js";
 import { clampCamera, keyState, resizeCanvasToViewport } from "./camera.js";
 import { HOME_URL } from "./constants.js";
-import { autoWaveBtn, branchAButton, branchBButton, canvas, castAbilityBtn, clearSendsBtn, commandTabButtons, duelP1Btn, duelP2Btn, loadRunBtn, menuBtn, menuHomeBtn, menuOverlayEl, menuRestartBtn, menuResumeBtn, miniMapEl, modeClassicBtn, modeDuelBtn, modeMazeBtn, newRunBtn, nextWaveBtn, pauseGameBtn, saveRunBtn, sendAirBtn, sendArmorBtn, sendBreakerBtn, sendMiniBossBtn, sendRunnerBtn, sendSplitterBtn, speedBtn, speedGameBtn, startWaveBtn, towerButtons, upgradeTowerBtn, sellTowerBtn, defeatNewRunBtn, defeatLoadRunBtn, defeatHomeBtn } from "./dom.js";
+import { autoWaveBtn, branchAButton, branchBButton, canvas, castAbilityBtn, clearSendsBtn, commandTabButtons, duelP1Btn, duelP2Btn, loadRunBtn, menuBtn, menuHomeBtn, menuOverlayEl, menuRestartBtn, menuResumeBtn, miniMapEl, modeClassicBtn, modeDuelBtn, modeMazeBtn, newRunBtn, nextWaveBtn, pauseGameBtn, saveRunBtn, sendAirBtn, sendArmorBtn, sendBreakerBtn, sendMiniBossBtn, sendRunnerBtn, sendSplitterBtn, speedBtn, speedGameBtn, startWaveBtn, towerButtons, upgradeTowerBtn, sellTowerBtn, defeatNewRunBtn, defeatLoadRunBtn, defeatHomeBtn, collapseLeftBtn, collapseRightBtn } from "./dom.js";
 import { runStartupGuardrails } from "./guardrails.js";
 import { handleBoardClick, handleCanvasMouseDown, handleCanvasMouseUp, handleCanvasMove, handleCanvasWheel } from "./input.js";
 import { closeMenu, cycleSpeed, openMenu, restartRun, setActivePlayer, setGameMode, startWave, toggleAutoWave, togglePause } from "./lifecycle.js";
@@ -14,6 +14,7 @@ import { clearSendQueue, queueSend } from "./sends.js";
 import { game } from "./state.js";
 import { status } from "./status.js";
 import { defaultTooltip, getButtonTooltip, setCommandTab, setTooltip } from "./tooltip.js";
+import { bindTouchInput } from "./touch.js";
 import { TOWER_DATA } from "./towers.js";
 import { syncUi } from "./ui-sync.js";
 
@@ -32,6 +33,7 @@ export function bindEvents() {
     setTooltip(defaultTooltip());
   });
   canvas.addEventListener("click", handleBoardClick);
+  bindTouchInput();
   if (miniMapEl) {
     miniMapEl.addEventListener("pointerdown", handleMiniMapPointer);
   }
@@ -211,6 +213,19 @@ export function bindEvents() {
       window.location.href = HOME_URL;
     });
   }
+  const bindCollapse = (btn, expandGlyph, collapseGlyph) => {
+    if (!btn) {
+      return;
+    }
+    btn.addEventListener("click", () => {
+      const panel = btn.parentElement;
+      const collapsed = panel.classList.toggle("collapsed");
+      btn.innerHTML = collapsed ? expandGlyph : collapseGlyph;
+      resizeCanvasToViewport();
+    });
+  };
+  bindCollapse(collapseLeftBtn, "&#10095;", "&#10094;");
+  bindCollapse(collapseRightBtn, "&#10094;", "&#10095;");
 
   for (const button of towerButtons) {
     button.addEventListener("click", () => {

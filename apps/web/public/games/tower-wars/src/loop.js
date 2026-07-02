@@ -2,7 +2,7 @@ import { playSfx } from "./audio.js";
 import { updateBuffsAndAuras } from "./auras.js";
 import { applyCameraTransform } from "./camera.js";
 import { SPEED_LEVELS } from "./constants.js";
-import { ctx } from "./dom.js";
+import { canvas, ctx } from "./dom.js";
 import { updateCameraFromKeys } from "./input.js";
 import { startWave } from "./lifecycle.js";
 import { drawAreaEffect, drawBoard, drawEffect, drawEnemy, drawOverlay, drawProjectile, drawTower, updateStatusBanners } from "./render.js";
@@ -164,6 +164,10 @@ export function update(dt) {
 }
 
 export function render() {
+  // Full clear: at contain zoom the board letterboxes, so the canvas edges
+  // aren't repainted by drawBoard and would smear without this.
+  ctx.fillStyle = "#0c1a0c";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.save();
   if (game.shake > 0) {
     const offsetX = (Math.random() * 2 - 1) * game.shake;
