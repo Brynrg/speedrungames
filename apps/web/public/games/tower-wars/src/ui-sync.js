@@ -1,6 +1,6 @@
 import { syncLayoutOffsets } from "./camera.js";
 import { SPEED_LEVELS } from "./constants.js";
-import { autoWaveBtn, bestEl, duelActiveEl, duelBoardBodyEl, duelBoardCardEl, duelP1Btn, duelP1El, duelP2Btn, duelP2El, duelPlayerSwitchEl, duelStatsEl, goldEl, incomeEl, incomeTickEl, livesEl, menuBtn, modeClassicBtn, modeDuelBtn, modeMazeBtn, nextWaveBtn, pauseGameBtn, quickModeEl, quickSendsEl, quickStateEl, quickWaveTagEl, scoreEl, speedBtn, speedEl, speedGameBtn, waveEl, defeatOverlayEl, defeatTitleEl, defeatStatsEl, quickNextWaveEl, wavePreviewEl } from "./dom.js";
+import { autoWaveBtn, bestEl, duelActiveEl, duelBoardBodyEl, duelBoardCardEl, duelP1Btn, duelP1El, duelP2Btn, duelP2El, duelPlayerSwitchEl, duelStatsEl, goldEl, incomeEl, incomeTickEl, livesEl, menuBtn, modeClassicBtn, modeDuelBtn, modeMazeBtn, nextWaveBtn, pauseGameBtn, quickModeEl, quickSendsEl, quickStateEl, quickWaveTagEl, scoreEl, speedBtn, speedEl, speedGameBtn, waveEl, defeatOverlayEl, defeatTitleEl, defeatStatsEl, quickNextWaveEl, wavePreviewEl, quickRunTimeEl } from "./dom.js";
 import { drawMiniMap } from "./minimap.js";
 import { highScores } from "./scores.js";
 import { updateSelectionPanel } from "./selection.js";
@@ -102,6 +102,16 @@ export function syncUi() {
   const perLane = game.duelMode ? " per lane" : "";
   if (quickNextWaveEl) {
     quickNextWaveEl.textContent = `${preview.tag} (${preview.count}${perLane})`;
+  }
+  if (quickRunTimeEl) {
+    if (game.wave >= 1 && !game.duelMode) {
+      const totalSec = game.runMs / 1000;
+      const mm = Math.floor(totalSec / 60);
+      const ss = Math.floor(totalSec % 60).toString().padStart(2, "0");
+      quickRunTimeEl.textContent = `${mm}:${ss}${game.runSubmitted ? " *" : ""}`;
+    } else {
+      quickRunTimeEl.textContent = "-";
+    }
   }
   if (wavePreviewEl) {
     wavePreviewEl.textContent = `Next: wave ${game.wave + 1} - ${preview.tag}, ${preview.count} enemies${perLane}. ${preview.hint}`;

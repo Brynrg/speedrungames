@@ -1,4 +1,5 @@
 import { playSfx } from "./audio.js";
+import { submitRun } from "./leaderboard.js";
 import { updateBuffsAndAuras } from "./auras.js";
 import { applyCameraTransform } from "./camera.js";
 import { SPEED_LEVELS } from "./constants.js";
@@ -43,6 +44,12 @@ export function update(dt) {
   }
   syncActiveToLegacyIfDuel();
 
+  // Speedrun clock: sim-time from the first wave until the wave-20 clear is
+  // submitted. Runs through build phases too, so rushing waves is rewarded.
+  if (game.wave >= 1 && !game.runSubmitted) {
+    game.runMs += dt * 1000;
+  }
+
   if (game.waveActive) {
     game.spawnCooldown -= dt;
     if (game.spawnQueue.length > 0 && game.spawnCooldown <= 0) {
@@ -83,6 +90,14 @@ export function update(dt) {
       const autoText = game.autoWaveEnabled ? " Auto next in 2.8s." : "";
       const incomeText = cleanWaveIncome ? " Clean wave: +1 income." : "";
       status(`Wave ${game.wave} (${game.waveTag}) cleared. Bonus +${bounty}g.${incomeText}${autoText}`);
+      if (!game.duelMode && game.wave >= 20 && !game.runSubmitted) {
+        game.runSubmitted = true;
+        const totalSec = game.runMs / 1000;
+        const mm = Math.floor(totalSec / 60);
+        const ss = (totalSec % 60).toFixed(1).padStart(4, "0");
+        status(`Speedrun complete: waves 1-20 in ${mm}:${ss}.`);
+        submitRun(game.runMs);
+      }
       playSfx("clear");
       syncActiveToLegacyIfDuel();
       saveRun(false);

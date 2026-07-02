@@ -33,6 +33,8 @@ export const game = {
   message: "Build towers and send wave 1.",
   shake: 0,
   autoSaveTimer: 0,
+  runMs: 0,            // sim-time speedrun clock: first wave start -> wave-20 clear
+  runSubmitted: false, // one leaderboard submit per run
   players: [],
 };
 
