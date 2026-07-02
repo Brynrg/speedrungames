@@ -96,6 +96,26 @@ export function makeBossUnit(wave, idx) {
   };
 }
 
+// Deterministic summary of what buildWavePlan(wave) will produce (only per-unit
+// hp/speed jitter is random), so the player can prepare before starting the wave.
+export function getWavePreview(wave) {
+  if (wave % 10 === 0) {
+    return { tag: "Boss Wave", count: 1 + Math.floor(wave / 20), hint: "Huge boss. Bring heavy single-target damage." };
+  }
+  if (wave % 5 === 0) {
+    return { tag: "Air Wave", count: 12 + wave, hint: "Flying. Only air-capable towers can hit them." };
+  }
+  if (wave % 7 === 0) {
+    return { tag: "Splitter Wave", count: 10 + wave, hint: "Enemies split into children when killed." };
+  }
+  const spellbreaker = wave >= 9 && wave % 3 === 0;
+  return {
+    tag: "Assault Wave",
+    count: 8 + wave * 2 + (spellbreaker ? 1 : 0),
+    hint: spellbreaker ? "Includes a magic-immune Spellbreaker." : "Mixed ground assault.",
+  };
+}
+
 export function buildWavePlan(wave) {
   const queue = [];
 

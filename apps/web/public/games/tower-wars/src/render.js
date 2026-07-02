@@ -645,21 +645,9 @@ export function drawOverlay() {
     return;
   }
 
+  // Dim the board; the #defeatOverlay modal carries the title, stats, and actions.
   ctx.fillStyle = "rgba(8, 11, 8, 0.63)";
   ctx.fillRect(0, 0, viewW, viewH);
-
-  ctx.fillStyle = "#f2d486";
-  ctx.font = "700 56px Cinzel, serif";
-  ctx.textAlign = "center";
-  ctx.fillText(game.duelMode ? "Match End" : "Defeat", viewW / 2, viewH / 2 - 20);
-
-  ctx.font = "700 20px Rajdhani, sans-serif";
-  ctx.fillStyle = "#ebf2d7";
-  const scoreText = game.duelMode
-    ? `Wave ${game.wave} | P1 ${Math.floor(game.players[0].score)} vs P2 ${Math.floor(game.players[1].score)}`
-    : `You reached wave ${game.wave} | Score ${game.score}`;
-  ctx.fillText(scoreText, viewW / 2, viewH / 2 + 20);
-  ctx.fillText("Use New Run or Load Run to continue.", viewW / 2, viewH / 2 + 50);
 }
 
 export function updateStatusBanners(dt) {

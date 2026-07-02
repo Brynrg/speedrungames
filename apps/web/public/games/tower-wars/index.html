@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Green Circle TD</title>
+    <title>Tower Wars</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -42,7 +42,7 @@
       </section>
 
       <aside class="utility-panel">
-        <h1>Green Circle TD</h1>
+        <h1>Tower Wars</h1>
 
         <section class="section-card minimap-card">
           <h2>Minimap</h2>
@@ -58,6 +58,7 @@
             <p><span>Mode</span><strong id="quickMode">Classic</strong></p>
             <p><span>State</span><strong id="quickState">Build</strong></p>
             <p><span>Wave Tag</span><strong id="quickWaveTag">-</strong></p>
+            <p><span>Next Wave</span><strong id="quickNextWave">-</strong></p>
             <p><span>Queued Sends</span><strong id="quickSends">0</strong></p>
           </div>
           <p>Modes: Classic, Maze, Duel. Keep the route open in Maze mode.</p>
@@ -104,7 +105,7 @@
       </aside>
 
       <section class="game-wrap">
-        <canvas id="game" width="960" height="576" aria-label="Green Circle TD board"></canvas>
+        <canvas id="game" width="960" height="576" aria-label="Tower Wars board"></canvas>
       </section>
 
       <aside class="panel">
@@ -206,6 +207,7 @@
               <button id="modeMaze" data-icon="MZ">Mode: Maze</button>
               <button id="modeDuel" data-icon="DU">Mode: Duel</button>
             </div>
+            <p id="wavePreview">Next: -</p>
             <p id="waveStatus">Build towers and send wave 1.</p>
           </section>
 
@@ -226,10 +228,14 @@
                 <p><span>Attack:</span> <strong id="selRate">-</strong></p>
                 <p><span>Branch:</span> <strong id="selBranch">None</strong></p>
                 <p><span>Aura:</span> <strong id="selAura">None</strong></p>
+                <p><span>Kills:</span> <strong id="selKills">0</strong></p>
               </div>
               <div class="row2 row2-tower">
                 <button id="upgradeTower" data-icon="UP">Upgrade (U)</button>
                 <button id="castAbility" data-icon="AB">Ability (F)</button>
+              </div>
+              <div class="row2 row2-tower">
+                <button id="sellTower" data-icon="SL">Sell (S)</button>
               </div>
               <div id="branchControls" class="hidden row2 row2-tower">
                 <button id="branchA" data-icon="A">Branch A</button>
@@ -269,6 +275,18 @@
           <button id="menuResume" type="button">Resume</button>
           <button id="menuRestart" type="button">Restart</button>
           <button id="menuHome" type="button">Return Home</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="defeatOverlay" class="overlay hidden" aria-hidden="true">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="defeatTitle">
+        <h2 id="defeatTitle">Defeat</h2>
+        <p id="defeatStats" class="defeat-stats">-</p>
+        <div class="modal-actions">
+          <button id="defeatNewRun" type="button">New Run</button>
+          <button id="defeatLoadRun" type="button">Load Run</button>
+          <button id="defeatHome" type="button">Return Home</button>
         </div>
       </div>
     </div>

@@ -69,7 +69,17 @@ export function getScreenPos(event) {
   };
 }
 
+export function syncPanelOffset() {
+  const hudBar = document.querySelector(".hud-bar");
+  if (!hudBar) {
+    return;
+  }
+  const bottom = Math.ceil(hudBar.getBoundingClientRect().bottom + 10);
+  document.documentElement.style.setProperty("--panel-top", `${bottom}px`);
+}
+
 export function resizeCanvasToViewport() {
+  syncPanelOffset();
   const rect = canvas.getBoundingClientRect();
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const nextWidth = Math.max(320, Math.round(rect.width * dpr));

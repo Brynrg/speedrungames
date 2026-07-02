@@ -1,5 +1,5 @@
 import { DAMAGE_LABELS } from "./damage.js";
-import { branchAButton, branchBButton, branchControlsEl, castAbilityBtn, selAuraEl, selBranchEl, selDamageEl, selDamageTypeEl, selLevelEl, selRangeEl, selRateEl, selSubEl, selTitleEl, selTypeEl, selectionDetailsEl, selectionNoneEl, upgradeTowerBtn } from "./dom.js";
+import { branchAButton, branchBButton, branchControlsEl, castAbilityBtn, selAuraEl, selBranchEl, selDamageEl, selDamageTypeEl, selLevelEl, selRangeEl, selRateEl, selSubEl, selTitleEl, selTypeEl, selectionDetailsEl, selectionNoneEl, upgradeTowerBtn, sellTowerBtn, selKillsEl } from "./dom.js";
 import { game, getPlayerState, towers } from "./state.js";
 
 export function updateSelectionPanel() {
@@ -29,6 +29,9 @@ export function updateSelectionPanel() {
   selRateEl.textContent = `${(1 / tower.effectiveFireRate).toFixed(2)} /s`;
   selBranchEl.textContent = tower.branchData?.name || "None";
   selAuraEl.textContent = tower.branchData?.aura?.name || tower.branchData?.auraSlow?.name || "None";
+  if (selKillsEl) {
+    selKillsEl.textContent = String(tower.kills);
+  }
   if (selTitleEl) {
     selTitleEl.textContent = tower.data.name;
   }
@@ -38,6 +41,11 @@ export function updateSelectionPanel() {
   }
   const ownerState = game.duelMode ? getPlayerState(tower.owner) : game;
   const controllable = !game.duelMode || tower.owner === game.activePlayer;
+
+  if (sellTowerBtn) {
+    sellTowerBtn.textContent = `Sell (S) +${tower.sellValue}g`;
+    sellTowerBtn.disabled = !controllable;
+  }
 
   if (!tower.canUpgrade()) {
     upgradeTowerBtn.textContent = "Max Level";

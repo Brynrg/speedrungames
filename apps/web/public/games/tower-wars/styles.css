@@ -64,7 +64,9 @@ canvas {
 .utility-panel,
 .panel {
   position: fixed;
-  top: 7.05rem;
+  /* --panel-top is measured from the HUD bar's real height in syncPanelOffset()
+     (the bar grows when the stats grid wraps or the duel strip appears). */
+  top: var(--panel-top, 7.05rem);
   bottom: 0.65rem;
   background: linear-gradient(180deg, rgba(40, 56, 34, 0.97), rgba(24, 35, 21, 0.98));
   border: 2px solid var(--panel-edge);
@@ -339,7 +341,11 @@ canvas {
 #newRun,
 #menuResume,
 #menuRestart,
-#menuHome {
+#menuHome,
+#sellTower,
+#defeatNewRun,
+#defeatLoadRun,
+#defeatHome {
   display: block;
   position: relative;
   z-index: 2;
@@ -610,6 +616,12 @@ button:active:not(:disabled) {
   margin: 0 0 0.45rem;
 }
 
+.defeat-stats {
+  margin: 0 0 0.6rem;
+  color: var(--subtle);
+  font-size: 0.85rem;
+}
+
 .modal-actions {
   display: grid;
   gap: 0.35rem;
@@ -682,9 +694,9 @@ code {
 
   .utility-panel,
   .panel {
-    top: 6.55rem;
+    top: var(--panel-top, 6.55rem);
     width: min(46vw, 360px);
-    max-height: calc(100dvh - 7.2rem);
+    max-height: none;
   }
 
   .utility-panel {

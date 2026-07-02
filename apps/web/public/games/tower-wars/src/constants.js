@@ -28,6 +28,10 @@ export const CONTROL_TOOLTIPS = {
   menuResume: "Close menu and resume the game.",
   menuRestart: "Start a fresh run immediately.",
   menuHome: "Return to the Speedrun Games home page.",
+  sellTower: "Sell the selected tower for 70% of gold invested.",
+  defeatNewRun: "Start a fresh run.",
+  defeatLoadRun: "Load the last saved run.",
+  defeatHome: "Return to the Speedrun Games home page.",
 };
 
 export const TILE = 48;
@@ -37,8 +41,28 @@ export const WIDTH = COLS * TILE;
 export const HEIGHT = ROWS * TILE;
 export const CAMERA_KEY_PAN_SPEED = 560;
 
-export const RUN_SAVE_KEY = "green_circle_td_run_v2";
-export const HIGH_SCORE_KEY = "green_circle_td_highscores_v2";
+export const RUN_SAVE_KEY = "speedrungames:tower-wars:run_v2";
+export const HIGH_SCORE_KEY = "speedrungames:tower-wars:highscores_v2";
+
+// One-time migration from the pre-rename ("Green Circle TD") keys so existing
+// runs and high scores survive. Runs at module init, before scores.js/save.js
+// read the new keys.
+const LEGACY_SAVE_KEYS = {
+  [RUN_SAVE_KEY]: "green_circle_td_run_v2",
+  [HIGH_SCORE_KEY]: "green_circle_td_highscores_v2",
+};
+for (const [newKey, oldKey] of Object.entries(LEGACY_SAVE_KEYS)) {
+  try {
+    if (localStorage.getItem(newKey) === null) {
+      const old = localStorage.getItem(oldKey);
+      if (old !== null) {
+        localStorage.setItem(newKey, old);
+      }
+    }
+  } catch (err) {
+    console.warn("[Save] legacy migration skipped:", err);
+  }
+}
 export const SPEED_LEVELS = [1, 2, 3, 4, 5];
 export const HOME_URL = window.SPEEDRUN_HOME_URL || "/";
 export const COMMAND_TABS = ["build", "wave", "selection", "send"];

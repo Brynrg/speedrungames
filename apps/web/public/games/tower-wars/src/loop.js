@@ -54,6 +54,7 @@ export function update(dt) {
       game.waveActive = false;
       game.autoWaveTimer = game.autoWaveEnabled ? 2.8 : 0;
       const bounty = 24 + game.wave * 3;
+      let cleanWaveIncome = false;
       if (game.duelMode) {
         for (const state of game.players) {
           state.gold += bounty;
@@ -61,6 +62,11 @@ export function update(dt) {
           if (game.wave % 4 === 0) {
             state.lives = Math.min(30, state.lives + 1);
           }
+          // Clean-wave recovery: leaked income comes back one point per perfect wave.
+          if (!state.leakedThisWave && state.income < 25) {
+            state.income += 1;
+          }
+          state.leakedThisWave = false;
         }
       } else {
         game.gold += bounty;
@@ -68,9 +74,15 @@ export function update(dt) {
         if (game.wave % 4 === 0) {
           game.lives = Math.min(30, game.lives + 1);
         }
+        if (!game.leakedThisWave && game.income < 25) {
+          game.income += 1;
+          cleanWaveIncome = true;
+        }
+        game.leakedThisWave = false;
       }
       const autoText = game.autoWaveEnabled ? " Auto next in 2.8s." : "";
-      status(`Wave ${game.wave} (${game.waveTag}) cleared. Bonus +${bounty}g.${autoText}`);
+      const incomeText = cleanWaveIncome ? " Clean wave: +1 income." : "";
+      status(`Wave ${game.wave} (${game.waveTag}) cleared. Bonus +${bounty}g.${incomeText}${autoText}`);
       playSfx("clear");
       syncActiveToLegacyIfDuel();
       saveRun(false);
@@ -109,7 +121,9 @@ export function update(dt) {
       enemies.splice(i, 1);
       const defender = getEnemyDefenderState(enemy);
       defender.lives -= enemy.leakDamage;
-      defender.income = Math.max(0, defender.income - enemy.leakDamage);
+      // Floor at 1 so a bad early wave can never permanently kill the economy.
+      defender.income = Math.max(1, defender.income - enemy.leakDamage);
+      defender.leakedThisWave = true;
       status(
         game.duelMode
           ? `${enemy.name} leaked vs P${getEnemyLane(enemy) + 1}. Lives: ${defender.lives}. Income: ${defender.income}`

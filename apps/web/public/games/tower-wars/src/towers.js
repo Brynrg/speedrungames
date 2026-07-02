@@ -316,6 +316,8 @@ export class Tower {
     this.baseRange = base.range;
     this.baseFireRate = base.fireRate;
     this.cooldown = Math.random() * this.baseFireRate;
+    this.invested = base.cost;
+    this.kills = 0;
 
     this.branch = null;
     this.abilityCooldown = 0;
@@ -343,6 +345,8 @@ export class Tower {
     tower.tempRateMul = data.tempRateMul;
     tower.tempBuffTimer = data.tempBuffTimer;
     tower._freezeCd = data._freezeCd || 0;
+    tower.invested = data.invested ?? TOWER_DATA[data.type].cost;
+    tower.kills = data.kills ?? 0;
     return tower;
   }
 
@@ -363,7 +367,13 @@ export class Tower {
       tempRateMul: this.tempRateMul,
       tempBuffTimer: this.tempBuffTimer,
       _freezeCd: this._freezeCd,
+      invested: this.invested,
+      kills: this.kills,
     };
+  }
+
+  get sellValue() {
+    return Math.floor(this.invested * 0.7);
   }
 
   get data() {
