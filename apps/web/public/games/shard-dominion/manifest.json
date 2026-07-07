@@ -1,17 +1,17 @@
 {
   "slug": "shard-dominion",
   "title": "Shard Dominion",
-  "description": "Late-90s Westwood-style RTS on Aether Prime: Warcraft-style build-up (mine Shard, raise a Barracks, train an army), real painted sprites, radar minimap, right-click to move/attack/mine, fog of war, vs an AI that reinforces in waves.",
+  "description": "Late-90s Westwood-style RTS on Aether Prime: clear goal + how-to, mine Shard, build a Barracks, train an army, zoom/pan, radar with objective marker, right-click to move/attack/mine, vs a wave-attacking AI.",
   "repo": "Brynrg/speedrungames",
   "playUrl": "/games/shard-dominion/",
   "category": "strategy",
   "status": "live",
   "framework": "vite-canvas2d",
   "supportsMobile": false,
-  "version": "0.16.0",
-  "sourceCommit": "da4f87c4eb2bd42c550c60b3205890cfcfb28016",
-  "buildHash": "7c8adad40b7d2af0ba0140839b3e5691097b977beee9b581463a2cc5f5db34bf",
-  "buildTimestamp": "2026-07-07T19:36:41.000Z",
-  "lastUpdated": "2026-07-07T19:36:41.000Z",
+  "version": "0.17.0",
+  "sourceCommit": "9bd5948318922b160ddfa9fff0feb8050797f9ff",
+  "buildHash": "4a7e117bf75b84ce0216dcd9f4093f0c15a182d140928ef044d391be97975f6f",
+  "buildTimestamp": "2026-07-07T19:48:04.000Z",
+  "lastUpdated": "2026-07-07T19:48:04.000Z",
   "emoji": "\ud83c\udfae"
 }
