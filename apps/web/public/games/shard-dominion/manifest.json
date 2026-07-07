@@ -1,17 +1,17 @@
 {
   "slug": "shard-dominion",
   "title": "Shard Dominion",
-  "description": "Late-90s Westwood-style RTS on Aether Prime: mission briefing, guided objectives, harvest Shard, train an army, base-build, fog of war, RPS combat \u2014 beat the AI that builds and attacks back.",
+  "description": "Late-90s Westwood-style RTS on Aether Prime: mission briefing, guided objectives, harvest Shard, train an army, base-build with fog of war, RPS combat and battlefield FX \u2014 beat the AI that builds and attacks back.",
   "repo": "Brynrg/speedrungames",
   "playUrl": "/games/shard-dominion/",
   "category": "strategy",
   "status": "live",
   "framework": "vite-canvas2d",
   "supportsMobile": false,
-  "version": "0.9.0",
-  "sourceCommit": "bfc37c1b89d6c5a80fef9000851511f465dec9b2",
-  "buildHash": "11b1d719b4e5a6d63246edf7a83d4ac956b99fc0df34bc2c59e661d7ad178354",
-  "buildTimestamp": "2026-07-07T06:01:50.000Z",
-  "lastUpdated": "2026-07-07T06:01:50.000Z",
+  "version": "0.10.0",
+  "sourceCommit": "3d96a655d2a2cdb87c9bae39389d322afc8a87f1",
+  "buildHash": "0f5e49a190d41c78df58a5bb143257b31a83dd0e649c8c8faf4dadac5bb87754",
+  "buildTimestamp": "2026-07-07T14:11:22.000Z",
+  "lastUpdated": "2026-07-07T14:11:22.000Z",
   "emoji": "\ud83c\udfae"
 }
