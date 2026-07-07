@@ -1,17 +1,17 @@
 {
   "slug": "shard-dominion",
   "title": "Shard Dominion",
-  "description": "Late-90s C&C/Red-Alert-style RTS on Aether Prime: edge-scroll+zoom, clickable build sidebar with live progress, build harvesters to grow your economy, real sprites + terrain, radar, right-click move/attack/mine, vs a wave-attacking AI.",
+  "description": "Late-90s C&C/Red-Alert-style RTS on Aether Prime: edge-scroll+zoom, clickable build sidebar with live progress, build harvesters from the Refinery to grow your economy, real sprites + terrain, radar, right-click move/attack/mine, vs a wave-attacking AI.",
   "repo": "Brynrg/speedrungames",
   "playUrl": "/games/shard-dominion/",
   "category": "strategy",
   "status": "live",
   "framework": "vite-canvas2d",
   "supportsMobile": false,
-  "version": "0.22.0",
-  "sourceCommit": "abb702387217e103fc09d2baa2f26eed55b92bab",
-  "buildHash": "04f8d6f2fc80ab1056f38ad1f5e07efee62a4f8b6a9a4bcac661750d7eb7febd",
-  "buildTimestamp": "2026-07-07T21:38:37.000Z",
-  "lastUpdated": "2026-07-07T21:38:37.000Z",
+  "version": "0.23.0",
+  "sourceCommit": "08a0bcf356159435321d8d31c2c85cf4ad573d86",
+  "buildHash": "e2d262322f05cbfa556e581606475b3b47e18504602dc22b8e31cc7da0f1aaa6",
+  "buildTimestamp": "2026-07-07T22:07:02.000Z",
+  "lastUpdated": "2026-07-07T22:07:02.000Z",
   "emoji": "\ud83c\udfae"
 }
