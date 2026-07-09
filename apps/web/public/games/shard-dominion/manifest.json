@@ -1,17 +1,17 @@
 {
   "slug": "shard-dominion",
   "title": "Shard Dominion",
-  "description": "Late-90s C&C/Red-Alert-style web RTS \u2014 a full 6-mission story campaign (scripted waves, comm chatter, mission select, rewards) + skirmish. Combined arms, expanding economy, turrets, power, pathfinding, full sound. The war for Aether Prime starts at First Light.",
+  "description": "Late-90s C&C/Red-Alert-style web RTS \u2014 6-mission story campaign, combined arms, expanding economy, capturable derricks, veteran units, a hero commander... and Riftmaws: mine the planet too deep and it fights back. Full sound, Campaign + Skirmish.",
   "repo": "Brynrg/speedrungames",
   "playUrl": "/games/shard-dominion/",
   "category": "strategy",
   "status": "live",
   "framework": "vite-canvas2d",
   "supportsMobile": false,
-  "version": "0.30.0",
-  "sourceCommit": "bfa1d0141d8d8e3aec282d9e5bcb0a8b24253f12",
-  "buildHash": "9cab6ffd8d695c2c657042adb7394cb81b8f90d8be02eee5cdd59e6ecc3b4813",
-  "buildTimestamp": "2026-07-09T17:35:17.000Z",
-  "lastUpdated": "2026-07-09T17:35:17.000Z",
+  "version": "0.31.0",
+  "sourceCommit": "2c8bfc1c100236d097e8231bda3994e26d251d31",
+  "buildHash": "81c3a6f838bdb604d30939bab1250275da9838bd589539f1ab6cb3d8dd1e3717",
+  "buildTimestamp": "2026-07-09T17:43:50.000Z",
+  "lastUpdated": "2026-07-09T17:43:50.000Z",
   "emoji": "\ud83c\udfae"
 }
