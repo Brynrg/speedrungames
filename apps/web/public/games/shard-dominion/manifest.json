@@ -1,17 +1,17 @@
 {
   "slug": "shard-dominion",
   "title": "Shard Dominion",
-  "description": "Late-90s C&C/Red-Alert-style web RTS \u2014 6-mission campaign, 3 playable factions, skirmish map pool with difficulty select, save/continue, combined arms, heroes and veterancy, capturable derricks, and a planet that fights back. Full sound.",
+  "description": "A complete late-90s C&C/Red-Alert-style web RTS: 6-mission story campaign, 3 factions, skirmish map pool + difficulty, combined arms, heroes + veterancy, a planet that fights back, save/continue, full sound \u2014 and 1v1 lockstep multiplayer.",
   "repo": "Brynrg/speedrungames",
   "playUrl": "/games/shard-dominion/",
   "category": "strategy",
   "status": "live",
   "framework": "vite-canvas2d",
   "supportsMobile": false,
-  "version": "0.32.0",
-  "sourceCommit": "c000383fa5f0b8d8a6c2ec242e938e9e598ff0ae",
-  "buildHash": "20aa3ac9532d6217e2b32bfd10df8ae8afce37e6da4b52f8ce01e6deeb98b2c3",
-  "buildTimestamp": "2026-07-09T17:54:49.000Z",
-  "lastUpdated": "2026-07-09T17:54:49.000Z",
+  "version": "0.33.0",
+  "sourceCommit": "2c9bdcadbc22bb11edf5e294aa826d83bb3e229f",
+  "buildHash": "be2f3bde6a463e5915f9596aac494694d90b1b37e4be44af9553e48c4b9a93d7",
+  "buildTimestamp": "2026-07-09T18:06:22.000Z",
+  "lastUpdated": "2026-07-09T18:06:22.000Z",
   "emoji": "\ud83c\udfae"
 }
