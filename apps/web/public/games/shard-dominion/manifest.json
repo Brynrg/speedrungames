@@ -1,17 +1,17 @@
 {
   "slug": "shard-dominion",
   "title": "Shard Dominion",
-  "description": "Late-90s C&C/Red-Alert-style RTS on Aether Prime. NEW Story Mode: a title menu + a scripted campaign (Mission 1 'First Light' \u2014 the Meridian Concord vs the Emberhand) alongside classic Skirmish vs a goal-driven AI that runs its own economy. Harvest Shard, build a base, command an army.",
+  "description": "Late-90s C&C/Red-Alert-style RTS on Aether Prime \u2014 now with full sound (procedural SFX + music), pause/game-speed, a Campaign (Mission 1: First Light) and Skirmish vs a goal-driven AI that runs its own economy. Edge-scroll+zoom, clickable build sidebar, real sprites + terrain, radar, right-click move/attack/mine.",
   "repo": "Brynrg/speedrungames",
   "playUrl": "/games/shard-dominion/",
   "category": "strategy",
   "status": "live",
   "framework": "vite-canvas2d",
   "supportsMobile": false,
-  "version": "0.25.0",
-  "sourceCommit": "1c6a3a64c0e29f4222dbc19ef2c24076bf240a2d",
-  "buildHash": "7fd56c8e25d8295571f8ff91edaede1ffee93b796e77cb096e46ea010df67e55",
-  "buildTimestamp": "2026-07-08T14:06:04.000Z",
-  "lastUpdated": "2026-07-08T14:06:04.000Z",
+  "version": "0.26.0",
+  "sourceCommit": "adc5b98825a7602457836af58e99c56e992994d7",
+  "buildHash": "cc259e95709459a62f89cfd31028432146e3ef6d6cecdea649d6dc30eab41138",
+  "buildTimestamp": "2026-07-09T16:23:31.000Z",
+  "lastUpdated": "2026-07-09T16:23:31.000Z",
   "emoji": "\ud83c\udfae"
 }
