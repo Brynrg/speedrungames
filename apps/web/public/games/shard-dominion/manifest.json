@@ -1,17 +1,17 @@
 {
   "slug": "shard-dominion",
   "title": "Shard Dominion",
-  "description": "Late-90s C&C/Red-Alert-style RTS on Aether Prime \u2014 expand across flank and centre Shard fields, build Refineries and Defense Turrets, manage power and repairs, command with attack-move/rally, vs an AI that expands too. Full sound, Campaign + Skirmish.",
+  "description": "Late-90s C&C/Red-Alert-style web RTS \u2014 combined arms (War Factory: scouts + tanks with dodgeable splash shells), expanding economy across contested Shard fields, turrets, repair, power management, full sound, Campaign + Skirmish vs an AI that expands and teches with you.",
   "repo": "Brynrg/speedrungames",
   "playUrl": "/games/shard-dominion/",
   "category": "strategy",
   "status": "live",
   "framework": "vite-canvas2d",
   "supportsMobile": false,
-  "version": "0.28.0",
-  "sourceCommit": "86d84a0920ef559cf933ba5a1dd26ecc3c0fa447",
-  "buildHash": "5230f0ed917cdc38110c4db7e65fc4d0277afc2bb2e5ef3408cabb9ec33ab242",
-  "buildTimestamp": "2026-07-09T17:13:19.000Z",
-  "lastUpdated": "2026-07-09T17:13:19.000Z",
+  "version": "0.29.0",
+  "sourceCommit": "662932dba1ece7223728c09d1543f033f2ef30f4",
+  "buildHash": "6b687fcf33564c3d77156a4618a7a0146c5afbbee66fc6e0532f7b77cf8993c6",
+  "buildTimestamp": "2026-07-09T17:22:49.000Z",
+  "lastUpdated": "2026-07-09T17:22:49.000Z",
   "emoji": "\ud83c\udfae"
 }
