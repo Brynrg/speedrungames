@@ -1,17 +1,17 @@
 {
   "slug": "shard-dominion",
   "title": "Shard Dominion",
-  "description": "Late-90s C&C/Red-Alert-style RTS on Aether Prime \u2014 now with full sound (procedural SFX + music), pause/game-speed, a Campaign (Mission 1: First Light) and Skirmish vs a goal-driven AI that runs its own economy. Edge-scroll+zoom, clickable build sidebar, real sprites + terrain, radar, right-click move/attack/mine.",
+  "description": "Late-90s C&C/Red-Alert-style RTS on Aether Prime \u2014 full sound, pause/game-speed, A* pathfinding around mesas, attack-move/stop/rally commands, battlefield wrecks, Campaign + Skirmish vs an AI running its own economy.",
   "repo": "Brynrg/speedrungames",
   "playUrl": "/games/shard-dominion/",
   "category": "strategy",
   "status": "live",
   "framework": "vite-canvas2d",
   "supportsMobile": false,
-  "version": "0.26.0",
-  "sourceCommit": "adc5b98825a7602457836af58e99c56e992994d7",
-  "buildHash": "cc259e95709459a62f89cfd31028432146e3ef6d6cecdea649d6dc30eab41138",
-  "buildTimestamp": "2026-07-09T16:23:31.000Z",
-  "lastUpdated": "2026-07-09T16:23:31.000Z",
+  "version": "0.27.0",
+  "sourceCommit": "23ba6375d53ede333a3053167d38a6c88c4db255",
+  "buildHash": "b783e560a69e6a12fb7570b529418100d16744fb6c805119f6b5834862222221",
+  "buildTimestamp": "2026-07-09T16:58:15.000Z",
+  "lastUpdated": "2026-07-09T16:58:15.000Z",
   "emoji": "\ud83c\udfae"
 }
