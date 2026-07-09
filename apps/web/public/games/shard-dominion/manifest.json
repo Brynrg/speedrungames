@@ -1,17 +1,17 @@
 {
   "slug": "shard-dominion",
   "title": "Shard Dominion",
-  "description": "Late-90s C&C/Red-Alert-style web RTS \u2014 combined arms (War Factory: scouts + tanks with dodgeable splash shells), expanding economy across contested Shard fields, turrets, repair, power management, full sound, Campaign + Skirmish vs an AI that expands and teches with you.",
+  "description": "Late-90s C&C/Red-Alert-style web RTS \u2014 a full 6-mission story campaign (scripted waves, comm chatter, mission select, rewards) + skirmish. Combined arms, expanding economy, turrets, power, pathfinding, full sound. The war for Aether Prime starts at First Light.",
   "repo": "Brynrg/speedrungames",
   "playUrl": "/games/shard-dominion/",
   "category": "strategy",
   "status": "live",
   "framework": "vite-canvas2d",
   "supportsMobile": false,
-  "version": "0.29.0",
-  "sourceCommit": "662932dba1ece7223728c09d1543f033f2ef30f4",
-  "buildHash": "6b687fcf33564c3d77156a4618a7a0146c5afbbee66fc6e0532f7b77cf8993c6",
-  "buildTimestamp": "2026-07-09T17:22:49.000Z",
-  "lastUpdated": "2026-07-09T17:22:49.000Z",
+  "version": "0.30.0",
+  "sourceCommit": "bfa1d0141d8d8e3aec282d9e5bcb0a8b24253f12",
+  "buildHash": "9cab6ffd8d695c2c657042adb7394cb81b8f90d8be02eee5cdd59e6ecc3b4813",
+  "buildTimestamp": "2026-07-09T17:35:17.000Z",
+  "lastUpdated": "2026-07-09T17:35:17.000Z",
   "emoji": "\ud83c\udfae"
 }
