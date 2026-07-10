@@ -93,9 +93,10 @@ function main() {
     const manifestPath = resolve(dir, "manifest.json");
 
     if (!existsSync(manifestPath)) {
-      warnings.push(
-        `apps/web/public/games/${slug}/: bare static-drop directory has no manifest.json (legacy; will not appear in registry)`,
-      );
+      warnings.push({
+        message: `apps/web/public/games/${slug}/: bare static-drop directory has no manifest.json (legacy; will not appear in registry)`,
+        slug,
+      });
       continue;
     }
 
@@ -169,9 +170,10 @@ function main() {
     // assets documentation
     const assetsPresent = hasAssetsInTree(dir);
     if (assetsPresent && !manifest.assetsDocumented && !manifest.assetLicenseSummary) {
-      warnings.push(
-        `apps/web/public/games/${slug}/: contains asset files but manifest has no assetsDocumented/assetLicenseSummary — source repo should carry ASSETS.md and manifest should attest`,
-      );
+      warnings.push({
+        message: `apps/web/public/games/${slug}/: contains asset files but manifest has no assetsDocumented/assetLicenseSummary — source repo should carry ASSETS.md and manifest should attest`,
+        slug,
+      });
     }
 
     // declared asset contract — the served dir must actually contain the assets
@@ -213,12 +215,18 @@ function main() {
       }
       for (const slug of manifestSlugs) {
         if (!registrySlugs.has(slug)) {
-          warnings.push(`${rel(REGISTRY_PATH)}: missing slug "${slug}" present in manifests — regenerate registry`);
+          warnings.push({
+            message: `${rel(REGISTRY_PATH)}: missing slug "${slug}" present in manifests — regenerate registry`,
+            slug,
+          });
         }
       }
     }
   } else {
-    warnings.push(`${rel(REGISTRY_PATH)}: not present — run build-registry.mjs`);
+    warnings.push({
+      message: `${rel(REGISTRY_PATH)}: not present — run build-registry.mjs`,
+      slug: null,
+    });
   }
 
   // ─── output ──────────────────────────────────────────────────────────────
@@ -239,7 +247,10 @@ function main() {
 
   if (warnings.length > 0) {
     log("Warnings:");
-    for (const w of warnings) log(`  ⚠ ${w}`);
+    for (const w of warnings) {
+      const slugStr = w.slug ? ` (${w.slug})` : "";
+      log(`  ⚠ ${w.message}${slugStr}`);
+    }
     log("");
   }
   if (errors.length > 0) {
