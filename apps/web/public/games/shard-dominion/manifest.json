@@ -1,17 +1,17 @@
 {
   "slug": "shard-dominion",
   "title": "Shard Dominion",
-  "description": "Late-90s Westwood-style RTS: 13-mission two-act campaign with a real ending choice, 3 factions (Concord shields, Emberhand salvage+stealth; Shardborn roster in progress), tech tiers, real construction, air power, storms, a living planet that hunts the greedy, saves/replays, a mission kit, and experimental 1v1/2v2 lockstep.",
+  "description": "Late-90s Westwood-style RTS: a 17-mission three-act campaign with a real Seal/Harness choice that branches the whole final act, 3 factions, tech tiers, real construction, air power, storms, a living planet that hunts the greedy, saves/replays, a mission kit, and experimental 1v1/2v2 lockstep.",
   "repo": "Brynrg/speedrungames",
   "playUrl": "/games/shard-dominion/",
   "category": "strategy",
   "status": "live",
   "framework": "vite-canvas2d",
   "supportsMobile": false,
-  "version": "0.43.0",
-  "sourceCommit": "8e3e16304eaeb3693ab2b9b5e655068c8076146b",
-  "buildHash": "9de9e5965c4764a03c2b035ccd962b52be7266289c52d080956987615f2209c0",
-  "buildTimestamp": "2026-07-11T06:00:57.000Z",
-  "lastUpdated": "2026-07-11T06:00:57.000Z",
+  "version": "0.44.0",
+  "sourceCommit": "5d95f742d8ba85b53ec1e43d98032c20bed14887",
+  "buildHash": "c1c45b29667743fb2dd8fb837f7dbeaff589c12e62fc72d2e7f973bae23008fa",
+  "buildTimestamp": "2026-07-12T14:31:30.000Z",
+  "lastUpdated": "2026-07-12T14:31:30.000Z",
   "emoji": "🎮"
 }
