@@ -8,10 +8,10 @@
   "status": "live",
   "framework": "vite-canvas2d",
   "supportsMobile": false,
-  "version": "0.44.0",
-  "sourceCommit": "5d95f742d8ba85b53ec1e43d98032c20bed14887",
-  "buildHash": "c1c45b29667743fb2dd8fb837f7dbeaff589c12e62fc72d2e7f973bae23008fa",
-  "buildTimestamp": "2026-07-12T14:31:30.000Z",
-  "lastUpdated": "2026-07-12T14:31:30.000Z",
+  "version": "0.45.0",
+  "sourceCommit": "57dcd0645b1ef26d07c62798be8f60b87c74c02e",
+  "buildHash": "9cb0ff0f81a18e616d56e365531501af521f8fa6f1f9a56215b9a38e452feb5a",
+  "buildTimestamp": "2026-07-12T14:56:18.000Z",
+  "lastUpdated": "2026-07-12T14:56:18.000Z",
   "emoji": "🎮"
 }
