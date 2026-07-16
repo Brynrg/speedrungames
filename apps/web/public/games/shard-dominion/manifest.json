@@ -1,17 +1,17 @@
 {
   "slug": "shard-dominion",
   "title": "Shard Dominion",
-  "description": "Late-90s Westwood-style RTS: a 17-mission three-act campaign with a branching Seal/Harness choice, 3 mechanically distinct factions (Concord shields, Emberhand salvage+stealth, Shardborn living-crystal), a research/Refinements economy, a build-defining ascending hero, tech tiers, air power, storms, a living planet that hunts the greedy, saves/replays, a mission kit, and experimental 1v1/2v2 lockstep.",
+  "description": "Late-90s Westwood-style RTS: a 17-mission three-act campaign with a branching Seal/Harness choice, 3 mechanically distinct factions (Concord shields, Emberhand salvage+stealth, Shardborn living-crystal), a research/Refinements economy, a build-defining ascending hero, tech tiers, air power, storms, a living planet that hunts the greedy, saves/replays, a mission kit, and experimental 1v1/2v2 lockstep. New: measured 3-faction balance, WC3-grade controls (groups 1-9, Q/I/O, double-tap centring), shift-queued waypoints, military-first box select, screen-reader + colorblind accessibility.",
   "repo": "Brynrg/speedrungames",
   "playUrl": "/games/shard-dominion/",
   "category": "strategy",
   "status": "live",
   "framework": "vite-canvas2d",
   "supportsMobile": false,
-  "version": "0.48.0",
-  "sourceCommit": "2ba48582732e3635720c84d62ba73ae400e864ff",
-  "buildHash": "50c9e35e01b29da7efb4956e282a25d87cef429a37d33551e211188357fcd328",
-  "buildTimestamp": "2026-07-12T21:48:24.000Z",
-  "lastUpdated": "2026-07-12T21:48:24.000Z",
-  "emoji": "🎮"
+  "version": "0.51.0",
+  "sourceCommit": "09c73c372fddac21122ee698a7b05667f79d4714",
+  "buildHash": "79d562141303b243b2c00cf270b5a5e7d3e4fb206cb6f698a7ed23614a88054b",
+  "buildTimestamp": "2026-07-16T04:28:03.000Z",
+  "lastUpdated": "2026-07-16T04:28:03.000Z",
+  "emoji": "\ud83c\udfae"
 }
