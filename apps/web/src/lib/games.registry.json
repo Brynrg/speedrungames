@@ -5,12 +5,12 @@
     "description": "Turn-based hex strategy: a lowcaste imposter fights through a rigged trial of noble houses",
     "repo": "Brynrg/cinderborn",
     "playUrl": "/games/cinderborn/",
-    "category": "arcade",
+    "category": "strategy",
     "status": "live",
     "framework": "vite",
-    "supportsMobile": true,
+    "supportsMobile": false,
     "version": "0.1.0",
-    "lastUpdated": "2026-07-16T04:33:47.706Z",
+    "lastUpdated": "2026-07-16T04:36:16.781Z",
     "emoji": "🔥"
   },
   {
