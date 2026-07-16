@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <meta name="theme-color" content="#0d0b10">
 <title>Cinderborn — The Conclave Trials</title>
-  <script type="module" crossorigin src="./assets/index-kaOx9XQ2.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-OqiRZtRm.css">
+  <script type="module" crossorigin src="./assets/index-D9XXUkHe.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-ufWAOHPN.css">
 </head>
 <body>
 <div id="wrap">
@@ -19,17 +19,29 @@
       <div class="stat"><span>Supply</span><b id="s-supply">0</b></div>
       <div class="stat"><span>Renown</span><b id="s-renown">0</b></div>
     </div>
+    <div id="suspwrap" title="Embercraft draws the Arbiters' eyes. At 50 they probe. At 100 you are exposed.">
+      <div class="boxtitle">Suspicion <span id="susp-num">0</span></div>
+      <div id="suspbar"><div id="suspfill"></div></div>
+    </div>
     <div id="houses"></div>
     <div id="selinfo" class="box">Select a unit.</div>
+    <div id="powers" class="box">
+      <div class="boxtitle">Embercraft <span class="dim">(one per turn · raises suspicion)</span></div>
+      <button id="p-firebrand"></button>
+      <button id="p-mend"></button>
+      <button id="p-veilstep"></button>
+    </div>
     <div id="recruit" class="box">
       <div class="boxtitle">Recruit at your keep</div>
       <button id="r-blade"></button>
       <button id="r-archer"></button>
+      <button id="r-lancer"></button>
+      <button id="r-herald"></button>
       <button id="r-warden"></button>
     </div>
     <button id="endturn">END TURN <span class="key">E</span></button>
     <div id="log" class="box"></div>
-    <div id="help">Click unit → blue hex to move, red ring to attack. Walk onto a chain marker to free a captive. Take a keep to fell a house. Fell three, and the Spire unlocks…</div>
+    <div id="help">Click unit → blue hex to move, red ring to attack. Tab cycles ready units. Walk onto a chain marker to free a captive. Loot ruins for supply. Keep Ash alive — if the Cinder falls, the lie unravels. Fell three houses and the Spire unlocks…</div>
   </aside>
 </div>
 
@@ -38,9 +50,18 @@
     <h1>CINDERBORN</h1>
     <div class="sub">The Conclave Trials</div>
     <p>Beneath the blinding glare of the Lumen Spire, the Cinder caste burns in silence — soot-stained, spent, forgotten by the radiant elite.</p>
-    <p>You are an imposter forged in secret, wearing the stolen light of a dead noble to walk among the highborn. Six great houses enter the Conclave Trials. The Arbiters swear the trial is fair. The Arbiters lie.</p>
-    <p>Conquer the houses. Free the shackled. And when the judges rig the game — take their Spire.</p>
+    <p>You are Ash — an imposter forged in secret, wearing the stolen light of a dead noble to walk among the highborn. Six great houses and their champions enter the Conclave Trials. The Arbiters swear the trial is fair. The Arbiters lie.</p>
+    <p>Conquer the houses. Free the shackled. Guard your secret. And when the judges rig the game — take their Spire.</p>
     <button id="begin">BEGIN THE TRIAL</button>
+  </div>
+</div>
+
+<div id="story" class="overlay hidden">
+  <div class="card">
+    <div class="sub" id="story-kicker">MISSIVE</div>
+    <h1 id="story-title"></h1>
+    <p id="story-text"></p>
+    <button id="story-ok">CONTINUE</button>
   </div>
 </div>
 
