@@ -1,0 +1,17 @@
+{
+  "slug": "cinderborn",
+  "title": "Cinderborn: The Conclave Trials",
+  "description": "Turn-based hex strategy: a lowcaste imposter fights through a rigged trial of noble houses",
+  "repo": "Brynrg/cinderborn",
+  "playUrl": "/games/cinderborn/",
+  "category": "arcade",
+  "status": "live",
+  "framework": "vite",
+  "supportsMobile": true,
+  "version": "0.1.0",
+  "sourceCommit": "80f535669f06e2ad3df9b2abd00cacafa9c939ed",
+  "buildHash": "1ccb01b31a872337352bd51110b0ad630cd45328f4a91d130b748c8c33f6e086",
+  "buildTimestamp": "2026-07-16T04:33:47.706Z",
+  "lastUpdated": "2026-07-16T04:33:47.706Z",
+  "emoji": "🔥"
+}

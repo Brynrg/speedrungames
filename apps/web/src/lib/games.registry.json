@@ -1,5 +1,19 @@
 [
   {
+    "slug": "cinderborn",
+    "title": "Cinderborn: The Conclave Trials",
+    "description": "Turn-based hex strategy: a lowcaste imposter fights through a rigged trial of noble houses",
+    "repo": "Brynrg/cinderborn",
+    "playUrl": "/games/cinderborn/",
+    "category": "arcade",
+    "status": "live",
+    "framework": "vite",
+    "supportsMobile": true,
+    "version": "0.1.0",
+    "lastUpdated": "2026-07-16T04:33:47.706Z",
+    "emoji": "🔥"
+  },
+  {
     "slug": "green-circle-td",
     "title": "Green Circle TD",
     "description": "Maze tower defense: creeps circle in from four corners to the center, passing every position. TRUE ONLINE MULTIPLAYER (2–4 players): WC3-style lobby with 4-letter room codes, authoritative server, per-player build zones, shared lives. Plus procedural turret + creep graphics, Lv1-3 upgrades and 2-way specializations, armor-vs-damage matrix including WC3 chaos damage, air-targeting restriction, randomized wave order, distinct creep archetypes, local hot-seat co-op, aura towers, Mint economy tower, interest economy, stackable waves, 1×/2×/3× speed, and 30 escalating waves to a multi-phase boss.",
@@ -44,15 +58,15 @@
   {
     "slug": "shard-dominion",
     "title": "Shard Dominion",
-    "description": "Late-90s Westwood-style RTS on Aether Prime: mission briefing, guided objectives, harvest Shard, train an army, base-build with fog of war, RPS combat and battlefield FX — beat the AI that builds and attacks back.",
+    "description": "Late-90s Westwood-style RTS: a 17-mission three-act campaign with a branching Seal/Harness choice, 3 mechanically distinct factions (Concord shields, Emberhand salvage+stealth, Shardborn living-crystal), a research/Refinements economy, a build-defining ascending hero, tech tiers, air power, storms, a living planet that hunts the greedy, saves/replays, a mission kit, and experimental 1v1/2v2 lockstep. New: measured 3-faction balance, WC3-grade controls (groups 1-9, Q/I/O, double-tap centring), shift-queued waypoints, military-first box select, screen-reader + colorblind accessibility.",
     "repo": "Brynrg/speedrungames",
     "playUrl": "/games/shard-dominion/",
     "category": "strategy",
     "status": "live",
     "framework": "vite-canvas2d",
     "supportsMobile": false,
-    "version": "0.10.0",
-    "lastUpdated": "2026-07-07T14:11:22.000Z",
+    "version": "0.51.0",
+    "lastUpdated": "2026-07-16T04:28:03.000Z",
     "emoji": "🎮"
   },
   {
