@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <meta name="theme-color" content="#0d0b10">
 <title>Cinderborn — The Conclave Trials</title>
-  <script type="module" crossorigin src="./assets/index-D9XXUkHe.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-ufWAOHPN.css">
+  <script type="module" crossorigin src="./assets/index-CuoqQMku.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-DQA8eNwr.css">
 </head>
 <body>
 <div id="wrap">
   <canvas id="board" width="980" height="820"></canvas>
   <aside id="panel">
-    <h1>CINDERBORN</h1>
+    <h1>CINDERBORN <button id="mute" title="Toggle sound">🔊</button></h1>
     <div class="sub">The Conclave Trials</div>
     <div id="stats">
       <div class="stat"><span>Turn</span><b id="s-turn">1</b></div>
@@ -52,7 +52,13 @@
     <p>Beneath the blinding glare of the Lumen Spire, the Cinder caste burns in silence — soot-stained, spent, forgotten by the radiant elite.</p>
     <p>You are Ash — an imposter forged in secret, wearing the stolen light of a dead noble to walk among the highborn. Six great houses and their champions enter the Conclave Trials. The Arbiters swear the trial is fair. The Arbiters lie.</p>
     <p>Conquer the houses. Free the shackled. Guard your secret. And when the judges rig the game — take their Spire.</p>
+    <div id="diffrow">
+      <button class="diff" data-diff="ember">EMBER<span>gentler judges</span></button>
+      <button class="diff selected" data-diff="trial">TRIAL<span>as intended</span></button>
+      <button class="diff" data-diff="pyre">PYRE<span>the game is rigged</span></button>
+    </div>
     <button id="begin">BEGIN THE TRIAL</button>
+    <button id="continue" class="hidden">CONTINUE YOUR TRIAL</button>
   </div>
 </div>
 
@@ -62,6 +68,10 @@
     <h1 id="story-title"></h1>
     <p id="story-text"></p>
     <button id="story-ok">CONTINUE</button>
+    <div id="story-choices" class="hidden">
+      <button id="choice-a"></button>
+      <button id="choice-b"></button>
+    </div>
   </div>
 </div>
 
