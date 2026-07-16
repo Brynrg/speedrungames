@@ -1,14 +1,56 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-    <meta name="theme-color" content="#0b0b10" />
-    <title>Cinderborn: The Conclave Trials</title>
-    <script type="module" crossorigin src="./assets/index-De6UDili.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-CeDLM-kO.css">
-  </head>
-  <body>
-    <div id="app"></div>
-  </body>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0d0b10">
+<title>Cinderborn — The Conclave Trials</title>
+  <script type="module" crossorigin src="./assets/index-kaOx9XQ2.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-OqiRZtRm.css">
+</head>
+<body>
+<div id="wrap">
+  <canvas id="board" width="980" height="820"></canvas>
+  <aside id="panel">
+    <h1>CINDERBORN</h1>
+    <div class="sub">The Conclave Trials</div>
+    <div id="stats">
+      <div class="stat"><span>Turn</span><b id="s-turn">1</b></div>
+      <div class="stat"><span>Supply</span><b id="s-supply">0</b></div>
+      <div class="stat"><span>Renown</span><b id="s-renown">0</b></div>
+    </div>
+    <div id="houses"></div>
+    <div id="selinfo" class="box">Select a unit.</div>
+    <div id="recruit" class="box">
+      <div class="boxtitle">Recruit at your keep</div>
+      <button id="r-blade"></button>
+      <button id="r-archer"></button>
+      <button id="r-warden"></button>
+    </div>
+    <button id="endturn">END TURN <span class="key">E</span></button>
+    <div id="log" class="box"></div>
+    <div id="help">Click unit → blue hex to move, red ring to attack. Walk onto a chain marker to free a captive. Take a keep to fell a house. Fell three, and the Spire unlocks…</div>
+  </aside>
+</div>
+
+<div id="title" class="overlay">
+  <div class="card">
+    <h1>CINDERBORN</h1>
+    <div class="sub">The Conclave Trials</div>
+    <p>Beneath the blinding glare of the Lumen Spire, the Cinder caste burns in silence — soot-stained, spent, forgotten by the radiant elite.</p>
+    <p>You are an imposter forged in secret, wearing the stolen light of a dead noble to walk among the highborn. Six great houses enter the Conclave Trials. The Arbiters swear the trial is fair. The Arbiters lie.</p>
+    <p>Conquer the houses. Free the shackled. And when the judges rig the game — take their Spire.</p>
+    <button id="begin">BEGIN THE TRIAL</button>
+  </div>
+</div>
+
+<div id="end" class="overlay hidden">
+  <div class="card">
+    <h1 id="end-title"></h1>
+    <p id="end-text"></p>
+    <button id="again">STAND AGAIN</button>
+  </div>
+</div>
+
+</body>
 </html>
