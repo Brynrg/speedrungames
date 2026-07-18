@@ -1,0 +1,17 @@
+{
+  "slug": "ironmarch",
+  "title": "Ironmarch",
+  "description": "Warcraft-1-style real-time strategy. Command the Human Alliance against an Orc Horde AI: harvest gold and lumber, build a base (Town Hall, Farm, Barracks, Blacksmith, Guard Tower), train Peasants, Footmen, Archers and Knights, scout under fog of war, and destroy the enemy base before their raiders destroy yours.",
+  "repo": "Brynrg/ironmarch",
+  "playUrl": "/games/ironmarch/",
+  "category": "strategy",
+  "status": "live",
+  "framework": "vanilla",
+  "supportsMobile": false,
+  "version": "1.0.0",
+  "sourceCommit": "682c8d5fc8b78469ef8482376d4f5bf124b24cdc",
+  "buildHash": "ad63996abcdbaf704a967c916e2a44a12154e504197912f8786ab08a9ea33542",
+  "buildTimestamp": "2026-07-18T06:23:24.445Z",
+  "lastUpdated": "2026-07-18T06:23:24.445Z",
+  "emoji": "⚔️"
+}

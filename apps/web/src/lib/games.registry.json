@@ -28,6 +28,20 @@
     "emoji": "🟢"
   },
   {
+    "slug": "ironmarch",
+    "title": "Ironmarch",
+    "description": "Warcraft-1-style real-time strategy. Command the Human Alliance against an Orc Horde AI: harvest gold and lumber, build a base (Town Hall, Farm, Barracks, Blacksmith, Guard Tower), train Peasants, Footmen, Archers and Knights, scout under fog of war, and destroy the enemy base before their raiders destroy yours.",
+    "repo": "Brynrg/ironmarch",
+    "playUrl": "/games/ironmarch/",
+    "category": "strategy",
+    "status": "live",
+    "framework": "vanilla",
+    "supportsMobile": false,
+    "version": "1.0.0",
+    "lastUpdated": "2026-07-18T06:23:24.445Z",
+    "emoji": "⚔️"
+  },
+  {
     "slug": "line-tower-wars",
     "title": "Line Tower Wars",
     "description": "Standalone web Line Tower Wars, inspired by the Warcraft 3 custom map — build a maze, leak creeps to your opponent.",
@@ -65,8 +79,8 @@
     "status": "live",
     "framework": "vite-canvas2d",
     "supportsMobile": false,
-    "version": "0.51.0",
-    "lastUpdated": "2026-07-16T04:28:03.000Z",
+    "version": "0.52.0",
+    "lastUpdated": "2026-07-16T07:08:52.000Z",
     "emoji": "🎮"
   },
   {

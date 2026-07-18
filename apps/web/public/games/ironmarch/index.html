@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Ironmarch</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-game-root>
+  <div id="app">
+    <header id="topbar">
+      <div class="brand">⚔️ Ironmarch</div>
+      <div class="stat">💰 <span id="hud-gold">0</span></div>
+      <div class="stat">🪵 <span id="hud-lumber">0</span></div>
+      <div class="stat">🍞 <span id="hud-food">0/0</span></div>
+      <div class="spacer"></div>
+      <div class="stat" id="hud-clock">0:00</div>
+      <button id="restartBtn" class="ctrlbtn">⟲ Restart</button>
+    </header>
+
+    <div id="main">
+      <div id="stage">
+        <canvas id="gameCanvas"></canvas>
+        <div id="messages"></div>
+        <div id="gameOverOverlay" class="overlay hidden">
+          <div class="overlay-box">
+            <h2 id="gameOverTitle">Victory!</h2>
+            <button id="restartBtn2" class="primary">Play again</button>
+          </div>
+        </div>
+      </div>
+
+      <aside id="sidebar">
+        <div class="panel" id="selectionPanel">
+          <p class="hint">Select units or buildings. Right-click to move, harvest, build, or attack.</p>
+        </div>
+        <div class="panel">
+          <h3>Map</h3>
+          <canvas id="minimapCanvas"></canvas>
+        </div>
+        <div class="panel help">
+          <h3>Controls</h3>
+          <ul>
+            <li><b>Left-click / drag</b> select units · <b>Shift+click</b> add to selection</li>
+            <li><b>Right-click</b> move, harvest resource, assist build, or attack a target</li>
+            <li><b>Shift+1-9</b> set control group · <b>1-9</b> recall · <b>Esc</b> cancel / deselect</li>
+            <li><b>WASD / arrows</b> scroll · mouse to screen edge scrolls · click minimap to jump</li>
+            <li>Select a <b>Peasant</b> to build. Select a production building to train units.</li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+  </div>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
