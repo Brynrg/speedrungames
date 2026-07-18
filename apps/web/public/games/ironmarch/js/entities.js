@@ -22,6 +22,7 @@ export function spawnUnit(state, side, type, tx, ty) {
     attackTargetId: null, homeAnchor: { x: pos.x, y: pos.y }, repathTimer: 0,
     buildTargetId: null,
     isDead: false, deathTimer: 0,
+    facing: side === 'player' ? Math.PI : 0, // presentation-only: which way the unit is drawn facing
   };
   state.entities.push(e);
   state.entitiesById.set(e.id, e);
@@ -247,6 +248,7 @@ export function updateMovement(state, dt) {
       } else {
         u.x += (dx / d) * step;
         u.y += (dy / d) * step;
+        u.facing = Math.atan2(dy, dx);
         if (u.state === 'idle') u.state = 'moving';
       }
     }

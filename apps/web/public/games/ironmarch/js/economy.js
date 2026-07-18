@@ -1,7 +1,8 @@
-import { UNIT_DATA, BUILDING_DATA, HARVEST_GOLD_TIME, HARVEST_LUMBER_TIME, GOLD_PER_TRIP, LUMBER_PER_TRIP } from './constants.js';
-import { tileAt, chopForest, mineGold } from './map.js';
+import { UNIT_DATA, BUILDING_DATA, HARVEST_GOLD_TIME, HARVEST_LUMBER_TIME, GOLD_PER_TRIP, LUMBER_PER_TRIP, TILE } from './constants.js';
+import { tileAt, chopForest, mineGold, tileCenterPixel } from './map.js';
 import { spawnUnit, spawnBuilding, getById, moveUnitTo, nearestApproachTile, stopUnit, resetForNewOrder, buildOccupiedSet, currentTile } from './entities.js';
 import { pushMessage } from './messages.js';
+import { spawnFloatText, spawnSparkle, spawnDust } from './vfx.js';
 
 export function canAfford(state, side, cost) {
   const res = state.resources[side];
@@ -142,6 +143,10 @@ export function updateHarvesting(state, map, dt) {
           continue;
         }
         state.resources[unit.side][unit.carrying.type] += unit.carrying.amount;
+        if (unit.side === 'player') {
+          const color = unit.carrying.type === 'gold' ? '#e8c94a' : '#c98a4b';
+          spawnFloatText(state, dep.x, dep.y - dep.size * 16, `+${unit.carrying.amount} ${unit.carrying.type === 'gold' ? 'g' : 'L'}`, color);
+        }
         unit.carrying = null;
         const tile = unit.harvestTile ? tileAt(map, unit.harvestTile.x, unit.harvestTile.y) : null;
         if (tile && (tile.type === 'forest' || tile.type === 'gold')) {
@@ -191,6 +196,8 @@ export function updateHarvesting(state, map, dt) {
         if (amount <= 0) {
           retargetOrStop(state, map, unit);
         } else {
+          const spot = tileCenterPixel(unit.harvestTile.x, unit.harvestTile.y);
+          spawnSparkle(state, spot.x, spot.y, isGold ? '#e8c94a' : '#c98a4b');
           unit.carrying = { type: isGold ? 'gold' : 'lumber', amount };
           unit.state = 'idle';
           const dep = findNearestOwnBuilding(state, unit.side, unit.x, unit.y);
@@ -249,6 +256,7 @@ export function updateConstruction(state, map, dt) {
     if (e.buildProgress >= 1) {
       e.constructing = false;
       e.hp = e.maxHp;
+      spawnDust(state, e.x, e.y + (e.size * TILE) / 2 - 6);
       const stats = BUILDING_DATA[e.type];
       if (stats.food && !e.foodContributed) {
         state.food[e.side].max += stats.food;

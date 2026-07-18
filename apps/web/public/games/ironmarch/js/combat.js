@@ -1,8 +1,9 @@
-import { TILE, AGGRO_RADIUS, ATTACK_MOVE_LEASH, BUILDING_DATA } from './constants.js';
+import { TILE, AGGRO_RADIUS, ATTACK_MOVE_LEASH, BUILDING_DATA, FACTIONS } from './constants.js';
 import { randInt, dist } from './util.js';
 import { getById, killEntity, moveUnitTo, nearestApproachTile, currentTile, resetForNewOrder } from './entities.js';
 import { tileCenterPixel } from './map.js';
 import { pushMessage } from './messages.js';
+import { spawnHitFlash, spawnDeathBurst, spawnImpact } from './vfx.js';
 
 const REPATH_INTERVAL = 600;
 // Must exceed sqrt(2)-1 (~0.414): nearestApproachTile treats any tile
@@ -38,20 +39,26 @@ function dealDamage(state, attacker, target) {
   target.hp -= dmg;
   if (target.hp <= 0) {
     killEntity(state, target);
+    spawnDeathBurst(state, target.x, target.y, FACTIONS[target.side].color);
     if (target.kind === 'building' && !target.constructing) {
       const label = target.side === 'player' ? 'Your' : 'Enemy';
       pushMessage(state, `${label} ${BUILDING_DATA[target.type].label} was destroyed`);
     }
+  } else {
+    spawnHitFlash(state, target.id);
   }
   return dmg;
 }
 
 function fireProjectile(state, attacker, target) {
-  if (!attacker.ranged && !attacker.isDefense) return;
-  state.projectiles.push({
-    x1: attacker.x, y1: attacker.y, x2: target.x, y2: target.y,
-    t: 0, duration: 260, side: attacker.side,
-  });
+  if (attacker.ranged || attacker.isDefense) {
+    state.projectiles.push({
+      x1: attacker.x, y1: attacker.y, x2: target.x, y2: target.y,
+      t: 0, duration: 260, side: attacker.side, ranged: true,
+    });
+  } else {
+    spawnImpact(state, target.x, target.y, FACTIONS[attacker.side].accent);
+  }
 }
 
 function approachAndMaybeAttack(state, map, attacker, target, dt) {
@@ -83,6 +90,7 @@ function approachAndMaybeAttack(state, map, attacker, target, dt) {
   attacker.path = [];
   attacker.pathIndex = 0;
   attacker.state = 'attacking';
+  attacker.facing = Math.atan2(target.y - attacker.y, target.x - attacker.x);
   attacker.cooldownTimer -= dt;
   if (attacker.cooldownTimer <= 0) {
     attacker.cooldownTimer = attacker.atkCooldown;

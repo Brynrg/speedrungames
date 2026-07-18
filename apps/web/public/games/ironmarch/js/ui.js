@@ -228,9 +228,24 @@ export function initUI(state, map, { onRestart }) {
     return `${m}:${ss}`;
   }
 
+  let prevGold = Math.floor(state.resources.player.gold);
+  let prevLumber = Math.floor(state.resources.player.lumber);
+
+  function pulse(el) {
+    el.classList.remove('stat-pulse');
+    void el.offsetWidth; // restart the CSS animation
+    el.classList.add('stat-pulse');
+  }
+
   return function syncHUD() {
-    els.gold.textContent = Math.floor(state.resources.player.gold);
-    els.lumber.textContent = Math.floor(state.resources.player.lumber);
+    const gold = Math.floor(state.resources.player.gold);
+    const lumber = Math.floor(state.resources.player.lumber);
+    if (gold > prevGold) pulse(els.gold.parentElement);
+    if (lumber > prevLumber) pulse(els.lumber.parentElement);
+    prevGold = gold;
+    prevLumber = lumber;
+    els.gold.textContent = gold;
+    els.lumber.textContent = lumber;
     els.food.textContent = `${state.food.player.used}/${state.food.player.max}`;
     els.clock.textContent = formatClock(state.time);
     renderSelection();

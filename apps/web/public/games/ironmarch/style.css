@@ -37,7 +37,14 @@ html, body {
   padding: 4px 10px;
   border-radius: 6px;
   border: 1px solid #4a3b22;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), inset 0 -1px 2px rgba(0,0,0,0.4);
 }
+
+@keyframes stat-pulse {
+  0% { border-color: #ffe066; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), inset 0 -1px 2px rgba(0,0,0,0.4), 0 0 0 2px rgba(255,224,102,0.35); }
+  100% { border-color: #4a3b22; box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), inset 0 -1px 2px rgba(0,0,0,0.4); }
+}
+.stat-pulse { animation: stat-pulse 500ms ease-out; }
 
 .spacer { flex: 1; }
 
@@ -49,8 +56,10 @@ html, body {
   padding: 6px 12px;
   cursor: pointer;
   font-size: 0.95em;
+  transition: background-color 150ms ease-out, border-color 150ms ease-out, transform 100ms ease-out;
 }
-.ctrlbtn:hover { background: #4a3a22; }
+.ctrlbtn:hover { background: #4a3a22; border-color: #ffe066; }
+.ctrlbtn:active { transform: scale(0.96); }
 
 #main {
   flex: 1;
@@ -83,6 +92,11 @@ html, body {
   pointer-events: none;
 }
 
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .toast {
   background: rgba(20,15,8,0.85);
   border: 1px solid #6b5530;
@@ -91,6 +105,8 @@ html, body {
   border-radius: 4px;
   font-size: 0.9em;
   text-align: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  animation: toast-in 200ms ease-out;
 }
 
 .overlay {
@@ -103,12 +119,19 @@ html, body {
 }
 .overlay.hidden { display: none; }
 
+@keyframes overlay-box-in {
+  from { opacity: 0; transform: scale(0.94); }
+  to { opacity: 1; transform: scale(1); }
+}
+
 .overlay-box {
   background: #1a140d;
   border: 2px solid #6b5530;
   border-radius: 10px;
   padding: 32px 48px;
   text-align: center;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  animation: overlay-box-in 220ms ease-out;
 }
 
 #gameOverTitle.victory { color: #5ec95e; }
@@ -123,8 +146,10 @@ html, body {
   padding: 10px 24px;
   font-size: 1em;
   cursor: pointer;
+  transition: background-color 150ms ease-out, transform 100ms ease-out;
 }
 .overlay-box .primary:hover { background: #6a94e0; }
+.overlay-box .primary:active { transform: scale(0.96); }
 
 #sidebar {
   width: 300px;
@@ -143,6 +168,7 @@ html, body {
   border: 1px solid #4a3b22;
   border-radius: 8px;
   padding: 10px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
 }
 
 .panel h3 {
@@ -163,7 +189,9 @@ html, body {
   border: 1px solid #4a3b22;
   border-radius: 4px;
   cursor: pointer;
+  transition: border-color 150ms ease-out, filter 150ms ease-out;
 }
+#minimapCanvas:hover { border-color: #ffe066; filter: brightness(1.12); }
 
 .btn-row {
   display: grid;
@@ -181,10 +209,29 @@ html, body {
   cursor: pointer;
   font-size: 0.82em;
   line-height: 1.3;
+  transition: background-color 150ms ease-out, border-color 150ms ease-out, transform 100ms ease-out;
 }
 .action-btn:hover:not(:disabled) { background: #3a2c18; border-color: #ffe066; }
+.action-btn:active:not(:disabled) { transform: scale(0.96); }
 .action-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .action-btn small { color: #a89a7a; }
+
+.ctrlbtn:focus-visible,
+.action-btn:focus-visible,
+.overlay-box .primary:focus-visible,
+#minimapCanvas:focus-visible {
+  outline: 2px solid #ffe066;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast, .overlay-box, .stat-pulse {
+    animation: none;
+  }
+  .ctrlbtn, .action-btn, .overlay-box .primary, #minimapCanvas {
+    transition: none;
+  }
+}
 
 .queue-row {
   font-size: 0.82em;

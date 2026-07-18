@@ -8,6 +8,7 @@ import { updateCombat, updateProjectiles } from './combat.js';
 import { updateAI, createAIState } from './ai.js';
 import { updateMessages } from './messages.js';
 import { updateCameraScroll } from './input.js';
+import { updateVfx } from './vfx.js';
 
 function spawnStartingBase(state, side, base) {
   const hallKey = MAIN_HALL[side];
@@ -40,6 +41,7 @@ function buildState(map) {
     placement: null,
     selectBox: null,
     projectiles: [],
+    vfx: [],
     input: { keysDown: new Set(), mouseX: 0, mouseY: 0, overCanvas: false, dragStart: null },
     ai: null,
     fowTimer: 0,
@@ -84,6 +86,7 @@ export function updateGame(state, map, fow, dt) {
   updateProduction(state, map, dt);
   updateCombat(state, map, dt);
   updateProjectiles(state, dt);
+  updateVfx(state, dt);
   updateAI(state, map, dt);
 
   state.fowTimer += dt;
