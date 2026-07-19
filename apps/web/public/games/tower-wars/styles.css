@@ -1,12 +1,21 @@
 :root {
-  --bg-deep: #091108;
-  --bg-mid: #122313;
-  --panel-edge: #5f7a3f;
-  --gold: #e1c56e;
-  --text: #e9efd6;
-  --subtle: #adc293;
-  --accent: #8fce5c;
-  --danger: #e06f6f;
+  /* Ink & Iron — war-room propaganda poster palette. Mirrors src/palette.js;
+     keep the two in sync by hand (CSS can't import JS constants). */
+  --bg-deep: #101a30;
+  --bg-mid: #182644;
+  --cream: #e8dcb8;
+  --cream-deep: #ddcfa4;
+  --panel-edge: #241811;
+  --ink: #241811;
+  --gold: #96690f;
+  --gold-bright: #7a5209;
+  --crimson: #8f1d20;
+  --crimson-bright: #b23a2c;
+  --teal: #2f8f83;
+  --text: #241811;
+  --subtle: #5c4f3a;
+  --accent: #2f8f83;
+  --danger: #8f1d20;
 }
 
 * {
@@ -19,8 +28,8 @@ body {
   height: 100dvh;
   overflow: hidden;
   background:
-    radial-gradient(circle at 15% 20%, rgba(104, 171, 72, 0.14), transparent 32%),
-    radial-gradient(circle at 85% 10%, rgba(143, 206, 92, 0.16), transparent 26%),
+    radial-gradient(circle at 15% 20%, rgba(178, 58, 44, 0.1), transparent 32%),
+    radial-gradient(circle at 85% 10%, rgba(47, 143, 131, 0.12), transparent 26%),
     linear-gradient(160deg, var(--bg-deep), var(--bg-mid));
   color: var(--text);
   font-family: "Rajdhani", "Trebuchet MS", sans-serif;
@@ -38,10 +47,10 @@ body {
   left: 0.65rem;
   right: 0.65rem;
   border: 2px solid var(--panel-edge);
-  border-radius: 10px;
+  border-radius: 6px;
   padding: 0.42rem;
-  background: linear-gradient(180deg, rgba(40, 56, 34, 0.94), rgba(24, 35, 21, 0.95));
-  box-shadow: inset 0 0 0 1px rgba(193, 224, 148, 0.15), 0 12px 18px rgba(0, 0, 0, 0.35);
+  background: var(--cream);
+  box-shadow: inset 0 0 0 1px rgba(36, 24, 17, 0.18), 0 12px 18px rgba(8, 12, 22, 0.4);
   z-index: 40;
 }
 
@@ -54,7 +63,7 @@ body {
   right: var(--board-right, 0);
   bottom: var(--board-bottom, 0);
   border: 0;
-  background: #0c1a0c;
+  background: #101a30;
   overflow: hidden;
   z-index: 1;
 }
@@ -67,10 +76,10 @@ body {
   width: 1.5rem;
   height: 1.5rem;
   padding: 0;
-  border: 1px solid #739553;
-  border-radius: 5px;
-  background: linear-gradient(180deg, #2e4728, #23371f);
-  color: var(--text);
+  border: 1px solid var(--ink);
+  border-radius: 4px;
+  background: var(--cream-deep);
+  color: var(--ink);
   font-size: 0.72rem;
   line-height: 1;
   cursor: pointer;
@@ -104,12 +113,11 @@ canvas {
      (the bar grows when the stats grid wraps or the duel strip appears). */
   top: var(--panel-top, 7.05rem);
   bottom: 0.65rem;
-  background: linear-gradient(180deg, rgba(40, 56, 34, 0.97), rgba(24, 35, 21, 0.98));
+  background: var(--cream);
   border: 2px solid var(--panel-edge);
-  border-radius: 10px;
+  border-radius: 6px;
   padding: 0.45rem;
-  box-shadow: inset 0 0 0 1px rgba(193, 224, 148, 0.15), 0 16px 24px rgba(0, 0, 0, 0.42);
-  backdrop-filter: blur(2px);
+  box-shadow: inset 0 0 0 1px rgba(36, 24, 17, 0.16), 0 16px 24px rgba(8, 12, 22, 0.45);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -137,6 +145,7 @@ canvas {
   margin: 0;
   font-family: "Cinzel", Georgia, serif;
   letter-spacing: 0.04em;
+  color: var(--ink);
 }
 
 .utility-panel h1,
@@ -149,7 +158,7 @@ canvas {
 .panel h2 {
   font-size: 0.72rem;
   margin-bottom: 0.2rem;
-  color: #d6e0bb;
+  color: var(--crimson);
 }
 
 .stats {
@@ -164,9 +173,9 @@ canvas {
 
 .duel-stats {
   margin-top: 0.3rem;
-  border: 1px solid rgba(188, 215, 148, 0.3);
-  border-radius: 6px;
-  background: rgba(9, 17, 8, 0.35);
+  border: 1px solid rgba(36, 24, 17, 0.28);
+  border-radius: 5px;
+  background: rgba(36, 24, 17, 0.06);
   padding: 0.28rem;
 }
 
@@ -185,9 +194,9 @@ canvas {
 
 .card {
   padding: 0.2rem;
-  border: 1px solid rgba(188, 215, 148, 0.35);
-  border-radius: 6px;
-  background: rgba(9, 17, 8, 0.4);
+  border: 1px solid rgba(36, 24, 17, 0.3);
+  border-radius: 5px;
+  background: var(--cream-deep);
   text-align: center;
 }
 
@@ -200,6 +209,20 @@ canvas {
 .card strong {
   font-size: 0.82rem;
   color: var(--gold);
+}
+
+/* Wave counter poster-plate treatment: a stamped double-border medallion
+   look that reads as a plate riveted onto the HUD, not just another stat. */
+.wave-plate {
+  position: relative;
+  border-width: 1px;
+  border-color: var(--crimson-bright);
+  background: linear-gradient(180deg, var(--cream-deep), var(--cream));
+  box-shadow: inset 0 0 0 2px rgba(36, 24, 17, 0.14);
+}
+
+.wave-plate strong {
+  color: var(--crimson);
 }
 
 .stat-btn {
@@ -222,14 +245,14 @@ canvas {
 }
 
 .command-card-grid .section-card {
-  border-color: rgba(173, 203, 126, 0.38);
-  background: rgba(12, 21, 10, 0.6);
+  border-color: rgba(36, 24, 17, 0.3);
+  background: rgba(36, 24, 17, 0.05);
 }
 
 .section-card {
-  border: 1px solid rgba(188, 215, 148, 0.26);
-  border-radius: 6px;
-  background: rgba(9, 17, 8, 0.34);
+  border: 1px solid rgba(36, 24, 17, 0.22);
+  border-radius: 5px;
+  background: rgba(36, 24, 17, 0.04);
   padding: 0.28rem;
 }
 
@@ -249,9 +272,9 @@ canvas {
 
 .minimap-shell {
   height: 178px;
-  border: 1px solid rgba(184, 207, 143, 0.34);
-  border-radius: 6px;
-  background: rgba(9, 17, 8, 0.42);
+  border: 1px solid rgba(36, 24, 17, 0.3);
+  border-radius: 5px;
+  background: #101a30;
   padding: 0.24rem;
 }
 
@@ -259,9 +282,9 @@ canvas {
   width: 100%;
   height: 100%;
   display: block;
-  border-radius: 4px;
-  border: 1px solid rgba(170, 201, 127, 0.35);
-  background: radial-gradient(circle at 30% 40%, rgba(75, 129, 58, 0.65), rgba(32, 60, 28, 0.88));
+  border-radius: 3px;
+  border: 1px solid var(--ink);
+  background: radial-gradient(circle at 30% 40%, rgba(47, 143, 131, 0.28), rgba(16, 26, 48, 0.92));
   cursor: crosshair;
 }
 
@@ -280,9 +303,9 @@ canvas {
 
 .quick-grid p {
   margin: 0;
-  border: 1px solid rgba(184, 207, 143, 0.3);
-  border-radius: 6px;
-  background: rgba(9, 17, 8, 0.35);
+  border: 1px solid rgba(36, 24, 17, 0.26);
+  border-radius: 5px;
+  background: var(--cream-deep);
   padding: 0.2rem 0.24rem;
 }
 
@@ -305,7 +328,7 @@ canvas {
 
 .duel-board th,
 .duel-board td {
-  border: 1px solid rgba(170, 199, 126, 0.25);
+  border: 1px solid rgba(36, 24, 17, 0.24);
   padding: 0.14rem 0.22rem;
   text-align: center;
 }
@@ -313,7 +336,7 @@ canvas {
 .duel-board th {
   color: var(--subtle);
   font-weight: 700;
-  background: rgba(10, 19, 9, 0.45);
+  background: rgba(36, 24, 17, 0.08);
 }
 
 .duel-board td:first-child {
@@ -347,8 +370,8 @@ canvas {
 }
 
 .command-tab.active {
-  border-color: var(--gold);
-  box-shadow: 0 0 0 1px rgba(225, 197, 110, 0.4);
+  border-color: var(--crimson-bright);
+  box-shadow: 0 0 0 1px rgba(178, 58, 44, 0.4);
 }
 
 .tower-btn,
@@ -386,10 +409,10 @@ canvas {
   position: relative;
   z-index: 2;
   width: 100%;
-  border: 1px solid #739553;
-  border-radius: 7px;
-  background: linear-gradient(180deg, #2e4728, #23371f);
-  color: var(--text);
+  border: 1px solid var(--ink);
+  border-radius: 5px;
+  background: var(--cream-deep);
+  color: var(--ink);
   text-align: left;
   padding: 0.22rem 0.3rem;
   cursor: pointer;
@@ -415,10 +438,10 @@ canvas {
   transform: translateY(-50%);
   width: 1.35rem;
   height: 1.35rem;
-  border-radius: 4px;
-  border: 1px solid rgba(182, 208, 138, 0.46);
-  background: rgba(35, 57, 29, 0.78);
-  color: var(--gold);
+  border-radius: 3px;
+  border: 1px solid rgba(36, 24, 17, 0.5);
+  background: var(--cream);
+  color: var(--crimson);
   font-size: 0.56rem;
   font-weight: 700;
   line-height: 1;
@@ -434,15 +457,15 @@ canvas {
 
 .selection-hero {
   margin-bottom: 0.2rem;
-  border: 1px solid rgba(176, 206, 132, 0.32);
-  border-radius: 6px;
-  background: rgba(9, 17, 8, 0.35);
+  border: 1px solid rgba(36, 24, 17, 0.28);
+  border-radius: 5px;
+  background: var(--cream-deep);
   padding: 0.2rem 0.26rem;
 }
 
 #selTitle {
   margin: 0;
-  color: var(--gold);
+  color: var(--crimson);
   font-size: 0.76rem;
   font-weight: 700;
 }
@@ -527,9 +550,9 @@ button > * {
 
 #sendQueue {
   min-height: 1.8rem;
-  border: 1px solid rgba(184, 207, 143, 0.32);
-  border-radius: 6px;
-  background: rgba(9, 17, 8, 0.35);
+  border: 1px solid rgba(36, 24, 17, 0.28);
+  border-radius: 5px;
+  background: var(--cream-deep);
   padding: 0.24rem;
   color: var(--subtle);
   font-size: 0.66rem;
@@ -540,10 +563,10 @@ button > * {
   display: inline-block;
   margin: 0.08rem 0.12rem 0.08rem 0;
   padding: 0.08rem 0.28rem;
-  border: 1px solid rgba(193, 224, 148, 0.32);
+  border: 1px solid rgba(36, 24, 17, 0.4);
   border-radius: 999px;
-  color: var(--text);
-  background: rgba(66, 96, 49, 0.34);
+  color: var(--ink);
+  background: rgba(178, 58, 44, 0.14);
   font-size: 0.64rem;
 }
 
@@ -571,18 +594,18 @@ button > * {
 }
 
 .tower-btn.active {
-  border-color: var(--gold);
-  box-shadow: 0 0 0 1px rgba(225, 197, 110, 0.4);
+  border-color: var(--crimson-bright);
+  box-shadow: 0 0 0 1px rgba(178, 58, 44, 0.4);
 }
 
 .row-mode button.active {
-  border-color: var(--gold);
-  box-shadow: 0 0 0 1px rgba(225, 197, 110, 0.4);
+  border-color: var(--crimson-bright);
+  box-shadow: 0 0 0 1px rgba(178, 58, 44, 0.4);
 }
 
 button:hover {
-  border-color: #9ec978;
-  filter: brightness(1.05);
+  border-color: var(--crimson-bright);
+  filter: brightness(1.03);
 }
 
 button:disabled {
@@ -593,7 +616,7 @@ button:disabled {
 
 button:active:not(:disabled) {
   transform: scale(0.985);
-  filter: brightness(0.98);
+  filter: brightness(0.97);
 }
 
 #waveStatus {
@@ -631,7 +654,7 @@ button:active:not(:disabled) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(5, 10, 5, 0.72);
+  background: rgba(8, 12, 22, 0.72);
   padding: 1rem;
 }
 
@@ -642,14 +665,16 @@ button:active:not(:disabled) {
 .modal {
   width: min(360px, 95vw);
   border: 2px solid var(--panel-edge);
-  border-radius: 10px;
-  background: linear-gradient(180deg, rgba(35, 51, 29, 0.98), rgba(19, 29, 17, 0.99));
-  box-shadow: inset 0 0 0 1px rgba(193, 224, 148, 0.14), 0 18px 30px rgba(0, 0, 0, 0.5);
+  border-radius: 6px;
+  background: var(--cream);
+  box-shadow: inset 0 0 0 1px rgba(36, 24, 17, 0.16), 0 18px 30px rgba(8, 12, 22, 0.5);
   padding: 0.8rem;
 }
 
 .modal h2 {
   margin: 0 0 0.45rem;
+  color: var(--crimson);
+  font-family: "Cinzel", Georgia, serif;
 }
 
 .defeat-stats {
@@ -681,10 +706,10 @@ button:active:not(:disabled) {
 #tooltipBox {
   margin: 0;
   min-height: 1.7rem;
-  border: 1px solid rgba(184, 207, 143, 0.32);
-  border-radius: 6px;
+  border: 1px solid rgba(36, 24, 17, 0.28);
+  border-radius: 5px;
   padding: 0.28rem;
-  background: rgba(9, 17, 8, 0.35);
+  background: var(--cream-deep);
   color: var(--subtle);
   font-size: 0.64rem;
   line-height: 1.15;
@@ -704,7 +729,7 @@ button:active:not(:disabled) {
 
 .utility-panel::-webkit-scrollbar-thumb,
 .panel::-webkit-scrollbar-thumb {
-  background: rgba(153, 193, 102, 0.45);
+  background: rgba(36, 24, 17, 0.35);
   border-radius: 999px;
 }
 
@@ -781,7 +806,7 @@ code {
     right: 0;
     width: 100vw;
     max-height: 38vh;
-    border-radius: 10px 10px 0 0;
+    border-radius: 6px 6px 0 0;
     border-bottom: 0;
   }
 

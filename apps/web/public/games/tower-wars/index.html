@@ -18,7 +18,7 @@
         <div class="stats">
           <div class="card"><span>Gold</span><strong id="gold">0</strong></div>
           <div class="card"><span>Lives</span><strong id="lives">0</strong></div>
-          <div class="card"><span>Wave</span><strong id="wave">0</strong></div>
+          <div class="card wave-plate"><span>Wave</span><strong id="wave">0</strong></div>
           <div class="card"><span>Score</span><strong id="score">0</strong></div>
           <button id="nextWaveBtn" class="card stat-btn" title="Start the next wave when ready." type="button">
             <span>Next Wave</span>
@@ -28,7 +28,7 @@
             <span>Speed</span>
             <strong id="speed">1x</strong>
           </button>
-          <div class="card"><span>Income</span><strong id="income">0</strong></div>
+          <div class="card"><span>War Bonds</span><strong id="income">0</strong></div>
           <button id="menuBtn" class="card stat-btn" title="Pause and open menu." type="button">
             <span>Menu</span>
             <strong>Open</strong>
@@ -74,7 +74,7 @@
               <tr>
                 <th>Player</th>
                 <th>Lives</th>
-                <th>Income</th>
+                <th>Bonds</th>
                 <th>Score</th>
               </tr>
             </thead>
@@ -248,19 +248,19 @@
           </section>
 
           <section class="send section-card span-2 command-panel" data-command-panel="send">
-            <h2>Send (Next Wave)</h2>
-            <p class="send-copy">Spend gold to add extra creeps to the next wave. Each send increases Income.</p>
+            <h2>Troop Pushes (Next Wave)</h2>
+            <p class="send-copy">Spend gold to push extra troops into the next wave. Each push raises War Bonds income.</p>
             <div id="duelPlayerSwitch" class="row2 row-mode hidden">
               <button id="duelP1Btn" data-icon="P1">Active: P1</button>
               <button id="duelP2Btn" data-icon="P2">Active: P2</button>
             </div>
             <div class="send-grid">
-              <button id="sendRunner" data-icon="RN" title="Runner Pack: 6 fast light creeps. Cost 60, Income +1">Runner Pack<br /><small>60g | +1 Income</small></button>
-              <button id="sendArmor" data-icon="AR" title="Armor Column: 4 heavy creeps. Cost 90, Income +1">Armor Column<br /><small>90g | +1 Income</small></button>
-              <button id="sendAir" data-icon="AI" title="Air Squad: 4 flying creeps. Cost 110, Income +2">Air Squad<br /><small>110g | +2 Income</small></button>
-              <button id="sendBreaker" data-icon="SB" title="Spellbreaker: 1 magic immune heavy creep. Cost 140, Income +2">Spellbreaker<br /><small>140g | +2 Income</small></button>
-              <button id="sendSplitter" data-icon="SP" title="Splitter Nest: 2 splitting creeps. Cost 160, Income +2">Splitter Nest<br /><small>160g | +2 Income</small></button>
-              <button id="sendMiniBoss" data-icon="MB" title="Mini-Boss: 1 powerful creep. Cost 220, Income +3">Mini-Boss<br /><small>220g | +3 Income</small></button>
+              <button id="sendRunner" data-icon="RN" title="Runner Pack: 6 fast light creeps. Cost 60, Bonds +1">Runner Pack<br /><small>60g | +1 Bonds</small></button>
+              <button id="sendArmor" data-icon="AR" title="Armor Column: 4 heavy creeps. Cost 90, Bonds +1">Armor Column<br /><small>90g | +1 Bonds</small></button>
+              <button id="sendAir" data-icon="AI" title="Air Squad: 4 flying creeps. Cost 110, Bonds +2">Air Squad<br /><small>110g | +2 Bonds</small></button>
+              <button id="sendBreaker" data-icon="SB" title="Spellbreaker: 1 magic immune heavy creep. Cost 140, Bonds +2">Spellbreaker<br /><small>140g | +2 Bonds</small></button>
+              <button id="sendSplitter" data-icon="SP" title="Splitter Nest: 2 splitting creeps. Cost 160, Bonds +2">Splitter Nest<br /><small>160g | +2 Bonds</small></button>
+              <button id="sendMiniBoss" data-icon="MB" title="Mini-Boss: 1 powerful creep. Cost 220, Bonds +3">Mini-Boss<br /><small>220g | +3 Bonds</small></button>
             </div>
             <div class="send-foot">
               <div id="sendQueue">No sends queued.</div>
