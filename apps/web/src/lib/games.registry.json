@@ -10,7 +10,7 @@
     "framework": "vite",
     "supportsMobile": false,
     "version": "0.3.0",
-    "lastUpdated": "2026-07-16T06:46:19.882Z",
+    "lastUpdated": "2026-07-19T03:10:29.500Z",
     "emoji": "🔥"
   },
   {
@@ -79,8 +79,8 @@
     "status": "live",
     "framework": "vite-canvas2d",
     "supportsMobile": false,
-    "version": "0.54.0",
-    "lastUpdated": "2026-07-18T07:29:18.000Z",
+    "version": "0.55.0",
+    "lastUpdated": "2026-07-19T03:09:43.000Z",
     "emoji": "🎮"
   },
   {
