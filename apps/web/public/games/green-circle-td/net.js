@@ -164,12 +164,14 @@
       for (const id of [...this.enemyMap.keys()]) if (!seen.has(id)) this.enemyMap.delete(id);
       g.enemies = [...this.enemyMap.values()];
 
-      // tracers + muzzle/spark fx from server shot events
+      // tracers + muzzle/spark fx from server shot events. Bullets/sparks
+      // render from the shared decay ramp (see drawTower/draw in main.js) —
+      // `color` is kept on the bullet record for shape parity but unused.
       for (const [x1, y1, x2, y2, ti] of m.sh) {
         const color = TOWERS[NET_TOWER_KEYS[ti]]?.color || "#fff";
         if (g.bullets.length < 300) g.bullets.push({ x1, y1, x2, y2, color, t: 0.09 });
-        g.spawnFx(x1, y1, color, "muzzle", Math.atan2(y2 - y1, x2 - x1));
-        g.spawnFx(x2, y2, "#fde68a", "spark");
+        g.spawnFx(x1, y1, DECAY.hot, "muzzle", Math.atan2(y2 - y1, x2 - x1));
+        g.spawnFx(x2, y2, DECAY.hot, "spark");
       }
       // death puffs (+ shake on boss/hero)
       for (const [x, y, ki] of m.dx) {
@@ -288,7 +290,7 @@
         const list = o.querySelector("#nPlayers");
         if (list)
           list.innerHTML = players.map((p, i) =>
-            `<div class="nprow"><span class="pgdot" style="background:${PLAYER_COLORS[i]}"></span>` +
+            `<div class="nprow"><span class="pgdot" style="border-color:${PLAYER_COLORS[i]}"></span>` +
             `<span class="pgname">${esc(p.name)}${i === session.you ? " (you)" : ""}${i === host ? " · host" : ""}</span>` +
             `<span class="nstat">${p.connected ? "ready" : "left"}</span></div>`,
           ).join("");
