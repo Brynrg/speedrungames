@@ -11,7 +11,28 @@
  * (wheel) the field, while the top bar + sidebar stay fixed. Content
  * (towers/enemies/armor/waves) and the spiral geometry are ported from the
  * original Python game's data + core/path.py.
+ *
+ * VISUAL IDENTITY — "Sector Scope": a Cold War PPI-radar plot. One green
+ * "decay" ramp carries ALL aliveness (creeps, the sweep, beams/tracers) —
+ * nothing else is filled with it. Everything static (bezels, tower housings,
+ * HUD chrome) is brushed steel + sparse brass, cached once and blitted, never
+ * redrawn per frame. Player identity (4) is ring/outline/corner-tick only,
+ * never a fill. Threat-state (2, exclusive) marks armored/warning vs
+ * boss/critical tiers by shape + pulse rate, not by adding more hue. See the
+ * palette block below for the full ramp/const definitions.
  */
+
+// ----------------------------------------------------------------- palette (Sector Scope)
+// Tower-type hues (TOWERS[].color further down) are the pre-existing
+// gameplay legend for the 11 tower kinds and are kept as-is — they are not
+// part of the "6 authored hues" collision this palette resolves (that
+// collision was player-identity vs. enemy-threat colors in the source
+// pitches). Everything below IS new/authored for this pass.
+const VOID_INNER = "#060a06", VOID_OUTER = "#0a120a";                 // world base, radial, cached once
+const DECAY = { hot: "#cfffb8", core: "#7cfc8a", mid: "#3d9950", after: "#1c3d22" }; // the one "alive" ramp
+const BEZEL = "#3a4238", BRASS = "#8a6a3a";                            // static chrome: steel + sparse rivets
+const THREAT = { warn: "#d98a33", crit: "#a13a2e" };                   // armored/warning · boss/critical — exclusive, never a player color
+const CALLSIGNS = ["ALPHA", "BRAVO", "CHARLIE", "DELTA"];              // corner call-signs (co-op zones / lobby)
 
 // ----------------------------------------------------------------- data (ported)
 const ARMOR_MATRIX = {
@@ -22,16 +43,20 @@ const ARMOR_MATRIX = {
   chaos:  { light: 1.0, medium: 1.0, heavy: 1.0, fortified: 1.0, hero: 1.0 }, // WC3 Chaos — ignores all armor
 };
 
+// Enemy `color` is a render-only tier tag (base decay ramp vs. one of the two
+// threat accents) — it carries no balance weight, so changing it needs no
+// gctd-server changes. Archetypes stay legible via the unchanged 6-shape
+// vocabulary in drawCreep, not via 9 different hues.
 const ENEMIES = {
-  Normal:    { color: "rgb(138,255,148)", count_bonus: 0,  health_mult: 1.0,  speed_mult: 1.0,  bounty_bonus: 0,  flags: [], armor: "medium" },
-  Swift:     { color: "rgb(112,220,255)", count_bonus: 1,  health_mult: 0.85, speed_mult: 1.34, bounty_bonus: 1,  flags: [], armor: "light" },
-  Armored:   { color: "rgb(255,196,90)",  count_bonus: -1, health_mult: 1.75, speed_mult: 0.82, bounty_bonus: 5,  flags: [], armor: "heavy" },
-  Swarm:     { color: "rgb(142,255,121)", count_bonus: 5,  health_mult: 0.62, speed_mult: 1.08, bounty_bonus: 0,  flags: [], armor: "light" },
-  Air:       { color: "rgb(132,220,255)", count_bonus: 0,  health_mult: 0.95, speed_mult: 1.18, bounty_bonus: 3,  flags: ["air"], armor: "light" },
-  Immune:    { color: "rgb(255,235,120)", count_bonus: -1, health_mult: 1.25, speed_mult: 0.95, bounty_bonus: 4,  flags: ["immune"], armor: "fortified" },
-  Invisible: { color: "rgb(214,175,255)", count_bonus: 0,  health_mult: 1.05, speed_mult: 1.04, bounty_bonus: 6,  flags: ["invisible"], armor: "medium" },
-  Hero:      { color: "rgb(255,155,72)",  count_bonus: -3, health_mult: 2.65, speed_mult: 0.82, bounty_bonus: 12, flags: ["hero"], armor: "hero" },
-  Boss:      { color: "rgb(255,94,94)",   count_bonus: -4, health_mult: 4.2,  speed_mult: 0.72, bounty_bonus: 20, flags: ["boss", "immune"], armor: "fortified" },
+  Normal:    { color: DECAY.core,  count_bonus: 0,  health_mult: 1.0,  speed_mult: 1.0,  bounty_bonus: 0,  flags: [], armor: "medium" },
+  Swift:     { color: DECAY.core,  count_bonus: 1,  health_mult: 0.85, speed_mult: 1.34, bounty_bonus: 1,  flags: [], armor: "light" },
+  Armored:   { color: THREAT.warn, count_bonus: -1, health_mult: 1.75, speed_mult: 0.82, bounty_bonus: 5,  flags: [], armor: "heavy" },
+  Swarm:     { color: DECAY.core,  count_bonus: 5,  health_mult: 0.62, speed_mult: 1.08, bounty_bonus: 0,  flags: [], armor: "light" },
+  Air:       { color: DECAY.core,  count_bonus: 0,  health_mult: 0.95, speed_mult: 1.18, bounty_bonus: 3,  flags: ["air"], armor: "light" },
+  Immune:    { color: THREAT.warn, count_bonus: -1, health_mult: 1.25, speed_mult: 0.95, bounty_bonus: 4,  flags: ["immune"], armor: "fortified" },
+  Invisible: { color: DECAY.core,  count_bonus: 0,  health_mult: 1.05, speed_mult: 1.04, bounty_bonus: 6,  flags: ["invisible"], armor: "medium" },
+  Hero:      { color: THREAT.crit, count_bonus: -3, health_mult: 2.65, speed_mult: 0.82, bounty_bonus: 12, flags: ["hero"], armor: "hero" },
+  Boss:      { color: THREAT.crit, count_bonus: -4, health_mult: 4.2,  speed_mult: 0.72, bounty_bonus: 20, flags: ["boss", "immune"], armor: "fortified" },
 };
 
 const RANGE_SCALE = 0.78;
@@ -183,18 +208,18 @@ function loopPath(k) {
 const PATHS = [0, 1, 2, 3].map(loopPath);
 const ENTRIES = cornersAt(MAZE_IN);    // four spawn corners
 
-// Eight colored "player" positions: four flanking the outer corners (each
-// first-shots its nearest spawn), four deeper on an inner loop.
-const POS_COLORS = ["#f87171", "#a78bfa", "#60a5fa", "#22d3ee", "#fb923c", "#4ade80", "#facc15", "#f472b6"];
+// Eight "player" landmark positions: four flanking the outer corners (each
+// first-shots its nearest spawn), four deeper on an inner loop. Static
+// bezel/brass tick anchors, not a player-identity or threat signal — so they
+// don't spend any of the authored hues (drawn once into the static layer).
 const POSITIONS = (() => {
   const oc = cornersAt(MAZE_IN), mid = MAZE_IN + MAZE_STEP * 2, lo = mid, hi = WORLD - mid;
-  const out = [
+  return [
     { x: oc[0][0] + 58, y: oc[0][1] + 58 }, { x: oc[1][0] - 58, y: oc[1][1] + 58 },
     { x: oc[2][0] - 58, y: oc[2][1] - 58 }, { x: oc[3][0] + 58, y: oc[3][1] - 58 },
     { x: CENTER.x, y: lo + 75 }, { x: hi - 75, y: CENTER.y },
     { x: CENTER.x, y: hi - 75 }, { x: lo + 75, y: CENTER.y },
   ];
-  return out.map((p, i) => ({ ...p, color: POS_COLORS[i] }));
 })();
 
 // ----------------------------------------------------------------- helpers
@@ -223,7 +248,8 @@ const loadPB = () => { try { const v = localStorage.getItem(PB_KEY); return v ? 
 const savePB = (ms) => { try { localStorage.setItem(PB_KEY, String(ms)); } catch {} };
 
 // ----------------------------------------------------------------- multiplayer
-const PLAYER_COLORS = ["#f87171", "#60a5fa", "#4ade80", "#facc15"];
+// Player identity — ring/outline/corner-tick ONLY, never a fill (see palette).
+const PLAYER_COLORS = ["#e8e3d3", "#4a6b8a", "#8a7ba3", "#5c8a72"]; // chalk · china-blue · muted violet · muted sage
 function cellOwner(c, r, numPlayers) {
   if (numPlayers <= 1) return 0;
   const half = GRID / 2;
@@ -247,6 +273,15 @@ class Game {
     this.hoverWorld = null;
     this.speed = 1;             // 1× / 2× / 3× game speed (persists across restarts)
     this.numPlayers = 1;
+    // Sector Scope rendering: a cached world-space layer for everything static
+    // (rings/bezel/paths/border), a screen-space "trail" layer for phosphor
+    // persistence (fed each frame, faded not cleared), and the global PPI
+    // sweep angle. See buildStaticLayer()/drawTrailLayer().
+    this.staticLayer = document.createElement("canvas");
+    this.trailCanvas = document.createElement("canvas");
+    this.trailCtx = this.trailCanvas.getContext("2d");
+    this.sweepAngle = -Math.PI / 2;
+    this._decayGrad = {};
     this.reset();
     this.pb = loadPB();
     this.selected = "basic";
@@ -283,6 +318,10 @@ class Game {
     this.runMs = 0;
     this.elapsed = 0;
     this.gameTime = 0;
+    // Rebuild the cached static layer — cheap, infrequent (once per
+    // run/restart), and the only thing in it that can change is the
+    // zone-divider geometry when numPlayers differs.
+    if (this.staticLayer) this.buildStaticLayer();
   }
 
   // ---- camera / viewport
@@ -292,6 +331,8 @@ class Game {
     this.dpr = dpr; this.cssW = w; this.cssH = h;
     this.canvas.width = Math.round(w * dpr);
     this.canvas.height = Math.round(h * dpr);
+    this.trailCanvas.width = this.canvas.width;
+    this.trailCanvas.height = this.canvas.height;
     if (!this._zoomInit) {
       // fit a chunk of the world, but keep tiles big enough to tap on phones
       this.cam.zoom = clamp(Math.max(Math.min(w, h) / 1050, 0.55), MIN_ZOOM, MAX_ZOOM);
@@ -404,19 +445,21 @@ class Game {
     const el = document.getElementById("armorPill");
     if (!el) return;
     if (!types || !types.length) { el.classList.add("hidden"); return; }
+    // Distinct from PLAYER_COLORS and THREAT (never reuse those two families
+    // for an unrelated legend) — same tactical-instrument tonal family though.
     const ARMOR_INFO = {
-      light:     { color: "#67e8f9", counter: "Pierce best" },
-      medium:    { color: "#86efac", counter: "Normal best" },
-      heavy:     { color: "#fb923c", counter: "Siege / Magic" },
-      fortified: { color: "#a78bfa", counter: "Siege best" },
-      hero:      { color: "#fbbf24", counter: "Normal best" },
+      light:     { color: "#8fd0c9", counter: "Pierce best" },
+      medium:    { color: "#a8d98f", counter: "Normal best" },
+      heavy:     { color: "#c9a35c", counter: "Siege / Magic" },
+      fortified: { color: "#9aa8c4", counter: "Siege best" },
+      hero:      { color: "#e8c468", counter: "Normal best" },
     };
     const unique = [...new Set(types)];
     el.innerHTML = unique.map((a) => {
       const info = ARMOR_INFO[a] || { color: "#e8f3ea", counter: "?" };
       return `<span class="apill" style="border-color:${info.color}77;color:${info.color};background:${info.color}18">${a[0].toUpperCase()}${a.slice(1)} · ${info.counter}</span>`;
     }).join("");
-    if (hasAir) el.innerHTML += `<span class="apill" style="border-color:#67e8f977;color:#67e8f9;background:#67e8f918">✈ Air · anti-air only</span>`;
+    if (hasAir) el.innerHTML += `<span class="apill" style="border-color:#8fd0c977;color:#8fd0c9;background:#8fd0c918">✈ Air · anti-air only</span>`;
     el.classList.remove("hidden");
   }
 
@@ -515,7 +558,8 @@ class Game {
     panel.classList.remove("hidden");
     document.getElementById("playerGolds").innerHTML = this.players.map((p, i) =>
       `<div class="pgrow${i === this.activePlayer ? " pgactive" : ""}">` +
-      `<span class="pgdot" style="background:${p.color}"></span>` +
+      `<span class="pgdot" style="border-color:${p.color}"></span>` +
+      `<span class="pgcs" style="color:${p.color}">${CALLSIGNS[i] || ""}</span>` +
       `<span class="pgname">${p.name}</span>` +
       `<span class="pgcoin">💰 ${Math.floor(p.gold)}</span></div>`
     ).join("");
@@ -965,7 +1009,7 @@ class Game {
       if (!targets.length) continue;
       tw.lastFire = t;
       const base = d.damage * tw.dmgMult;
-      if (d.dtype) this.spawnFx(tw.x, tw.y, tw.def.color, "muzzle", Math.atan2(targets[0].y - tw.y, targets[0].x - tw.x));
+      if (d.dtype) this.spawnFx(tw.x, tw.y, DECAY.hot, "muzzle", Math.atan2(targets[0].y - tw.y, targets[0].x - tw.x));
       for (const target of targets) {
         this.bullets.push({ x1: tw.x, y1: tw.y, x2: target.x, y2: target.y, color: tw.def.color, t: 0.09 });
         if (d.splash) {
@@ -1012,7 +1056,7 @@ class Game {
       en.poison = Math.max(activePoison, d.poison);
       en.poisonUntil = this.gameTime + d.poisonDur / 60;
     }
-    if (en.hp > 0) this.spawnFx(en.x, en.y, "#fde68a", "spark");
+    if (en.hp > 0) this.spawnFx(en.x, en.y, DECAY.hot, "spark");
     if (en.hp <= 0) this.onKill(en);
   }
   onKill(en) {
@@ -1039,21 +1083,191 @@ class Game {
     let dt = (t - this.last) / 1000; this.last = t;
     if (dt > 0.05) dt = 0.05;
     this.panFromKeys(dt);
+    // Global PPI sweep — one slow full-field rotation, ~5s/rev. Runs on real
+    // time (not sim time) so the scope stays "alive" even paused/on menu.
+    this.sweepAngle = (this.sweepAngle + dt * (Math.PI * 2 / 5)) % (Math.PI * 2);
     // 2×/3× = run the fixed-step sim multiple times per frame (keeps physics stable)
     const steps = this.net ? 1 : this.state === "running" ? this.speed : 1;
     for (let i = 0; i < steps; i++) this.update(dt);
     document.getElementById("timer").textContent = fmt(this.runMs);
-    this.draw();
+    this.draw(dt);
     requestAnimationFrame(() => this.loop());
   }
 
-  draw() {
+  // Everything static (world-border range rings, degree-tick bezel + numerals,
+  // the spiral-path groove+core, spawn/landmark ticks, zone-divider geometry)
+  // is rendered ONCE here into a world-space offscreen canvas and blitted
+  // every frame in draw() — never recomputed per frame.
+  buildStaticLayer() {
+    const cv = this.staticLayer;
+    cv.width = WORLD; cv.height = WORLD;
+    const g = cv.getContext("2d");
+    g.clearRect(0, 0, WORLD, WORLD);
+
+    // void base — radial gradient, drawn once per rebuild, not per frame
+    const vg = g.createRadialGradient(CENTER.x, CENTER.y, 0, CENTER.x, CENTER.y, WORLD * 0.8);
+    vg.addColorStop(0, VOID_INNER); vg.addColorStop(1, VOID_OUTER);
+    g.fillStyle = vg; g.fillRect(0, 0, WORLD, WORLD);
+
+    // PPI range rings — concentric distance rings, brass/steel, low alpha
+    const ringCount = 5, maxR = WORLD * 0.7;
+    g.lineWidth = 1; g.strokeStyle = BEZEL;
+    g.font = "600 11px ui-monospace, SFMono-Regular, Menlo, monospace";
+    g.textAlign = "left"; g.textBaseline = "middle";
+    for (let i = 1; i <= ringCount; i++) {
+      const r = (maxR / ringCount) * i;
+      g.globalAlpha = 0.38;
+      g.beginPath(); g.arc(CENTER.x, CENTER.y, r, 0, Math.PI * 2); g.stroke();
+      g.globalAlpha = 0.55; g.fillStyle = BRASS;
+      g.fillText(String(Math.round(r)), CENTER.x + 6, CENTER.y - r);
+    }
+    g.globalAlpha = 1;
+
+    // degree-tick bezel around the outer ring
+    const bezelR = maxR;
+    for (let deg = 0; deg < 360; deg += 10) {
+      const a = (deg * Math.PI) / 180, long = deg % 30 === 0;
+      const r0 = bezelR - (long ? 14 : 7);
+      g.globalAlpha = long ? 0.65 : 0.32;
+      g.lineWidth = long ? 1.6 : 1;
+      g.strokeStyle = BEZEL;
+      g.beginPath();
+      g.moveTo(CENTER.x + Math.cos(a) * r0, CENTER.y + Math.sin(a) * r0);
+      g.lineTo(CENTER.x + Math.cos(a) * bezelR, CENTER.y + Math.sin(a) * bezelR);
+      g.stroke();
+    }
+    g.globalAlpha = 1;
+
+    // world border — brushed-steel double frame + brass corner rivets
+    g.strokeStyle = BEZEL; g.lineWidth = 3;
+    g.strokeRect(1.5, 1.5, WORLD - 3, WORLD - 3);
+    g.strokeStyle = "rgba(58,66,56,.5)"; g.lineWidth = 1;
+    g.strokeRect(6, 6, WORLD - 12, WORLD - 12);
+    g.fillStyle = BRASS;
+    for (const [cx, cy] of [[10, 10], [WORLD - 10, 10], [WORLD - 10, WORLD - 10], [10, WORLD - 10]]) {
+      g.beginPath(); g.arc(cx, cy, 3, 0, Math.PI * 2); g.fill();
+    }
+
+    // corner call-sign tags — ambient grid reference, independent of numPlayers
+    g.font = "700 15px ui-monospace, SFMono-Regular, Menlo, monospace";
+    g.fillStyle = BRASS; g.globalAlpha = 0.5; g.textAlign = "center"; g.textBaseline = "middle";
+    const cOff = [[-26, -26], [26, -26], [26, 26], [-26, 26]];
+    ENTRIES.forEach((c, i) => g.fillText(CALLSIGNS[i][0], c[0] + cOff[i][0], c[1] + cOff[i][1]));
+    g.globalAlpha = 1;
+
+    // multiplayer zone dividers — geometry only; the call-sign labels are
+    // drawn live every frame so the active-player emphasis can change
+    if (this.players.length > 1) {
+      const half = WORLD / 2;
+      g.save(); g.setLineDash([10, 6]); g.strokeStyle = "rgba(232,227,211,.12)"; g.lineWidth = 1.5;
+      g.beginPath(); g.moveTo(half, 0); g.lineTo(half, WORLD); g.stroke();
+      if (this.players.length >= 3) { g.beginPath(); g.moveTo(0, half); g.lineTo(WORLD, half); g.stroke(); }
+      g.restore();
+    }
+
+    // spiral paths — dark structural groove + thin afterglow core line (Bearing Zero graft)
+    g.lineCap = "round"; g.lineJoin = "round";
+    for (const path of PATHS) {
+      g.strokeStyle = "rgba(20,36,23,.55)"; g.lineWidth = PATH_W;
+      g.beginPath(); g.moveTo(path[0][0], path[0][1]);
+      for (let i = 1; i < path.length; i++) g.lineTo(path[i][0], path[i][1]);
+      g.stroke();
+      g.strokeStyle = "rgba(10,20,12,.6)"; g.lineWidth = PATH_W - 10; g.stroke();
+      g.strokeStyle = DECAY.after; g.globalAlpha = 0.85; g.lineWidth = 2; g.stroke();
+      g.globalAlpha = 1;
+    }
+
+    // corner spawn markers — brass rivet + ring
+    for (const path of PATHS) {
+      const [sx, sy] = path[0];
+      g.fillStyle = BRASS; g.beginPath(); g.arc(sx, sy, 5, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = BRASS; g.globalAlpha = 0.7; g.lineWidth = 1.5;
+      g.beginPath(); g.arc(sx, sy, 9, 0, Math.PI * 2); g.stroke();
+      g.globalAlpha = 1;
+    }
+
+    // landmark tick anchors (formerly 8 rainbow "✶" markers — static, so brass)
+    g.strokeStyle = BRASS; g.globalAlpha = 0.55; g.lineWidth = 1.4;
+    for (const p of POSITIONS) {
+      g.beginPath();
+      g.moveTo(p.x - 6, p.y); g.lineTo(p.x + 6, p.y);
+      g.moveTo(p.x, p.y - 6); g.lineTo(p.x, p.y + 6);
+      g.stroke();
+    }
+    g.globalAlpha = 1;
+
+    // center — welded bezel dish around the leak point (the live pulse is drawn per-frame)
+    g.strokeStyle = BEZEL; g.lineWidth = 2;
+    g.beginPath(); g.arc(CENTER.x, CENTER.y, 24, 0, Math.PI * 2); g.stroke();
+    g.fillStyle = BRASS; g.globalAlpha = 0.6;
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      g.beginPath(); g.arc(CENTER.x + Math.cos(a) * 24, CENTER.y + Math.sin(a) * 24, 1.6, 0, Math.PI * 2); g.fill();
+    }
+    g.globalAlpha = 1;
+  }
+
+  // Phosphor-trail layer: faded (not cleared) each frame, so bright marks —
+  // the PPI sweep, creep blips, bullet tracers — persist and decay like a
+  // real scope. Composited under the sharp live-render layer in draw().
+  drawTrailLayer() {
+    const tctx = this.trailCtx;
+    tctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    tctx.fillStyle = "rgba(6,10,6,0.19)";
+    tctx.fillRect(0, 0, this.cssW, this.cssH);
+
+    tctx.save();
+    tctx.scale(this.cam.zoom, this.cam.zoom);
+    tctx.translate(-this.cam.x, -this.cam.y);
+    if (this._shake && this._shake.t > 0) {
+      const pct = this._shake.t / this._shake.dur;
+      const s = this._shake.intensity * pct / this.cam.zoom;
+      tctx.translate((Math.random() - 0.5) * s * 2, (Math.random() - 0.5) * s * 2);
+    }
+    tctx.globalCompositeOperation = "lighter";
+
+    // global sweep arm — alpha-stepped triangular slices trailing the beam
+    // (deliberately not a conic gradient — crisper trailing-wedge read)
+    const slices = 14, sliceW = (Math.PI * 2) / 90, sweepR = WORLD * 0.78;
+    tctx.fillStyle = DECAY.hot;
+    for (let i = 0; i < slices; i++) {
+      const a0 = this.sweepAngle - i * sliceW, a1 = a0 - sliceW;
+      tctx.globalAlpha = 0.05 * (1 - i / slices);
+      tctx.beginPath();
+      tctx.moveTo(CENTER.x, CENTER.y);
+      tctx.arc(CENTER.x, CENTER.y, sweepR, a0, a1, true);
+      tctx.closePath(); tctx.fill();
+    }
+
+    // creep phosphor blips — leave a brief bright trace as they move
+    for (const en of this.enemies) {
+      if (en.hp <= 0) continue;
+      tctx.globalAlpha = 0.5;
+      tctx.fillStyle = en.color;
+      tctx.beginPath(); tctx.arc(en.x, en.y, 3, 0, Math.PI * 2); tctx.fill();
+    }
+
+    // bullet tracer afterglow
+    tctx.globalAlpha = 0.45; tctx.strokeStyle = DECAY.hot; tctx.lineWidth = 3;
+    for (const b of this.bullets) {
+      tctx.beginPath(); tctx.moveTo(b.x1, b.y1); tctx.lineTo(b.x2, b.y2); tctx.stroke();
+    }
+
+    tctx.globalAlpha = 1;
+    tctx.globalCompositeOperation = "source-over";
+    tctx.restore();
+  }
+
+  draw(dt) {
     const ctx = this.ctx;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    // Semi-transparent fill instead of clearRect: moving enemies/bullets accumulate
-    // 1-2 frame motion trails; static towers & paths are redrawn fresh → stay sharp.
-    ctx.fillStyle = "rgba(12,19,13,0.87)";
-    ctx.fillRect(0, 0, this.cssW, this.cssH);
+    ctx.fillStyle = VOID_OUTER; ctx.fillRect(0, 0, this.cssW, this.cssH);
+
+    this.drawTrailLayer();
+    // composite the trail (device-pixel 1:1 blit, screen space) UNDER the sharp layer
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(this.trailCanvas, 0, 0);
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
 
     ctx.save();
     ctx.scale(this.cam.zoom, this.cam.zoom);
@@ -1065,81 +1279,67 @@ class Game {
       ctx.translate((Math.random() - 0.5) * s * 2, (Math.random() - 0.5) * s * 2);
     }
 
-    // world border
-    ctx.strokeStyle = "#152017"; ctx.lineWidth = 2; ctx.strokeRect(0, 0, WORLD, WORLD);
+    // cached static world layer (void gradient + range rings + bezel + paths + ticks)
+    ctx.drawImage(this.staticLayer, 0, 0, WORLD, WORLD);
 
-    // multiplayer zone dividers
+    // the green circle — the game's namesake leak point, the one bit of
+    // "center" that stays alive, so it keeps the decay-ramp pulse
+    const cpulse = 0.5 + 0.5 * Math.sin(this.gameTime * 2.4);
+    ctx.fillStyle = DECAY.hot; ctx.globalAlpha = 0.9;
+    ctx.beginPath(); ctx.arc(CENTER.x, CENTER.y, 7 + cpulse * 2, 0, 7); ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // multiplayer zone call-signs — live (active-player emphasis changes every frame)
     if (this.players.length > 1) {
-      const half = WORLD / 2;
-      ctx.save(); ctx.setLineDash([10, 6]); ctx.strokeStyle = "rgba(255,255,255,.1)"; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.moveTo(half, 0); ctx.lineTo(half, WORLD); ctx.stroke();
-      if (this.players.length >= 3) { ctx.beginPath(); ctx.moveTo(0, half); ctx.lineTo(WORLD, half); ctx.stroke(); }
-      ctx.setLineDash([]);
-      ctx.font = "bold 26px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.font = "700 20px ui-monospace, SFMono-Regular, Menlo, monospace";
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
       const lp = { 2: [[MAZE_IN + 70, WORLD / 2], [WORLD - MAZE_IN - 70, WORLD / 2]], 3: [[MAZE_IN + 70, MAZE_IN + 70], [WORLD - MAZE_IN - 70, MAZE_IN + 70], [WORLD / 2, WORLD - MAZE_IN - 70]], 4: [[MAZE_IN + 70, MAZE_IN + 70], [WORLD - MAZE_IN - 70, MAZE_IN + 70], [WORLD - MAZE_IN - 70, WORLD - MAZE_IN - 70], [MAZE_IN + 70, WORLD - MAZE_IN - 70]] }[this.players.length] || [];
-      lp.forEach((pos, i) => { ctx.globalAlpha = i === this.activePlayer ? 0.88 : 0.2; ctx.fillStyle = this.players[i].color; ctx.fillText(this.players[i].name, pos[0], pos[1]); });
-      ctx.globalAlpha = 1; ctx.restore();
+      lp.forEach((pos, i) => {
+        ctx.globalAlpha = i === this.activePlayer ? 0.92 : 0.28;
+        ctx.fillStyle = this.players[i].color;
+        ctx.fillText(CALLSIGNS[i] || this.players[i].name, pos[0], pos[1]);
+      });
+      ctx.globalAlpha = 1;
     }
-
-    // spiral paths (the green circle)
-    ctx.lineCap = "round"; ctx.lineJoin = "round";
-    for (const path of PATHS) {
-      ctx.strokeStyle = "#243a29"; ctx.lineWidth = PATH_W;
-      ctx.beginPath(); ctx.moveTo(path[0][0], path[0][1]);
-      for (let i = 1; i < path.length; i++) ctx.lineTo(path[i][0], path[i][1]);
-      ctx.stroke();
-      ctx.strokeStyle = "#172419"; ctx.lineWidth = PATH_W - 8; ctx.stroke();
-      // Worn centre highlight — gives dirt-track depth without any asset
-      ctx.strokeStyle = "rgba(134,239,172,.048)"; ctx.lineWidth = 2; ctx.stroke();
-    }
-    // corner spawn markers
-    for (const path of PATHS) {
-      ctx.fillStyle = "rgba(248,113,113,.8)";
-      ctx.beginPath(); ctx.arc(path[0][0], path[0][1], 9, 0, 7); ctx.fill();
-    }
-    // player positions (the colored marks every creep passes)
-    ctx.font = "bold 26px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    for (const p of POSITIONS) { ctx.fillStyle = p.color; ctx.fillText("✶", p.x, p.y); }
-
-    // center base
-    ctx.fillStyle = "#86efac"; ctx.beginPath(); ctx.arc(CENTER.x, CENTER.y, 18, 0, 7); ctx.fill();
-    ctx.fillStyle = "#07120a"; ctx.font = "bold 16px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText("◎", CENTER.x, CENTER.y);
 
     // build hover preview
     if (this.hoverWorld && this.state === "running") {
       const { c, r } = this.cellOf(this.hoverWorld.x, this.hoverWorld.y);
       const def = TOWERS[this.selected];
       const ok = this.gold >= def.cost && this.cellBuildable(c, r);
-      ctx.fillStyle = ok ? "rgba(134,239,172,.22)" : "rgba(248,113,113,.22)";
+      ctx.fillStyle = ok ? "rgba(124,252,138,.22)" : "rgba(161,58,46,.26)";
       ctx.fillRect(c * CELL, r * CELL, CELL, CELL);
       const ctr = this.cellCenter(c, r);
       if (ok && def.range > 0) {
-        ctx.strokeStyle = "rgba(255,255,255,.18)"; ctx.lineWidth = 1;
+        ctx.strokeStyle = "rgba(232,227,211,.22)"; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.arc(ctr.x, ctr.y, def.range, 0, 7); ctx.stroke();
       }
       if (ok && def.aura) {
-        ctx.strokeStyle = "rgba(255,255,255,.14)"; ctx.lineWidth = 1;
+        ctx.strokeStyle = "rgba(232,227,211,.16)"; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.arc(ctr.x, ctr.y, def.aura.radius, 0, 7); ctx.stroke();
       }
     }
 
     // towers
-    for (const tw of this.towers) this.drawTower(ctx, tw);
+    for (const tw of this.towers) this.drawTower(ctx, tw, dt || 0.016);
     // selected-tower highlight + range
     const sel = this.selectedTower;
     if (sel && this.towers.includes(sel)) {
-      ctx.strokeStyle = "rgba(255,255,255,.85)"; ctx.lineWidth = 2;
+      ctx.strokeStyle = "rgba(232,227,211,.85)"; ctx.lineWidth = 2;
       this.round(sel.c * CELL + 3, sel.r * CELL + 3, CELL - 6, CELL - 6, 7); ctx.stroke();
-      if (sel.s.range > 0) { ctx.strokeStyle = "rgba(134,239,172,.35)"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(sel.x, sel.y, sel.s.range, 0, 7); ctx.stroke(); }
-      if (sel.s.aura) { ctx.strokeStyle = "rgba(255,255,255,.22)"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(sel.x, sel.y, sel.s.aura.radius, 0, 7); ctx.stroke(); }
+      if (sel.s.range > 0) { ctx.strokeStyle = "rgba(124,252,138,.35)"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(sel.x, sel.y, sel.s.range, 0, 7); ctx.stroke(); }
+      if (sel.s.aura) { ctx.strokeStyle = "rgba(232,227,211,.22)"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(sel.x, sel.y, sel.s.aura.radius, 0, 7); ctx.stroke(); }
     }
 
-    // bullets — 'lighter' additive composite: overlapping shots accumulate into bright beams
+    // bullets/beams — the decay ramp carries all "aliveness"; 'lighter' composite
+    // makes overlapping shots accumulate into bright phosphor beams
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
     for (const b of this.bullets) {
-      ctx.strokeStyle = b.color; ctx.lineWidth = 2.5; ctx.globalAlpha = b.t / 0.09;
+      const a = clamp(b.t / 0.09, 0, 1);
+      ctx.strokeStyle = DECAY.core; ctx.lineWidth = 5; ctx.globalAlpha = a * 0.4;
+      ctx.beginPath(); ctx.moveTo(b.x1, b.y1); ctx.lineTo(b.x2, b.y2); ctx.stroke();
+      ctx.strokeStyle = DECAY.hot; ctx.lineWidth = 2; ctx.globalAlpha = a;
       ctx.beginPath(); ctx.moveTo(b.x1, b.y1); ctx.lineTo(b.x2, b.y2); ctx.stroke();
     }
     ctx.globalAlpha = 1;
@@ -1162,18 +1362,84 @@ class Game {
   }
 
   // ---- procedural sprites
-  drawTower(ctx, tw) {
+  // Radial decay-ramp gradients are defined in LOCAL (untranslated) space and
+  // reused every frame for every creep of a given radius bucket — the canvas
+  // resolves gradient coordinates against the CTM at fill time, so one cached
+  // gradient per radius correctly re-centers under each creep's translate().
+  getDecayGradient(ctx, rad) {
+    const key = Math.round(rad * 4);
+    let grad = this._decayGrad[key];
+    if (!grad) {
+      grad = ctx.createRadialGradient(0, 0, 0, 0, 0, rad);
+      grad.addColorStop(0, DECAY.hot);
+      grad.addColorStop(0.45, DECAY.core);
+      grad.addColorStop(0.8, DECAY.mid);
+      grad.addColorStop(1, DECAY.after);
+      this._decayGrad[key] = grad;
+    }
+    return grad;
+  }
+
+  // Static tick-marked bezel housing — built once per tower instance (cheap:
+  // one small offscreen canvas), then just blitted every frame instead of
+  // re-stroking the ring/rivets each time.
+  buildTowerBezel() {
+    const S = 30, R = S / 2;
+    const cv = document.createElement("canvas"); cv.width = S; cv.height = S;
+    const g = cv.getContext("2d");
+    g.fillStyle = "#0e1a12";
+    this.round(1, 1, S - 2, S - 2, 7, g); g.fill();
+    g.fillStyle = "#16271b"; g.beginPath(); g.arc(R, R, 12, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = BEZEL; g.lineWidth = 1.4; g.globalAlpha = 0.85;
+    g.beginPath(); g.arc(R, R, 13.5, 0, Math.PI * 2); g.stroke();
+    g.globalAlpha = 1; g.strokeStyle = BRASS; g.lineWidth = 1.2;
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2, r1 = i % 2 === 0 ? 16 : 15;
+      g.beginPath();
+      g.moveTo(R + Math.cos(a) * 13.5, R + Math.sin(a) * 13.5);
+      g.lineTo(R + Math.cos(a) * r1, R + Math.sin(a) * r1);
+      g.stroke();
+    }
+    return cv;
+  }
+  drawTower(ctx, tw, dt) {
     const x = tw.x, y = tw.y, s = tw.s, col = tw.def.color, t = this.gameTime;
     const kind = s.aura ? "aura" : s.income ? "mint" : tw.type === "frost" ? "crystal" : (tw.type === "poison" && !s.splash) ? "orb" : tw.type === "detector" ? "radar" : tw.type === "void" ? "void" : "barrel";
-    // aim
+    let target = null;
+    // aim (visual turret rotation — per-kind flavor, independent of the wedge below)
     if (kind === "barrel") {
-      const tgt = this.pickTargets(tw, 1)[0];
-      if (tgt) { let a = Math.atan2(tgt.y - y, tgt.x - x), d = a - tw.angle; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; tw.angle += d * 0.3; }
+      target = this.pickTargets(tw, 1)[0];
+      if (target) { let a = Math.atan2(target.y - y, target.x - x), d = a - tw.angle; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; tw.angle += d * 0.3; }
     } else if (kind === "radar") tw.angle += 0.06;
-    // base platform
-    ctx.fillStyle = "#0e1a12"; this.round(tw.c * CELL + 4, tw.r * CELL + 4, CELL - 8, CELL - 8, 7); ctx.fill();
-    // base disc
-    ctx.fillStyle = "#16271b"; ctx.beginPath(); ctx.arc(x, y, 11, 0, 7); ctx.fill();
+
+    // cached tick-marked bezel housing — built once per tower instance, blitted every frame
+    if (!tw._bezel) tw._bezel = this.buildTowerBezel();
+    ctx.drawImage(tw._bezel, x - 15, y - 15, 30, 30);
+
+    // conical sweep-beam wedge — the range indicator itself: slow idle scan,
+    // snaps to and holds the target with a brighter pulse while firing
+    if (s.range > 0) {
+      if (target === null && kind !== "barrel") target = this.pickTargets(tw, 1)[0];
+      if (tw._wedgeAngle == null) tw._wedgeAngle = -Math.PI / 2;
+      if (target) {
+        let a = Math.atan2(target.y - y, target.x - x), d = a - tw._wedgeAngle;
+        while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;
+        tw._wedgeAngle += d * 0.35;
+      } else {
+        tw._wedgeAngle += dt * 0.7;
+      }
+      const firing = t - tw.lastFire < 0.12;
+      const wedgeW = firing ? 0.32 : 0.5;
+      ctx.save();
+      ctx.globalAlpha = firing ? 0.2 : 0.09;
+      ctx.fillStyle = DECAY.hot;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.arc(x, y, s.range, tw._wedgeAngle - wedgeW / 2, tw._wedgeAngle + wedgeW / 2);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+
     // Ring — shadowBlur scales with level: Lv1 clean, Lv2 soft glow, Lv3 bright, spec blazing
     // shadowBlur NOT expensive per spec; refuted by MDN perf research (canvas-performance)
     ctx.shadowBlur = tw.spec ? 22 : tw.level === 3 ? 14 : tw.level === 2 ? 7 : 0;
@@ -1234,9 +1500,15 @@ class Game {
       : (en.netAng ?? 0); // online: server-sent heading
     const bob = Math.sin(t * 6 + (en.x + en.y) * 0.05);
     const lift = air ? 7 + bob * 2 : 0;
+    // Threat tier — shape (unchanged 6-shape vocabulary) still does the
+    // primary identification; tier only adds a rim/tick/pulse accent, never
+    // a new fill hue. base = decay ramp only · warn = armored/immune (amber)
+    // · crit = hero/boss (grease-red).
+    const tier = boss || hero ? "crit" : (en.flags.includes("immune") || en.enemy === "Armored") ? "warn" : "base";
+    const rim = tier === "crit" ? THREAT.crit : tier === "warn" ? THREAT.warn : DECAY.hot;
     if (air) { ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(en.x, en.y + rad + 4, rad * 0.9, rad * 0.4, 0, 0, 7); ctx.fill(); }
     ctx.save(); ctx.globalAlpha = inv ? 0.22 : 1; ctx.translate(en.x, en.y - lift);
-    ctx.fillStyle = en.color;
+    ctx.fillStyle = this.getDecayGradient(ctx, rad);
     if (en.enemy === "Swift") {
       ctx.rotate(ang); ctx.beginPath(); ctx.moveTo(rad * 1.1, 0); ctx.lineTo(-rad * 0.65, rad * 0.7); ctx.lineTo(-rad * 0.25, 0); ctx.lineTo(-rad * 0.65, -rad * 0.7); ctx.closePath(); ctx.fill();
     } else if (air) {
@@ -1251,7 +1523,9 @@ class Game {
       ctx.beginPath(); for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; const px = Math.cos(a) * rad, py = Math.sin(a) * rad; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); } ctx.closePath(); ctx.fill();
       ctx.strokeStyle = "rgba(0,0,0,.4)"; ctx.lineWidth = 1.5;
       for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * rad * 0.55, Math.sin(a) * rad * 0.55); ctx.stroke(); }
-      ctx.strokeStyle = "rgba(0,0,0,.35)"; ctx.beginPath(); for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; i ? ctx.lineTo(Math.cos(a)*rad, Math.sin(a)*rad) : ctx.moveTo(Math.cos(a)*rad, Math.sin(a)*rad); } ctx.closePath(); ctx.stroke();
+      { const ga = ctx.globalAlpha; ctx.strokeStyle = rim; ctx.globalAlpha = ga * 0.7;
+        ctx.beginPath(); for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; i ? ctx.lineTo(Math.cos(a)*rad, Math.sin(a)*rad) : ctx.moveTo(Math.cos(a)*rad, Math.sin(a)*rad); } ctx.closePath(); ctx.stroke();
+        ctx.globalAlpha = ga; }
     } else if (en.flags.includes("immune")) {
       ctx.beginPath(); ctx.moveTo(0, -rad * 1.2); ctx.lineTo(rad * 0.95, -rad * 0.45); ctx.lineTo(rad * 0.95, rad * 0.25); ctx.quadraticCurveTo(0, rad * 1.45, -rad * 0.95, rad * 0.25); ctx.lineTo(-rad * 0.95, -rad * 0.45); ctx.closePath(); ctx.fill();
       ctx.fillStyle = "rgba(255,255,255,.2)"; ctx.beginPath(); ctx.moveTo(0, -rad * 0.75); ctx.lineTo(rad * 0.55, -rad * 0.2); ctx.lineTo(rad * 0.55, rad * 0.1); ctx.quadraticCurveTo(0, rad * 0.85, -rad * 0.55, rad * 0.1); ctx.lineTo(-rad * 0.55, -rad * 0.2); ctx.closePath(); ctx.fill();
@@ -1267,7 +1541,34 @@ class Game {
       ctx.beginPath(); ctx.arc(0, 0, rad, 0, 7); ctx.fill();
       ctx.fillStyle = "rgba(255,255,255,.22)"; ctx.beginPath(); ctx.arc(-rad * 0.28, -rad * 0.28, rad * 0.38, 0, 7); ctx.fill();
     }
-    if (boss || hero) { ctx.strokeStyle = boss ? "#fca5a5" : "#fdba74"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, rad + 3, 0, 7); ctx.stroke(); }
+    // thin bright rim stroke (base tier: dim decay-hot edge · warn/crit: the
+    // tier accent) — every archetype gets one, boss/hero read widest
+    {
+      const ga = ctx.globalAlpha, ringR = rad + (boss ? 3 : hero ? 2.5 : 1.8);
+      ctx.strokeStyle = rim; ctx.lineWidth = tier === "base" ? 1.2 : 1.8;
+      ctx.globalAlpha = ga * (tier === "base" ? 0.55 : 0.9);
+      ctx.beginPath(); ctx.arc(0, 0, ringR, 0, 7); ctx.stroke();
+      // 1-2 short corner tick marks — circuit-trace detail (Bearing Zero graft)
+      ctx.lineWidth = 1;
+      for (const da of [-0.55, 0.55]) {
+        const a = -Math.PI / 2 + da;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * ringR, Math.sin(a) * ringR);
+        ctx.lineTo(Math.cos(a) * (ringR + 3.5), Math.sin(a) * (ringR + 3.5));
+        ctx.stroke();
+      }
+      ctx.globalAlpha = ga;
+    }
+    // hazard-chevron corner tick for the two threat tiers — pulse rate (not
+    // hue) separates armored/warning from boss/critical
+    if (tier !== "base") {
+      const pr = tier === "crit" ? 5.5 : 3.2, p = 0.5 + 0.5 * Math.sin(t * pr);
+      const ga = ctx.globalAlpha, cy = -(rad + 6.5);
+      ctx.globalAlpha = ga * (0.45 + p * 0.5);
+      ctx.fillStyle = rim;
+      ctx.beginPath(); ctx.moveTo(-3.2, cy + 3.4); ctx.lineTo(0, cy); ctx.lineTo(3.2, cy + 3.4); ctx.lineTo(0, cy + 1.7); ctx.closePath(); ctx.fill();
+      ctx.globalAlpha = ga;
+    }
     ctx.restore();
     if (t < en.slowUntil) { ctx.strokeStyle = "#67e8f9"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(en.x, en.y - lift, rad + 2.5, 0, 7); ctx.stroke(); }
     if (en.poison > 0 && t < en.poisonUntil) { ctx.fillStyle = "rgba(132,204,22,.6)"; for (let i = 0; i < 2; i++) { ctx.beginPath(); ctx.arc(en.x + Math.sin(t * 5 + i * 3) * rad * 0.8, en.y - lift - rad - (t * 30 + i * 8) % 8, 1.7, 0, 7); ctx.fill(); } }
@@ -1291,22 +1592,23 @@ class Game {
     const x0 = this.cssW - S - pad, y0 = this.cssH - S - pad, k = S / WORLD;
     ctx.save();
     ctx.globalAlpha = 0.92;
-    ctx.fillStyle = "#0a0f0b"; ctx.strokeStyle = "#294a33"; ctx.lineWidth = 1;
+    ctx.fillStyle = VOID_INNER; ctx.strokeStyle = BEZEL; ctx.lineWidth = 1;
     ctx.fillRect(x0, y0, S, S); ctx.strokeRect(x0, y0, S, S);
-    ctx.strokeStyle = "#1f3324";
+    ctx.strokeStyle = "rgba(28,61,34,.7)"; // afterglow-tone, dimmer than the live layer
     for (const path of PATHS) {
       ctx.beginPath(); ctx.moveTo(x0 + path[0][0] * k, y0 + path[0][1] * k);
       for (let i = 1; i < path.length; i++) ctx.lineTo(x0 + path[i][0] * k, y0 + path[i][1] * k);
       ctx.stroke();
     }
-    ctx.fillStyle = "#86efac"; ctx.fillRect(x0 + CENTER.x * k - 2, y0 + CENTER.y * k - 2, 4, 4);
+    ctx.fillStyle = DECAY.hot; ctx.fillRect(x0 + CENTER.x * k - 2, y0 + CENTER.y * k - 2, 4, 4);
+    // enemy dots already carry their threat-tier color — a quick-read legend for free
     for (const en of this.enemies) {
       if (en.hp <= 0) continue;
       ctx.fillStyle = en.color; ctx.fillRect(x0 + en.x * k - 1, y0 + en.y * k - 1, 2, 2);
     }
     // viewport rectangle
     const vw = this.cssW / this.cam.zoom, vh = this.cssH / this.cam.zoom;
-    ctx.strokeStyle = "rgba(255,255,255,.5)";
+    ctx.strokeStyle = "rgba(232,227,211,.5)";
     ctx.strokeRect(x0 + this.cam.x * k, y0 + this.cam.y * k, vw * k, vh * k);
     ctx.restore();
   }
@@ -1316,14 +1618,13 @@ class Game {
     const ctx = this.ctx, W = this.cssW, H = this.cssH;
     const inner = Math.min(W, H) * 0.26, outer = Math.max(W, H) * 0.78;
     const g = ctx.createRadialGradient(W / 2, H / 2, inner, W / 2, H / 2, outer);
-    g.addColorStop(0, "rgba(0,0,0,0)");
-    g.addColorStop(1, "rgba(0,0,0,0.48)");
+    g.addColorStop(0, "rgba(6,10,6,0)");
+    g.addColorStop(1, "rgba(6,10,6,0.5)");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
   }
 
-  round(x, y, w, h, r) {
-    const ctx = this.ctx;
+  round(x, y, w, h, r, ctx = this.ctx) {
     ctx.beginPath();
     ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
     ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
