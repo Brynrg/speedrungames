@@ -4,6 +4,14 @@
  * Single-player vs AI. Maze your lane to kill incoming creeps; send creeps at
  * the enemy to raise income and drain their lives. Drop the enemy to 0 lives
  * as fast as you can (speedrun). No backend — fully static.
+ *
+ * VISUAL IDENTITY — "Copper Line" (PCB circuit board reskin, 2026-07-18).
+ * Two-tier rendering: a per-field offscreen canvas holds the static board
+ * (copper trace pads, soldermask channels, via dots, silkscreen bezel
+ * lettering) baked once at level load and blitted every frame; everything
+ * that changes tick-to-tick (HUD numbers, hover preview, towers, creeps,
+ * bolts, fx) is drawn on the live canvas each frame on top of that blit.
+ * Palette + hard color rules: see PALETTE below.
  */
 
 // ---------------------------------------------------------------- constants
@@ -24,6 +32,20 @@ const START_INCOME = 10;
 const START_LIVES = 20;
 const INCOME_INTERVAL = 5;     // seconds
 const PB_KEY = "speedrungames:line-tower-wars:pb";
+
+// Copper Line palette. Functional hues (tower/creep/player accents) are kept
+// 1:1 from the original build — only the board/chrome material changed.
+//   HARD RULE: trace copper (traceA..traceB) never appears in HUD chrome.
+//   HARD RULE: UI gold (uiGold) never appears on the board surface.
+const PALETTE = {
+  boardBasePlayer: "#0a1712",
+  boardBaseEnemy: "#1a0e0f",
+  bezel: "#05080a",
+  traceA: "#c98a3b",
+  traceB: "#e8b463",
+  silk: "#e8e2d0",
+  uiGold: "#facc15",
+};
 
 const TOWERS = {
   gun:    { key: "1", name: "Gun",    cost: 14, range: 1.7 * CELL, dmg: 6,  interval: 0.5, splash: 0,         slow: 0,    color: "#60a5fa", desc: "Cheap single-target" },
@@ -56,6 +78,254 @@ function savePB(ms) {
   try { localStorage.setItem(PB_KEY, String(ms)); } catch { /* ignore */ }
 }
 
+// ---------------------------------------------------------------- color utils (procedural — no images/fonts)
+function hexToRgb(hex) {
+  const h = hex.replace("#", "");
+  const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+  const n = parseInt(full, 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+function rgbToHex(r, g, b) {
+  return "#" + [r, g, b].map((v) => clamp(Math.round(v), 0, 255).toString(16).padStart(2, "0")).join("");
+}
+function mixHex(hexA, hexB, t) {
+  const a = hexToRgb(hexA), b = hexToRgb(hexB);
+  return rgbToHex(a.r + (b.r - a.r) * t, a.g + (b.g - a.g) * t, a.b + (b.b - a.b) * t);
+}
+function lighten(hex, amt) { return mixHex(hex, "#ffffff", amt); }
+function darken(hex, amt) { return mixHex(hex, "#000000", amt); }
+function rgbaHex(hex, alpha) { const { r, g, b } = hexToRgb(hex); return `rgba(${r},${g},${b},${alpha})`; }
+
+// chamfered-rectangle path (cut corners) — the tower "component package" shape
+function chamferPath(ctx, x, y, w, h, c) {
+  ctx.beginPath();
+  ctx.moveTo(x + c, y);
+  ctx.lineTo(x + w - c, y);
+  ctx.lineTo(x + w, y + c);
+  ctx.lineTo(x + w, y + h - c);
+  ctx.lineTo(x + w - c, y + h);
+  ctx.lineTo(x + c, y + h);
+  ctx.lineTo(x, y + h - c);
+  ctx.lineTo(x, y + c);
+  ctx.closePath();
+}
+
+// ---------------------------------------------------------------- hand-drawn glyphs (replace emoji everywhere)
+// 2-color chip-outline glyph — used for the spawn marker (baked, on-board)
+// and reused for the header brand icon (DOM chrome).
+function drawChipGlyph(ctx, cx, cy, size) {
+  const s = size / 2;
+  ctx.save();
+  ctx.strokeStyle = PALETTE.silk;
+  ctx.fillStyle = "rgba(5,8,10,0.55)";
+  ctx.lineWidth = 1;
+  chamferPath(ctx, cx - s, cy - s, size, size, 2.5);
+  ctx.fill(); ctx.stroke();
+  ctx.beginPath();
+  for (let i = -1; i <= 1; i++) {
+    ctx.moveTo(cx + i * s * 0.6, cy - s); ctx.lineTo(cx + i * s * 0.6, cy - s - 3);
+    ctx.moveTo(cx + i * s * 0.6, cy + s); ctx.lineTo(cx + i * s * 0.6, cy + s + 3);
+  }
+  ctx.stroke();
+  ctx.fillStyle = PALETTE.silk;
+  ctx.beginPath(); ctx.arc(cx - s + 2.5, cy - s + 2.5, 1.2, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+// electrical ground-symbol glyph — exit marker (baked, on-board)
+function drawGroundGlyph(ctx, cx, topY, size) {
+  ctx.save();
+  ctx.strokeStyle = "rgba(232,226,208,0.65)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx, topY - size); ctx.lineTo(cx, topY - size * 0.45);
+  ctx.stroke();
+  let y = topY - size * 0.45;
+  for (const w of [0.8, 0.55, 0.3]) {
+    ctx.beginPath();
+    ctx.moveTo(cx - size * w * 0.5, y); ctx.lineTo(cx + size * w * 0.5, y);
+    ctx.stroke();
+    y += size * 0.22;
+  }
+  ctx.restore();
+}
+// schematic battery-cell glyph — currency, HUD chrome only
+function drawBatteryIcon(ctx, x, y, size) {
+  const w = size, h = size * 0.6;
+  ctx.save();
+  ctx.strokeStyle = PALETTE.uiGold; ctx.lineWidth = 1;
+  ctx.strokeRect(x, y - h / 2, w, h);
+  ctx.fillStyle = PALETTE.uiGold;
+  ctx.fillRect(x + w, y - h * 0.22, 2, h * 0.44);
+  ctx.beginPath();
+  ctx.moveTo(x + w * 0.3, y); ctx.lineTo(x + w * 0.7, y);
+  ctx.moveTo(x + w * 0.5, y - h * 0.28); ctx.lineTo(x + w * 0.5, y + h * 0.28);
+  ctx.stroke();
+  ctx.restore();
+}
+// small LED-pulse glyph — lives, HUD chrome only
+function drawPulseIcon(ctx, x, y, size, color) {
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(x + size / 2, y, size / 2, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.7)"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(x + size / 2 - size * 0.15, y - size * 0.15, size * 0.18, 0, Math.PI * 2); ctx.stroke();
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------- tower + creep painters
+// Chamfered "component package": hard offset shadow, dark front face (full
+// footprint), lighter top face inset from the front so a dark strip peeks
+// out bottom-right, single hard 1px top-left highlight — the Filter Room
+// 3-face-block technique adapted to a top-down camera. Distinct silhouette
+// per tower family, plus pin nubs + a pin-1 orientation dot.
+function drawTowerPackage(ctx, tw, cellX, cellY) {
+  const pad = 4, w = CELL - pad * 2, h = CELL - pad * 2;
+  const x = cellX + pad, y = cellY + pad;
+  const hue = tw.def.color;
+  const light = lighten(hue, 0.4);
+  const dark = darken(hue, 0.5);
+  const chamfer = 4;
+  const frontDepth = 4;
+
+  ctx.fillStyle = "rgba(0,0,0,0.55)";
+  chamferPath(ctx, x + 2, y + 2, w, h, chamfer); ctx.fill();
+
+  ctx.fillStyle = dark;
+  chamferPath(ctx, x, y, w, h, chamfer); ctx.fill();
+
+  ctx.fillStyle = light;
+  chamferPath(ctx, x, y, w - frontDepth, h - frontDepth, chamfer); ctx.fill();
+
+  ctx.strokeStyle = "rgba(255,255,255,0.9)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x + chamfer, y + 0.5);
+  ctx.lineTo(x + w - frontDepth - chamfer, y + 0.5);
+  ctx.moveTo(x + 0.5, y + chamfer);
+  ctx.lineTo(x + 0.5, y + h - frontDepth - chamfer);
+  ctx.stroke();
+
+  const tw2 = w - frontDepth, th2 = h - frontDepth;
+  const cx = x + tw2 / 2, cy = y + th2 / 2;
+  ctx.save();
+  if (tw.type === "gun") {
+    // resistor-body: 2-3 color bands across the middle
+    const bandW = 2.4;
+    const bands = [dark, "#ffffff", darken(hue, 0.15)];
+    let bx = cx - (bands.length * (bandW + 2)) / 2;
+    for (const bc of bands) {
+      ctx.fillStyle = bc;
+      ctx.fillRect(bx, y + 3, bandW, th2 - 6);
+      bx += bandW + 2;
+    }
+  } else if (tw.type === "frost") {
+    // disc-cap: circle inset in the square base
+    const r = Math.min(tw2, th2) / 2 - 3;
+    ctx.fillStyle = lighten(hue, 0.15);
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = darken(hue, 0.3); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = "rgba(255,255,255,0.7)";
+    ctx.beginPath(); ctx.arc(cx, cy, r - 2, Math.PI, Math.PI * 1.5); ctx.stroke();
+  } else if (tw.type === "splash") {
+    // banded electrolytic cylinder
+    const capW = tw2 * 0.62, capH = th2 - 4;
+    const cxx = x + tw2 / 2 - capW / 2, cyy = y + 2;
+    ctx.fillStyle = darken(hue, 0.1);
+    chamferPath(ctx, cxx, cyy, capW, capH, 3); ctx.fill();
+    ctx.strokeStyle = "rgba(0,0,0,0.5)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cxx + 2, cyy + capH * 0.38); ctx.lineTo(cxx + capW - 2, cyy + capH * 0.38); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cxx + 2, cyy + capH * 0.66); ctx.lineTo(cxx + capW - 2, cyy + capH * 0.66); ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,0.65)";
+    ctx.fillRect(cxx + capW / 2 - 1, cyy + 2, 2, capH * 0.3);
+  }
+  ctx.restore();
+
+  ctx.fillStyle = "#cbd5e1";
+  ctx.fillRect(x + w * 0.28, y + h - frontDepth + 1, 2, 2);
+  ctx.fillRect(x + w * 0.68, y + h - frontDepth + 1, 2, 2);
+
+  ctx.fillStyle = PALETTE.silk;
+  ctx.beginPath(); ctx.arc(x + 3, y + 3, 1.4, 0, Math.PI * 2); ctx.fill();
+}
+
+// radial-gradient plasma blip + short fading motion trail. HP bar mechanism
+// is left byte-for-byte identical to the original (22px black-backed rect).
+function drawCreep(ctx, cr, gameTime) {
+  const rad = 8 + (cr.maxHp > 60 ? 4 : 0);
+
+  const trail = cr.trail || [];
+  for (let i = 0; i < trail.length; i++) {
+    const p = trail[i];
+    const f = (i + 1) / (trail.length + 1);
+    ctx.globalAlpha = f * 0.35;
+    ctx.fillStyle = cr.color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, rad * (0.35 + 0.4 * f), 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  const grad = ctx.createRadialGradient(cr.x, cr.y, 0, cr.x, cr.y, rad);
+  grad.addColorStop(0, lighten(cr.color, 0.55));
+  grad.addColorStop(0.65, cr.color);
+  grad.addColorStop(1, rgbaHex(cr.color, 0.25));
+  ctx.fillStyle = grad;
+  ctx.beginPath(); ctx.arc(cr.x, cr.y, rad, 0, Math.PI * 2); ctx.fill();
+  if (gameTime < cr.slowUntil) { ctx.strokeStyle = "#67e8f9"; ctx.lineWidth = 2; ctx.stroke(); }
+
+  // hp bar — EXACT existing mechanism, untouched
+  const w = 22, hpf = clamp(cr.hp / cr.maxHp, 0, 1);
+  ctx.fillStyle = "#000"; ctx.fillRect(cr.x - w / 2, cr.y - rad - 7, w, 4);
+  ctx.fillStyle = hpf > 0.5 ? "#4ade80" : hpf > 0.25 ? "#facc15" : "#f87171";
+  ctx.fillRect(cr.x - w / 2, cr.y - rad - 7, w * hpf, 4);
+}
+
+// ---------------------------------------------------------------- projectiles + fx
+// Jagged 3-4 segment lightning-bolt polyline, regenerated fresh per shot.
+function makeBoltPoints(x1, y1, x2, y2) {
+  const segs = 3 + (Math.random() < 0.5 ? 0 : 1); // 3 or 4 segments
+  const dx = x2 - x1, dy = y2 - y1;
+  const len = Math.hypot(dx, dy) || 1;
+  const nx = -dy / len, ny = dx / len;
+  const jitter = clamp(len * 0.12, 3, 9);
+  const pts = [{ x: x1, y: y1 }];
+  for (let i = 1; i < segs; i++) {
+    const t = i / segs;
+    const j = (Math.random() - 0.5) * jitter;
+    pts.push({ x: x1 + dx * t + nx * j, y: y1 + dy * t + ny * j });
+  }
+  pts.push({ x: x2, y: y2 });
+  return pts;
+}
+function strokePolyline(ctx, pts) {
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+  ctx.stroke();
+}
+// muzzle arc-flash: 3-5 short white-hot radiating segments, ~1-2 frame life
+function makeMuzzleFlash(x, y, tx, ty) {
+  const baseAngle = Math.atan2(ty - y, tx - x);
+  const n = 3 + Math.floor(Math.random() * 3);
+  const segs = [];
+  for (let i = 0; i < n; i++) {
+    const a = baseAngle + (Math.random() - 0.5) * 1.1;
+    const len = 5 + Math.random() * 7;
+    segs.push({ x1: 0, y1: 0, x2: Math.cos(a) * len, y2: Math.sin(a) * len });
+  }
+  return { type: "muzzle", x, y, segs, t: 0.05, life: 0.05 };
+}
+// short-circuit death burst: 5-8 spark fragments + one bright flash frame
+function makeSparkBurst(x, y, color) {
+  const n = 5 + Math.floor(Math.random() * 4);
+  const segs = [];
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const len = 7 + Math.random() * 7;
+    segs.push({ x1: 0, y1: 0, x2: Math.cos(a) * len, y2: Math.sin(a) * len });
+  }
+  return { type: "spark", x, y, segs, color, t: 0.18, life: 0.18 };
+}
+
 // ---------------------------------------------------------------- Field
 class Field {
   constructor(ox, isPlayer) {
@@ -69,6 +339,10 @@ class Field {
     this.lives = START_LIVES;
     this.dist = null;         // flow field distances to exit
     this.recompute();
+    // static board layer (tier 1) — painted once by renderStatic(), blitted per frame
+    this.staticCanvas = document.createElement("canvas");
+    this.staticCanvas.width = 960;
+    this.staticCanvas.height = 640;
   }
 
   cellCenter(c, r) { return { x: this.ox + c * CELL + CELL / 2, y: GY + r * CELL + CELL / 2 }; }
@@ -148,7 +422,98 @@ class Field {
         hp, maxHp: hp, speed: def.speed,
         bounty: def.bounty, kill: def.kill, color: def.color,
         slowUntil: 0, senderIsPlayer,
+        trail: [],
       });
+    }
+  }
+
+  // Paint the tier-1 static board layer: board base, copper trace pads,
+  // soldermask channels, via dots, spawn/exit glyphs, silkscreen bezel
+  // lettering. Called once per run (not per frame) — the dynamic layer
+  // (towers) draws over its own cell every frame regardless of what's
+  // baked underneath, so this never needs to be regenerated mid-run.
+  renderStatic() {
+    const ctx = this.staticCanvas.getContext("2d");
+    ctx.clearRect(0, 0, 960, 640);
+    const ox = this.ox;
+    const boardBase = this.isPlayer ? PALETTE.boardBasePlayer : PALETTE.boardBaseEnemy;
+
+    ctx.fillStyle = boardBase;
+    ctx.fillRect(ox, GY, FIELD_W, FIELD_H);
+
+    ctx.strokeStyle = "#26314a";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(ox - 1, GY - 1, FIELD_W + 2, FIELD_H + 2);
+
+    // spawn / exit band tint (kept subtle, under the trace pads)
+    ctx.fillStyle = "rgba(248,113,113,0.08)";
+    ctx.fillRect(ox, GY, FIELD_W, CELL);
+    ctx.fillStyle = "rgba(96,165,250,0.08)";
+    ctx.fillRect(ox, GY + FIELD_H - CELL, FIELD_W, CELL);
+
+    // copper trace pads — the walkable-path fill. A tower drawn on top each
+    // frame becomes the "wall" for that cell, so every cell gets a pad here.
+    const gap = 3;
+    for (let c = 0; c < GCOLS; c++) {
+      for (let r = 0; r < GROWS; r++) {
+        const x = ox + c * CELL + gap, y = GY + r * CELL + gap;
+        const w = CELL - gap * 2, h = CELL - gap * 2;
+        const grad = ctx.createLinearGradient(x, y, x + w, y + h);
+        grad.addColorStop(0, PALETTE.traceA);
+        grad.addColorStop(1, PALETTE.traceB);
+        ctx.fillStyle = grad;
+        chamferPath(ctx, x, y, w, h, 3);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(5,8,10,0.55)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+
+    // faint silkscreen texture, kept low so it never competes with the
+    // trace/wall contrast boundary
+    ctx.fillStyle = "rgba(232,226,208,0.08)";
+    for (let c = 0; c < GCOLS; c++) {
+      for (let r = 0; r < GROWS; r++) {
+        const cx = ox + c * CELL + CELL / 2, cy = GY + r * CELL + CELL / 2;
+        ctx.beginPath(); ctx.arc(cx, cy, 1, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+
+    // via dots at grid-line intersections (decorative PCB detail)
+    for (let c = 1; c < GCOLS; c++) {
+      for (let r = 1; r < GROWS; r++) {
+        if ((c + r) % 2 !== 0) continue;
+        const x = ox + c * CELL, y = GY + r * CELL;
+        ctx.fillStyle = PALETTE.bezel;
+        ctx.beginPath(); ctx.arc(x, y, 2.4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "rgba(232,226,208,0.5)";
+        ctx.beginPath(); ctx.arc(x, y, 1.1, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+
+    // spawn glyph (chip-outline) + exit glyph row (ground-symbol)
+    const sp = this.cellCenter(SPAWN_COL, 0);
+    drawChipGlyph(ctx, sp.x, sp.y, 14);
+    for (let c = 0; c < GCOLS; c++) {
+      const ex = ox + c * CELL + CELL / 2;
+      drawGroundGlyph(ctx, ex, GY + FIELD_H - 4, 8);
+    }
+
+    // silkscreen coordinate lettering along the board bezel
+    ctx.fillStyle = PALETTE.silk;
+    ctx.font = '7px ui-monospace, "SF Mono", "Courier New", monospace';
+    ctx.textBaseline = "middle";
+    ctx.textAlign = this.isPlayer ? "right" : "left";
+    for (let r = 0; r < GROWS; r++) {
+      const y = GY + r * CELL + CELL / 2;
+      const x = this.isPlayer ? ox - 6 : ox + FIELD_W + 6;
+      ctx.fillText(String(r + 1), x, y);
+    }
+    ctx.textAlign = "center";
+    for (let c = 0; c < GCOLS; c++) {
+      const x = ox + c * CELL + CELL / 2;
+      ctx.fillText(String.fromCharCode(65 + c), x, GY + FIELD_H + 12);
     }
   }
 }
@@ -171,11 +536,30 @@ class Game {
     this.aiSendTimer = 4;
     this.pb = loadPB();
 
-    this.bullets = [];          // transient visual shots
+    this.bullets = [];          // transient bolt polylines
+    this.effects = [];          // transient fx (muzzle flash, death spark)
+    this.arenaStatic = this.buildArenaStatic();
     this.bindUI();
     this.bindInput();
     this.renderPB();
     requestAnimationFrame(() => this.loop());
+  }
+
+  // Tier-1 arena chrome that never changes across a run: bezel background +
+  // the center divider. Baked once, blitted every frame.
+  buildArenaStatic() {
+    const c = document.createElement("canvas");
+    c.width = this.canvas.width; c.height = this.canvas.height;
+    const actx = c.getContext("2d");
+    actx.fillStyle = PALETTE.bezel;
+    actx.fillRect(0, 0, c.width, c.height);
+    const midx = (PX + FIELD_W + AX) / 2;
+    actx.strokeStyle = "#26314a"; actx.lineWidth = 2;
+    actx.beginPath(); actx.moveTo(midx, GY); actx.lineTo(midx, GY + FIELD_H); actx.stroke();
+    actx.fillStyle = "#3a4a70"; actx.font = "bold 18px system-ui";
+    actx.textAlign = "center"; actx.textBaseline = "middle";
+    actx.fillText("VS", midx, GY + FIELD_H / 2);
+    return c;
   }
 
   // ---- run lifecycle
@@ -195,10 +579,13 @@ class Game {
       this.ai.build(c, r, type);
       this.ai.gold = saved;
     }
+    this.player.renderStatic();
+    this.ai.renderStatic();
     this.incomeTimer = INCOME_INTERVAL;
     this.aiBuildTimer = 0.8;
     this.aiSendTimer = 4;
     this.bullets = [];
+    this.effects = [];
     this.elapsed = 0;
     this.gameTime = 0;
     this.sendReadyAt = 0;
@@ -236,6 +623,12 @@ class Game {
       sb.appendChild(b);
     }
     this.refreshButtons();
+    this.drawBrandIcon();
+  }
+  drawBrandIcon() {
+    const el = document.getElementById("brandIcon");
+    if (!el) return;
+    drawChipGlyph(el.getContext("2d"), 11, 11, 14);
   }
   selectTower(id) { this.selectedTower = id; this.refreshButtons(); }
   refreshButtons() {
@@ -253,7 +646,7 @@ class Game {
   hideOverlay() { const o = document.getElementById("overlay"); o.className = "overlay hidden"; o.innerHTML = ""; }
   showOverlay(html) { const o = document.getElementById("overlay"); o.className = "overlay"; o.innerHTML = html; }
   showStartOverlay() {
-    this.showOverlay(`<h2>🏰 Line Tower Wars</h2><p>Maze your lane. Send creeps at the enemy. Drop them to 0 lives — fast.</p><button id="startBtn">Start</button>`);
+    this.showOverlay(`<h2>Line Tower Wars</h2><p>Maze your lane. Send creeps at the enemy. Drop them to 0 lives — fast.</p><button id="startBtn">Start</button>`);
     document.getElementById("startBtn").onclick = () => this.startRun();
   }
   // Fire-and-forget leaderboard submit to the portal (POST /api/runs).
@@ -273,7 +666,7 @@ class Game {
   }
   showEndOverlay(won) {
     const t = formatTime(this.elapsed);
-    const sub = won ? (this._newPB ? `🏆 New personal best!` : (this.pb != null ? `PB ${formatTime(this.pb)}` : "")) : "The enemy overran your lane.";
+    const sub = won ? (this._newPB ? `New personal best!` : (this.pb != null ? `PB ${formatTime(this.pb)}` : "")) : "The enemy overran your lane.";
     this.showOverlay(`<h2>${won ? "Victory!" : "Defeated"}</h2><p>Time ${t}</p><p>${sub}</p><p id="lbStatus" class="hint"></p><button id="againBtn">${won ? "Play again" : "Retry"}</button>`);
     document.getElementById("againBtn").onclick = () => this.startRun();
     if (won) this.submitRun();
@@ -398,9 +791,11 @@ class Game {
     this.updateField(this.ai, dt);
     this.updateAI(dt);
 
-    // bullets (visual only)
+    // bullets + fx (visual only)
     for (const b of this.bullets) b.t -= dt;
     this.bullets = this.bullets.filter((b) => b.t > 0);
+    for (const e of this.effects) e.t -= dt;
+    this.effects = this.effects.filter((e) => e.t > 0);
 
     this.refreshButtons();
 
@@ -423,6 +818,7 @@ class Game {
       } else if (rr >= GROWS - 1) {
         // at exit row -> leak when crossing bottom edge
         cr.y += speed * dt;
+        this.pushTrail(cr);
         if (cr.y > GY + FIELD_H) { cr.leaked = true; cr.hp = 0; this.onLeak(f, cr); }
         continue;
       } else {
@@ -441,6 +837,7 @@ class Game {
       const step = Math.min(speed * dt, dlen);
       cr.x += (dx / dlen) * step;
       cr.y += (dy / dlen) * step;
+      this.pushTrail(cr);
     }
 
     // towers fire (sim-time cooldowns — wall-clock here made towers burst-fire
@@ -451,7 +848,8 @@ class Game {
       const target = this.pickTarget(f, tw);
       if (!target) continue;
       tw.lastFire = t;
-      this.bullets.push({ x1: tw.x, y1: tw.y, x2: target.x, y2: target.y, color: tw.def.color, t: 0.08 });
+      this.bullets.push({ points: makeBoltPoints(tw.x, tw.y, target.x, target.y), color: tw.def.color, t: 0.12, life: 0.12 });
+      this.effects.push(makeMuzzleFlash(tw.x, tw.y, target.x, target.y));
       if (tw.def.splash > 0) {
         for (const cr of f.creeps) {
           if (cr.hp <= 0) continue;
@@ -466,6 +864,16 @@ class Game {
     // cull dead/leaked
     f.creeps = f.creeps.filter((c) => c.hp > 0 || c.y <= GY + FIELD_H);
     f.creeps = f.creeps.filter((c) => !(c.hp <= 0));
+  }
+
+  // maintain a short (<=5 point) fading motion trail, sampled by distance
+  // rather than by frame so it looks consistent at any framerate
+  pushTrail(cr) {
+    const last = cr.trail[cr.trail.length - 1];
+    if (!last || Math.hypot(cr.x - last.x, cr.y - last.y) > 5) {
+      cr.trail.push({ x: cr.x, y: cr.y });
+      if (cr.trail.length > 5) cr.trail.shift();
+    }
   }
 
   pickTarget(f, tw) {
@@ -486,6 +894,7 @@ class Game {
     if (cr.hp <= 0) {
       // tower owner (the field owner) earns kill gold
       f.gold += cr.kill;
+      this.effects.push(makeSparkBurst(cr.x, cr.y, cr.color));
     }
   }
 
@@ -512,53 +921,74 @@ class Game {
   draw() {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    ctx.fillStyle = "#0d1018";
-    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    ctx.drawImage(this.arenaStatic, 0, 0);
     this.drawField(this.player, "YOU", "#60a5fa");
     this.drawField(this.ai, "ENEMY", "#f87171");
     if (this.state === "paused") {
-      const ctx2 = this.ctx;
-      ctx2.fillStyle = "rgba(13, 16, 24, 0.55)";
-      ctx2.fillRect(0, 0, this.canvas.width, this.canvas.height);
-      ctx2.fillStyle = "#e2e8f0";
-      ctx2.font = "700 34px system-ui, sans-serif";
-      ctx2.textAlign = "center";
-      ctx2.fillText("Paused — press P to resume", this.canvas.width / 2, this.canvas.height / 2);
+      ctx.fillStyle = "rgba(13, 16, 24, 0.55)";
+      ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      ctx.fillStyle = "#e2e8f0";
+      ctx.font = "700 34px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("Paused — press P to resume", this.canvas.width / 2, this.canvas.height / 2);
     }
-    this.drawDivider();
-    // bullets
+
+    // projectiles — jagged bolt polyline, glow under-stroke + core stroke
+    ctx.lineJoin = "round"; ctx.lineCap = "round";
     for (const b of this.bullets) {
-      ctx.strokeStyle = b.color; ctx.lineWidth = 2; ctx.globalAlpha = b.t / 0.08;
-      ctx.beginPath(); ctx.moveTo(b.x1, b.y1); ctx.lineTo(b.x2, b.y2); ctx.stroke();
+      const a = clamp(b.t / b.life, 0, 1);
+      ctx.strokeStyle = rgbaHex(b.color, 0.28 * a);
+      ctx.lineWidth = 6;
+      strokePolyline(ctx, b.points);
+      ctx.strokeStyle = rgbaHex(b.color, a);
+      ctx.lineWidth = 2;
+      strokePolyline(ctx, b.points);
     }
-    ctx.globalAlpha = 1; ctx.lineWidth = 1;
+
+    // fx — muzzle arc-flash + short-circuit death bursts
+    for (const e of this.effects) {
+      const a = clamp(e.t / e.life, 0, 1);
+      if (e.type === "muzzle") {
+        ctx.strokeStyle = `rgba(255,255,255,${a})`;
+        ctx.lineWidth = 1.5;
+        for (const s of e.segs) { ctx.beginPath(); ctx.moveTo(e.x + s.x1, e.y + s.y1); ctx.lineTo(e.x + s.x2, e.y + s.y2); ctx.stroke(); }
+      } else if (e.type === "spark") {
+        if (a > 0.8) {
+          ctx.fillStyle = `rgba(255,255,255,${(a - 0.8) / 0.2})`;
+          ctx.beginPath(); ctx.arc(e.x, e.y, 9, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.strokeStyle = rgbaHex(e.color, a);
+        ctx.lineWidth = 1.4;
+        for (const s of e.segs) { ctx.beginPath(); ctx.moveTo(e.x + s.x1, e.y + s.y1); ctx.lineTo(e.x + s.x2, e.y + s.y2); ctx.stroke(); }
+      }
+    }
+    ctx.globalAlpha = 1; ctx.lineWidth = 1; ctx.lineJoin = "miter"; ctx.lineCap = "butt";
   }
 
   drawField(f, label, accent) {
     const ctx = this.ctx, ox = f.ox;
-    // HUD strip
+
+    // tier 1 — blit the baked board (trace pads, via dots, silkscreen, glyphs)
+    ctx.drawImage(f.staticCanvas, 0, 0);
+
+    // tier 2 — HUD strip (dynamic numbers, hand-drawn glyphs, chrome only)
     ctx.fillStyle = accent; ctx.font = "bold 14px system-ui";
     ctx.textBaseline = "middle"; ctx.textAlign = "left";
     ctx.fillText(label, ox, HUD_H / 2 - 8);
-    ctx.fillStyle = "#e7ecf3"; ctx.font = "13px system-ui";
-    ctx.fillText(`❤ ${Math.max(0, f.lives)}   💰 ${Math.floor(f.gold)}   +${f.income}/s`, ox, HUD_H / 2 + 9);
 
-    // grid background
-    ctx.fillStyle = "#11151f";
-    ctx.fillRect(ox, GY, FIELD_W, FIELD_H);
-    // spawn + exit bands
-    ctx.fillStyle = "rgba(248,113,113,0.10)"; ctx.fillRect(ox, GY, FIELD_W, CELL);
-    ctx.fillStyle = "rgba(96,165,250,0.10)";  ctx.fillRect(ox, GY + FIELD_H - CELL, FIELD_W, CELL);
-    ctx.strokeStyle = "#1d2536"; ctx.lineWidth = 1;
-    for (let c = 0; c <= GCOLS; c++) { ctx.beginPath(); ctx.moveTo(ox + c * CELL, GY); ctx.lineTo(ox + c * CELL, GY + FIELD_H); ctx.stroke(); }
-    for (let r = 0; r <= GROWS; r++) { ctx.beginPath(); ctx.moveTo(ox, GY + r * CELL); ctx.lineTo(ox + FIELD_W, GY + r * CELL); ctx.stroke(); }
+    const statY = HUD_H / 2 + 9;
+    let sx = ox;
+    drawPulseIcon(ctx, sx, statY, 10, accent);
+    sx += 15;
+    ctx.fillStyle = "#e7ecf3"; ctx.font = "13px system-ui"; ctx.textAlign = "left";
+    const livesTxt = `${Math.max(0, f.lives)}`;
+    ctx.fillText(livesTxt, sx, statY);
+    sx += ctx.measureText(livesTxt).width + 12;
+    drawBatteryIcon(ctx, sx, statY, 12);
+    sx += 20;
+    ctx.fillText(`${Math.floor(f.gold)}   +${f.income}/s`, sx, statY);
 
-    // spawn marker
-    const sp = f.cellCenter(SPAWN_COL, 0);
-    ctx.fillStyle = "#f87171"; ctx.textAlign = "center";
-    ctx.font = "16px system-ui"; ctx.fillText("▼", sp.x, GY + CELL / 2);
-
-    // build hover preview (player only)
+    // build hover preview (player only) — dynamic
     if (f.isPlayer && this.hover && this.state === "running") {
       const { c, r } = this.hover;
       const ok = f.gold >= TOWERS[this.selectedTower].cost && f.canBuildAt(c, r);
@@ -571,50 +1001,18 @@ class Game {
       }
     }
 
-    // towers
+    // towers — chamfered component packages, dynamic (redrawn every frame,
+    // covers whatever trace pad is baked underneath)
     for (const tw of f.towers) {
-      const x = ox + tw.c * CELL, y = GY + tw.r * CELL;
-      ctx.fillStyle = tw.def.color;
-      this.roundRect(x + 4, y + 4, CELL - 8, CELL - 8, 6); ctx.fill();
-      ctx.fillStyle = "rgba(0,0,0,0.35)";
-      ctx.beginPath(); ctx.arc(tw.x, tw.y, 5, 0, Math.PI * 2); ctx.fill();
+      drawTowerPackage(ctx, tw, ox + tw.c * CELL, GY + tw.r * CELL);
     }
 
-    // creeps
+    // creeps — radial-gradient blips + fading trail
     for (const cr of f.creeps) {
       if (cr.hp <= 0) continue;
-      const rad = 8 + (cr.maxHp > 60 ? 4 : 0);
-      ctx.fillStyle = cr.color;
-      ctx.beginPath(); ctx.arc(cr.x, cr.y, rad, 0, Math.PI * 2); ctx.fill();
-      if (this.gameTime < cr.slowUntil) { ctx.strokeStyle = "#67e8f9"; ctx.lineWidth = 2; ctx.stroke(); }
-      // hp bar
-      const w = 22, hpf = clamp(cr.hp / cr.maxHp, 0, 1);
-      ctx.fillStyle = "#000"; ctx.fillRect(cr.x - w / 2, cr.y - rad - 7, w, 4);
-      ctx.fillStyle = hpf > 0.5 ? "#4ade80" : hpf > 0.25 ? "#facc15" : "#f87171";
-      ctx.fillRect(cr.x - w / 2, cr.y - rad - 7, w * hpf, 4);
+      drawCreep(ctx, cr, this.gameTime);
     }
     ctx.lineWidth = 1;
-  }
-
-  drawDivider() {
-    const ctx = this.ctx, midx = (PX + FIELD_W + AX) / 2;
-    ctx.strokeStyle = "#26314a"; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(midx, GY); ctx.lineTo(midx, GY + FIELD_H); ctx.stroke();
-    ctx.fillStyle = "#3a4a70"; ctx.font = "bold 18px system-ui";
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText("VS", midx, GY + FIELD_H / 2);
-    ctx.lineWidth = 1;
-  }
-
-  roundRect(x, y, w, h, r) {
-    const ctx = this.ctx;
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
   }
 }
 

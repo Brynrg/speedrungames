@@ -21,7 +21,8 @@ body {
   gap: 16px;
   padding: 6px 4px 12px;
 }
-.brand { font-size: 20px; font-weight: 700; }
+.brand { font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.brand canvas { display: block; width: 22px; height: 22px; }
 .timer {
   margin-left: auto;
   font-variant-numeric: tabular-nums;
@@ -38,7 +39,7 @@ canvas {
   width: 100%;
   height: auto;
   border-radius: 10px;
-  background: #0d1018;
+  background: #05080a;
   box-shadow: 0 6px 24px rgba(0,0,0,0.45);
   cursor: crosshair;
 }
