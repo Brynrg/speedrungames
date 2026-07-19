@@ -1,11 +1,12 @@
 import { playSfx } from "./audio.js";
 import { submitRun } from "./leaderboard.js";
 import { updateBuffsAndAuras } from "./auras.js";
-import { applyCameraTransform } from "./camera.js";
+import { applyCameraTransform, camera } from "./camera.js";
 import { SPEED_LEVELS } from "./constants.js";
 import { canvas, ctx } from "./dom.js";
 import { updateCameraFromKeys } from "./input.js";
 import { startWave } from "./lifecycle.js";
+import { BOARD_BOTTOM } from "./palette.js";
 import { drawAreaEffect, drawBoard, drawEffect, drawEnemy, drawOverlay, drawProjectile, drawTower, updateStatusBanners } from "./render.js";
 import { saveRun } from "./save.js";
 import { recordHighScore } from "./scores.js";
@@ -37,7 +38,7 @@ export function update(dt) {
       if (payout > 0) {
         state.gold += payout;
         if (payout >= 3 && (!game.duelMode || i === game.activePlayer)) {
-          status(`${game.duelMode ? `P${i + 1} ` : ""}Income +${payout}g`);
+          status(`${game.duelMode ? `P${i + 1} ` : ""}War Bonds +${payout}g`);
         }
       }
     }
@@ -88,7 +89,7 @@ export function update(dt) {
         game.leakedThisWave = false;
       }
       const autoText = game.autoWaveEnabled ? " Auto next in 2.8s." : "";
-      const incomeText = cleanWaveIncome ? " Clean wave: +1 income." : "";
+      const incomeText = cleanWaveIncome ? " Clean wave: +1 War Bonds." : "";
       status(`Wave ${game.wave} (${game.waveTag}) cleared. Bonus +${bounty}g.${incomeText}${autoText}`);
       if (!game.duelMode && game.wave >= 20 && !game.runSubmitted) {
         game.runSubmitted = true;
@@ -141,8 +142,8 @@ export function update(dt) {
       defender.leakedThisWave = true;
       status(
         game.duelMode
-          ? `${enemy.name} leaked vs P${getEnemyLane(enemy) + 1}. Lives: ${defender.lives}. Income: ${defender.income}`
-          : `${enemy.name} leaked through. Lives: ${defender.lives}. Income: ${defender.income}`
+          ? `${enemy.name} leaked vs P${getEnemyLane(enemy) + 1}. Lives: ${defender.lives}. Bonds: ${defender.income}`
+          : `${enemy.name} leaked through. Lives: ${defender.lives}. Bonds: ${defender.income}`
       );
       playSfx("leak");
       game.shake = Math.max(game.shake, 5);
@@ -181,7 +182,7 @@ export function update(dt) {
 export function render() {
   // Full clear: at contain zoom the board letterboxes, so the canvas edges
   // aren't repainted by drawBoard and would smear without this.
-  ctx.fillStyle = "#0c1a0c";
+  ctx.fillStyle = BOARD_BOTTOM;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.save();
   if (game.shake > 0) {
@@ -194,11 +195,11 @@ export function render() {
   drawBoard();
 
   for (const tower of towers) {
-    drawTower(tower);
+    drawTower(tower, camera.zoom);
   }
 
   for (const enemy of enemies) {
-    drawEnemy(enemy);
+    drawEnemy(enemy, camera.zoom);
   }
 
   for (const projectile of projectiles) {

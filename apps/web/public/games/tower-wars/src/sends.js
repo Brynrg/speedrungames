@@ -228,8 +228,8 @@ export function queueSend(key) {
 
   status(
     game.duelMode
-      ? `${option.label} queued by P${game.activePlayer + 1}. Income +${option.incomeGain}.`
-      : `${option.label} queued for next wave. Income +${option.incomeGain}.`
+      ? `${option.label} pushed by P${game.activePlayer + 1}. War Bonds +${option.incomeGain}.`
+      : `${option.label} pushed into next wave. War Bonds +${option.incomeGain}.`
   );
   syncActiveToLegacyIfDuel();
   saveRun(false);
@@ -259,8 +259,8 @@ export function clearSendQueue() {
   player.sendQueue = [];
   status(
     game.duelMode
-      ? `P${game.activePlayer + 1} queue cleared. Refunded ${refund}g and removed ${incomeBack} income.`
-      : `Send queue cleared. Refunded ${refund}g and removed ${incomeBack} income.`
+      ? `P${game.activePlayer + 1} queue cleared. Refunded ${refund}g and removed ${incomeBack} War Bonds.`
+      : `Send queue cleared. Refunded ${refund}g and removed ${incomeBack} War Bonds.`
   );
   syncActiveToLegacyIfDuel();
   saveRun(false);

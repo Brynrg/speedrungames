@@ -2,6 +2,7 @@ import { playSfx } from "./audio.js";
 import { chooseBranch } from "./build.js";
 import { dealDamageToEnemy } from "./combat.js";
 import { update } from "./loop.js";
+import { TOWER_COLORS } from "./palette.js";
 import { getEnemyProgress } from "./picking.js";
 import { AreaEffect, Effect, Projectile } from "./projectiles.js";
 import { areaEffects, buffZones, effects, enemies, game, getEnemyLane, projectiles } from "./state.js";
@@ -10,9 +11,10 @@ import { status } from "./status.js";
 export const TOWER_DATA = {
   arrow: {
     name: "Arrow Tower",
+    code: "AR",
     cost: 70,
-    color: "#dfcc7a",
-    core: "#9d7f32",
+    color: TOWER_COLORS.arrow.fill,
+    core: TOWER_COLORS.arrow.shade,
     damageType: "piercing",
     canHitAir: true,
     damage: 16,
@@ -55,9 +57,10 @@ export const TOWER_DATA = {
   },
   frost: {
     name: "Frost Tower",
+    code: "FR",
     cost: 95,
-    color: "#98d6ff",
-    core: "#4a86a5",
+    color: TOWER_COLORS.frost.fill,
+    core: TOWER_COLORS.frost.shade,
     damageType: "magic",
     canHitAir: true,
     damage: 10,
@@ -102,9 +105,10 @@ export const TOWER_DATA = {
   },
   cannon: {
     name: "Cannon Tower",
+    code: "CN",
     cost: 120,
-    color: "#ce9462",
-    core: "#7e4f2f",
+    color: TOWER_COLORS.cannon.fill,
+    core: TOWER_COLORS.cannon.shade,
     damageType: "siege",
     canHitAir: false,
     damage: 35,
@@ -149,9 +153,10 @@ export const TOWER_DATA = {
   },
   arcane: {
     name: "Arcane Tower",
+    code: "AC",
     cost: 145,
-    color: "#b39bff",
-    core: "#5d4b9c",
+    color: TOWER_COLORS.arcane.fill,
+    core: TOWER_COLORS.arcane.shade,
     damageType: "spell",
     canHitAir: true,
     damage: 24,
@@ -194,9 +199,10 @@ export const TOWER_DATA = {
   },
   venom: {
     name: "Venom Tower",
+    code: "VN",
     cost: 115,
-    color: "#9ad76a",
-    core: "#4f7e34",
+    color: TOWER_COLORS.venom.fill,
+    core: TOWER_COLORS.venom.shade,
     damageType: "magic",
     canHitAir: false,
     damage: 14,
@@ -239,9 +245,10 @@ export const TOWER_DATA = {
   },
   mortar: {
     name: "Fire Mortar",
+    code: "MT",
     cost: 155,
-    color: "#f08f5b",
-    core: "#8b3e29",
+    color: TOWER_COLORS.mortar.fill,
+    core: TOWER_COLORS.mortar.shade,
     roleTags: ["AoE"],
     element: "Fire",
     damageType: "siege",
@@ -271,9 +278,10 @@ export const TOWER_DATA = {
   },
   obelisk: {
     name: "Frost Obelisk",
+    code: "OB",
     cost: 150,
-    color: "#a4ddff",
-    core: "#416786",
+    color: TOWER_COLORS.obelisk.fill,
+    core: TOWER_COLORS.obelisk.shade,
     roleTags: ["Control"],
     element: "Frost",
     damageType: "magic",

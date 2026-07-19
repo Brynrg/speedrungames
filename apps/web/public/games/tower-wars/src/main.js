@@ -401,6 +401,16 @@ export function boot() {
   syncUi();
   setTooltip(defaultTooltip());
   requestAnimationFrame(tick);
+
+  // The HUD/panel chrome sizes itself off Cinzel/Rajdhani metrics
+  // (syncLayoutOffsets reads real getBoundingClientRect() heights). Those
+  // web fonts can finish loading after the first layout pass, leaving the
+  // board docked against a stale (pre-font) HUD height. Re-run once fonts
+  // settle so the canvas — and therefore click-to-world mapping — lines up
+  // with what's actually on screen.
+  if (document.fonts?.ready) {
+    document.fonts.ready.then(() => resizeCanvasToViewport()).catch(() => {});
+  }
 }
 
 boot();
