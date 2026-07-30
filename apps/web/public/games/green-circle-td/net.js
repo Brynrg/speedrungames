@@ -80,7 +80,16 @@
         case "cleared": this.onCleared(m); break;
         case "speed": this.onSpeed(m); break;
         case "over": this.onOver(m); break;
+        case "bossphase": this.onBossPhase(m); break;
       }
+    }
+
+    onBossPhase(m) {
+      const g = this.game;
+      g.shellEvent?.("phase");
+      g.shakeCamera?.(0.4, 8);
+      g.spawnFx?.(m.x, m.y, THREAT.crit, "bossburst");
+      g.setWaveText?.(`PHASE ${m.phase}`, m.phase === 3 ? "Adds inbound — finish it." : "Boss accelerating — hold the line.");
     }
 
     // ---- game start: hand the Game object over to network mode
@@ -112,15 +121,17 @@
     onTowers(m) {
       const g = this.game;
       const old = new Map(g.towers.map((t) => [t.c + "," + t.r, t]));
-      g.towers = m.tw.map(([c, r, ti, level, si, player, invested]) => {
+      g.towers = m.tw.map(([c, r, ti, level, si, player, invested, pri]) => {
         const type = NET_TOWER_KEYS[ti];
         const spec = si >= 0 ? SPECS[type][si].id : null;
         const prev = old.get(c + "," + r);
+        const PRIORITIES = ["furthest", "closest", "strongest", "weakest"];
         return {
           c, r, x: c * CELL + CELL / 2, y: r * CELL + CELL / 2,
           type, def: TOWERS[type], level, spec, invested,
           s: statsFor(type, level, spec), lastFire: -999, dmgMult: 1, cdMult: 1,
           angle: prev ? prev.angle : -Math.PI / 2, player,
+          priority: PRIORITIES[pri] || prev?.priority || "furthest", recoil: 0,
         };
       });
       g.occupied = new Set(m.tw.map(([c, r]) => c + "," + r));
@@ -238,16 +249,28 @@
 
     const menu = () => {
       const o = game.overlay(
-        `<h2>🌐 Online Multiplayer</h2>` +
+        `<h2>Online Multiplayer</h2>` +
         `<p>Co-op for 2–4 players. Each player builds in their own zone, gold is per player, lives are shared — just like the WC3 original.</p>` +
         `<input id="nName" class="ninput" placeholder="Your name" maxlength="12" value="${esc(loadName())}">` +
+        `<div class="prow"><span class="phint">Difficulty:</span><div class="pbtns">` +
+        `<button class="psb psel" data-diff="normal">Normal</button>` +
+        `<button class="psb" data-diff="hard">Hard</button>` +
+        `<button class="psb" data-diff="intense">Intense</button></div></div>` +
+        `<label class="prow pathopt"><input type="checkbox" id="nFixedPath"/> Fixed Path <span class="phint">(speedrun)</span></label>` +
         `<div class="nbtns">` +
         `<button id="nCreate">Create game</button>` +
         `<div class="njoin"><input id="nCode" class="ninput ncodein" placeholder="CODE" maxlength="4"><button id="nJoin">Join</button></div>` +
         `</div>` +
         `<div id="nErr" class="nerr hidden"></div>` +
-        `<button id="nBack" class="nghost">← Back</button>`,
+        `<button id="nBack" class="nghost">Back</button>`,
       );
+      let difficulty = "normal";
+      o.querySelectorAll(".psb[data-diff]").forEach((b) => {
+        b.onclick = () => {
+          difficulty = b.dataset.diff;
+          o.querySelectorAll(".psb[data-diff]").forEach((bb) => bb.classList.toggle("psel", bb === b));
+        };
+      });
       const err = (msg) => { const e = o.querySelector("#nErr"); e.textContent = msg; e.classList.remove("hidden"); };
       session.onLobbyError = err;
       const name = () => {
@@ -255,11 +278,15 @@
         saveName(v);
         return v;
       };
-      o.querySelector("#nCreate").onclick = () => { session.connect({ t: "create", name: name() }); waiting(); };
+      const opts = () => ({
+        difficulty,
+        fixedPath: !!o.querySelector("#nFixedPath")?.checked,
+      });
+      o.querySelector("#nCreate").onclick = () => { session.connect({ t: "create", name: name(), ...opts() }); waiting(); };
       o.querySelector("#nJoin").onclick = () => {
         const code = o.querySelector("#nCode").value.trim().toUpperCase();
         if (code.length !== 4) return err("Enter the 4-letter room code.");
-        session.connect({ t: "join", code, name: name() });
+        session.connect({ t: "join", code, name: name(), ...opts() });
         waiting();
       };
       o.querySelector("#nCode").oninput = (e) => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, ""); };

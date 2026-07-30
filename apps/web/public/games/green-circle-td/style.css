@@ -15,18 +15,20 @@
   --threat-warn: #d98a33;
   --threat-crit: #a13a2e;
   --chalk: #e8e3d3;
-  --mono: ui-monospace, "SF Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  --mono: "IBM Plex Mono", "JetBrains Mono", ui-monospace, "SF Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  --display: var(--mono);
 }
 
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: var(--mono);
   background: var(--void-inner);
   color: #e8f3ea;
   -webkit-user-select: none; user-select: none;
   overflow: hidden;
+  letter-spacing: 0.01em;
 }
 
 /* full-viewport app: fixed top bar + (fixed sidebar | scrollable field) */
@@ -319,3 +321,36 @@ button.primary:disabled { opacity: .45; cursor: not-allowed; }
 }
 .nstat { margin-left: auto; font-family: var(--mono); font-size: 11.5px; color: #7fa388; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
 .nwait { color: #7fa388; font-size: 13.5px; }
+
+/* ---- Overhaul: targeting, path opt, shell events ---- */
+.prio-row { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 8px 0 4px; }
+.prio-btn {
+  font-family: var(--mono); font-size: 10px; padding: 3px 7px; border-radius: 3px;
+  border: 1px solid var(--bezel); background: #101c14; color: #9bb5a0; cursor: pointer;
+}
+.prio-btn.on, .prio-btn:hover { border-color: var(--decay-core); color: var(--decay-core); background: #1a3322; }
+.pathopt { display: flex; align-items: center; gap: 8px; justify-content: center; margin: 10px 0; font-size: 13px; color: #c7e0cb; }
+.pathopt input { accent-color: var(--decay-core); }
+.prow { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
+.phint { font-size: 11px; color: #6f8a74; text-transform: uppercase; letter-spacing: .06em; }
+.pbtns { display: flex; gap: 6px; flex-wrap: wrap; }
+
+#app.ev-wave::before, #app.ev-boss::before, #app.ev-phase::before, #app.ev-clear::before, #app.ev-leak::before {
+  content: ""; position: fixed; left: 0; right: 0; top: 0; height: 2px; z-index: 40;
+  pointer-events: none; animation: shellSweep .55s ease-out forwards;
+}
+#app.ev-wave::before { background: var(--decay-core); }
+#app.ev-boss::before, #app.ev-phase::before, #app.ev-leak::before { background: var(--threat-crit); }
+#app.ev-clear::before { background: var(--brass-bright); }
+@keyframes shellSweep {
+  from { opacity: 1; transform: scaleX(0); transform-origin: left; }
+  to { opacity: 0; transform: scaleX(1); transform-origin: left; }
+}
+#topbar .brand { font-family: var(--display); letter-spacing: .08em; text-transform: uppercase; font-size: 13px; color: var(--brass-bright); }
+.timer { font-family: var(--display); }
+
+@media (prefers-reduced-motion: reduce) {
+  #app.ev-wave::before, #app.ev-boss::before, #app.ev-phase::before, #app.ev-clear::before, #app.ev-leak::before {
+    animation: none; opacity: .8;
+  }
+}
