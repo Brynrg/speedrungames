@@ -239,6 +239,11 @@ button.primary:focus-visible, .overlay button:focus-visible, .ibtn:focus-visible
 .ibtn.sell:hover:not(:disabled) { background: #3a2320; border-color: var(--threat-crit); }
 .ibtn.sell .icost { color: #e8a89f; }
 .imax { font-size: 11px; color: #8fae97; text-align: center; padding: 4px; }
+.ispec-label {
+  font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: #8fae97; margin: 2px 0 0;
+}
+.ispec-grid { display: flex; flex-direction: column; gap: 6px; }
 
 /* incoming armor type pills — shown while a wave is in flight (colors set inline) */
 .armor-pill { display: flex; flex-wrap: wrap; gap: 4px; margin: 5px 0 4px; }
