@@ -2,15 +2,14 @@
 /*
  * Green Circle TD — web tower defense for speedrungames.net.
  *
- * Faithful to the original: creeps spawn from the FOUR CORNERS and follow
- * logarithmic spiral paths that wind inward to the center (the "green circle").
+ * Faithful to classic WC3 Green Circle TD: creeps spawn from the FOUR CORNERS
+ * and follow concentric square rings inward to the center (the "green circle").
  * Leak = a creep reaches the center. Place towers in the gaps between the
- * spiral arms; match damage type to enemy armor. 30 escalating waves to a boss.
+ * rings; match damage type to enemy armor. 30 escalating waves to multi-phase bosses.
  *
  * The world is larger than the viewport: pan (drag / WASD / arrows) and zoom
- * (wheel) the field, while the top bar + sidebar stay fixed. Content
- * (towers/enemies/armor/waves) and the spiral geometry are ported from the
- * original Python game's data + core/path.py.
+ * (wheel) the field, while the top bar + sidebar stay fixed. Balance tables and
+ * path geometry must stay in sync with Brynrg/gctd-server (sim.js).
  *
  * VISUAL IDENTITY — "Sector Scope": a Cold War PPI-radar plot. One green
  * "decay" ramp carries ALL aliveness (creeps, the sweep, beams/tracers) —
@@ -102,8 +101,8 @@ const SPECS = {
     { id: "marksman", name: "Marksman", desc: "Fires at 3 targets", mod: (s) => ({ ...s, multishot: 3, damage: Math.round(s.damage * 0.7), cd: Math.max(4, Math.round(s.cd * 0.85)) }) },
   ],
   rapid: [
-    { id: "tempest", name: "Tempest", desc: "Blistering multi-shot", mod: (s) => ({ ...s, multishot: 2, cd: Math.max(3, Math.round(s.cd * 0.7)) }) },
-    { id: "shredder", name: "Shredder", desc: "Shreds heavy armor", mod: (s) => ({ ...s, dtype: "siege", damage: Math.round(s.damage * 1.6), cd: Math.round(s.cd * 1.2) }) },
+    { id: "tempest", name: "Tempest", desc: "Blistering multi-shot · ✈", mod: (s) => ({ ...s, multishot: 2, cd: Math.max(3, Math.round(s.cd * 0.7)), canAir: true }) },
+    { id: "shredder", name: "Shredder", desc: "Siege AA shred · ✈", mod: (s) => ({ ...s, dtype: "siege", damage: Math.round(s.damage * 1.6), cd: Math.round(s.cd * 1.2), canAir: true }) },
   ],
   splash: [
     { id: "mortar", name: "Mortar", desc: "Long-range artillery", mod: (s) => ({ ...s, splash: Math.round(s.splash * 1.6), range: Math.round(s.range * 1.3), damage: Math.round(s.damage * 1.1) }) },
@@ -120,6 +119,22 @@ const SPECS = {
   void: [
     { id: "obliterator", name: "Obliterator", desc: "Massive chaos burst",  mod: (s) => ({ ...s, damage: Math.round(s.damage * 2.4), cd: Math.round(s.cd * 1.6) }) },
     { id: "voidstorm",   name: "Voidstorm",   desc: "Rapid chaos barrage",  mod: (s) => ({ ...s, cd: Math.max(3, Math.round(s.cd * 0.38)), damage: Math.round(s.damage * 0.58), multishot: 2 }) },
+  ],
+  detector: [
+    { id: "sentinel", name: "Sentinel", desc: "Longer detect + punch", mod: (s) => ({ ...s, range: Math.round(s.range * 1.35), detect: true, damage: Math.round(s.damage * 1.4) }) },
+    { id: "pulse", name: "Pulse", desc: "Detect + splash ping", mod: (s) => ({ ...s, splash: 90, damage: Math.round(s.damage * 1.2), detect: true }) },
+  ],
+  damage_aura: [
+    { id: "warhorn", name: "Warhorn", desc: "Stronger wider dmg aura", mod: (s) => ({ ...s, aura: { ...s.aura, value: +(s.aura.value * 1.5).toFixed(3), radius: Math.round(s.aura.radius * 1.2) } }) },
+    { id: "overcharge", name: "Overcharge", desc: "Aura + light shots", mod: (s) => ({ ...s, aura: { ...s.aura, value: +(s.aura.value * 1.25).toFixed(3) }, damage: 12, cd: 40, dtype: "normal", range: Math.round((s.aura?.radius || 160) * 0.7) }) },
+  ],
+  speed_aura: [
+    { id: "chrono", name: "Chrono", desc: "Stronger wider speed aura", mod: (s) => ({ ...s, aura: { ...s.aura, value: +(s.aura.value * 1.45).toFixed(3), radius: Math.round(s.aura.radius * 1.15) } }) },
+    { id: "haste", name: "Haste", desc: "Tighter, hotter haste", mod: (s) => ({ ...s, aura: { type: "cd", radius: Math.round(s.aura.radius * 0.9), value: Math.min(0.35, +(s.aura.value * 1.2).toFixed(3)) } }) },
+  ],
+  mint: [
+    { id: "vault", name: "Vault", desc: "Big wave income", mod: (s) => ({ ...s, income: Math.round(s.income * 1.75) }) },
+    { id: "bourse", name: "Bourse", desc: "Income + light defense", mod: (s) => ({ ...s, income: Math.round(s.income * 1.25), range: 140, damage: 10, cd: 36, dtype: "normal" }) },
   ],
 };
 function statsFor(type, level, spec) {
@@ -146,7 +161,7 @@ const WAVES = [
   { id: 12, name: "Razor Wing", hint: "Fast flyers. Sniper/Frost help.", reward: 80, spawns: [{ e: "Air", n: 14, iv: 0.4, at: 0 }] },
   { id: 13, name: "Ghost Stampede", hint: "Invisible + fast. Detector + AoE.", reward: 85, spawns: [{ e: "Invisible", n: 12, iv: 0.4, at: 0 }, { e: "Swift", n: 8, iv: 0.3, at: 2 }] },
   { id: 14, name: "Dread Cavalry", hint: "Heavy + swift. Diversify.", reward: 80, spawns: [{ e: "Armored", n: 8, iv: 0.8, at: 0 }, { e: "Swift", n: 4, iv: 0.4, at: 4 }] },
-  { id: 15, name: "Bound Watchers", hint: "Heavy flyers. Pierce anti-air weak.", reward: 90, spawns: [{ e: "Air", n: 8, iv: 0.7, at: 0 }, { e: "Air", n: 4, iv: 0.7, at: 0 }] },
+  { id: 15, name: "Bound Watchers", hint: "Flyer pairs. Anti-air mandatory.", reward: 90, spawns: [{ e: "Air", n: 8, iv: 0.7, at: 0 }, { e: "Air", n: 4, iv: 0.7, at: 0 }] },
   { id: 16, name: "The Pulse", hint: "Immune + invisible. Detector + non-slow.", reward: 85, spawns: [{ e: "Immune", n: 5, iv: 0.9, at: 0 }, { e: "Invisible", n: 3, iv: 0.9, at: 0 }] },
   { id: 17, name: "The Bound Flame", hint: "Hero creeps from many corners.", reward: 250, spawns: [{ e: "Hero", n: 4, iv: 4.0, at: 0 }, { e: "Hero", n: 4, iv: 4.0, at: 1 }] },
   { id: 18, name: "Ash Swarm", hint: "Swarm of flyers. AoE + anti-air.", reward: 90, spawns: [{ e: "Air", n: 24, iv: 0.25, at: 0 }] },
@@ -170,57 +185,102 @@ function shuffleWaveOrder() {
 }
 
 // ----------------------------------------------------------------- world geometry
+// TABLES: keep in sync with gctd-server/sim.js (path + economy + difficulty).
 const WORLD = 1600;            // square world (px), larger than the viewport
 const CENTER = { x: WORLD / 2, y: WORLD / 2 };
 const CELL = 40, GRID = WORLD / CELL;
 const PATH_W = 34;             // visual path width
-const PATH_CLEAR = 30;         // min distance from any path to build
-const BASE_SPEED = 92;         // px/s before speed_mult
+const PATH_CLEAR = 28;         // min distance from any path to build
+const BASE_SPEED = 145;        // px/s before speed_mult (~70s track after P2 tune)
 
 const START_GOLD = 250, START_LIVES = 20;
 const PB_KEY = "speedrungames:green-circle-td:pb";
 const MIN_ZOOM = 0.35, MAX_ZOOM = 2.2;
 
+const DIFFICULTY = {
+  normal:  { hp: 1.0, gold: 1.0, bounty: 1.0 },
+  hard:    { hp: 1.25, gold: 0.9, bounty: 0.95 },
+  intense: { hp: 1.55, gold: 0.8, bounty: 0.9 },
+};
+const PRIORITIES = ["furthest", "closest", "strongest", "weakest"];
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
 // ---- The maze --------------------------------------------------------
-// Faithful to the classic "Green Circle TD" board: creeps spawn in the FOUR
-// corners and "run in circles to the center". Each stream circles the full
-// ring (its own player first, then the other three), steps inward a notch,
-// circles again — down to the leak. All four trace the same concentric
-// squares, so every creep passes every player position.
-const MAZE_IN = 160;              // outermost loop inset from the border
-const MAZE_STEP = 150;            // spacing between loops (leaves a build gap)
+// Concentric square rings: spawn at a corner, full lap, L-notch inward, repeat,
+// then axis-aligned approach to the green circle. Fork 0 = CW, fork 1 = CCW
+// (seeded junction variance). All streams share the same rings so every creep
+// passes every player zone.
+const MAZE_IN = 200;
+const MAZE_STEP = 220;
 const cornersAt = (i) => [[i, i], [WORLD - i, i], [WORLD - i, WORLD - i], [i, WORLD - i]]; // CW: NW,NE,SE,SW
 
-// One creep path: enter at corner k, full loop, right-angle step inward, repeat.
-function loopPath(k) {
+function mazeInsets() {
+  const out = [];
+  for (let inset = MAZE_IN; WORLD - 2 * inset > MAZE_STEP * 1.4; inset += MAZE_STEP) out.push(inset);
+  return out;
+}
+
+function loopPath(k, fork = 0) {
   const pts = [];
-  let inset = MAZE_IN;
-  while (WORLD - 2 * inset > MAZE_STEP * 1.4) {
-    const c = cornersAt(inset);
-    for (let j = 0; j <= 4; j++) pts.push(c[(k + j) % 4]); // full lap, start+end at corner k
-    const ci = cornersAt(inset + MAZE_STEP);
-    pts.push([ci[k][0], c[k][1]]);     // notch inward (right angle, no diagonal spoke)
-    inset += MAZE_STEP;                // next loop's first push completes the notch
+  const ins = mazeInsets();
+  const dir = fork ? -1 : 1;
+  for (let ri = 0; ri < ins.length; ri++) {
+    const c = cornersAt(ins[ri]);
+    for (let j = 0; j <= 4; j++) pts.push(c[((k + dir * j) % 4 + 4) % 4]);
+    if (ri < ins.length - 1) {
+      const at = c[k], from = c[((k - dir) % 4 + 4) % 4], next = cornersAt(ins[ri + 1])[k];
+      const arrX = Math.sign(at[0] - from[0]);
+      const dx = next[0] - at[0], dy = next[1] - at[1];
+      const midH = [at[0] + dx, at[1]], midV = [at[0], at[1] + dy];
+      const hRev = dx !== 0 && Math.sign(dx) === -arrX;
+      pts.push(hRev ? midV : midH);
+    }
   }
-  pts.push([CENTER.x, CENTER.y]);      // leak point — the green circle
+  const last = pts[pts.length - 1];
+  const from = pts[pts.length - 2];
+  const arrX = Math.sign(last[0] - from[0]);
+  const dx = CENTER.x - last[0], dy = CENTER.y - last[1];
+  const midH = [last[0] + dx, last[1]], midV = [last[0], last[1] + dy];
+  const hRev = dx !== 0 && Math.sign(dx) === -arrX;
+  const mid = hRev ? midV : midH;
+  if (mid[0] !== last[0] || mid[1] !== last[1]) pts.push(mid);
+  const p = pts[pts.length - 1];
+  if (p[0] !== CENTER.x || p[1] !== CENTER.y) pts.push([CENTER.x, CENTER.y]);
   return pts;
 }
-const PATHS = [0, 1, 2, 3].map(loopPath);
-const ENTRIES = cornersAt(MAZE_IN);    // four spawn corners
+const PATH_VARIANTS = [0, 1, 2, 3].map((k) => [loopPath(k, 0), loopPath(k, 1)]);
+const PATHS = PATH_VARIANTS.map((v) => v[0]);
+const ENTRIES = cornersAt(MAZE_IN);
 
-// Eight "player" landmark positions: four flanking the outer corners (each
-// first-shots its nearest spawn), four deeper on an inner loop. Static
-// bezel/brass tick anchors, not a player-identity or threat signal — so they
-// don't spend any of the authored hues (drawn once into the static layer).
+function pathHash() {
+  let h = 0;
+  for (const variants of PATH_VARIANTS)
+    for (const path of variants)
+      for (const [x, y] of path)
+        h = ((h * 31 + (x | 0)) * 31 + (y | 0)) | 0;
+  return h >>> 0;
+}
+
+// Starter pockets + inner landmarks (WC3 "where your worker starts").
 const POSITIONS = (() => {
-  const oc = cornersAt(MAZE_IN), mid = MAZE_IN + MAZE_STEP * 2, lo = mid, hi = WORLD - mid;
+  const oc = cornersAt(MAZE_IN), mid = MAZE_IN + MAZE_STEP, lo = mid, hi = WORLD - mid;
   return [
-    { x: oc[0][0] + 58, y: oc[0][1] + 58 }, { x: oc[1][0] - 58, y: oc[1][1] + 58 },
-    { x: oc[2][0] - 58, y: oc[2][1] - 58 }, { x: oc[3][0] + 58, y: oc[3][1] - 58 },
-    { x: CENTER.x, y: lo + 75 }, { x: hi - 75, y: CENTER.y },
-    { x: CENTER.x, y: hi - 75 }, { x: lo + 75, y: CENTER.y },
+    { x: oc[0][0] + 70, y: oc[0][1] + 70 }, { x: oc[1][0] - 70, y: oc[1][1] + 70 },
+    { x: oc[2][0] - 70, y: oc[2][1] - 70 }, { x: oc[3][0] + 70, y: oc[3][1] - 70 },
+    { x: CENTER.x, y: lo + 80 }, { x: hi - 80, y: CENTER.y },
+    { x: CENTER.x, y: hi - 80 }, { x: lo + 80, y: CENTER.y },
   ];
 })();
+
+// Motion tokens (Sector Scope) — wall-clock vs sim-tied handled at call sites.
+const MOTION = { snap: 0.1, servo: 0.22, pulse: 1.1, sweep: 5, event: 0.7 };
 
 // ----------------------------------------------------------------- helpers
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -239,9 +299,10 @@ function distToSeg(px, py, ax, ay, bx, by) {
 }
 function distToPaths(px, py) {
   let m = Infinity;
-  for (const path of PATHS)
-    for (let i = 0; i < path.length - 1; i++)
-      m = Math.min(m, distToSeg(px, py, path[i][0], path[i][1], path[i + 1][0], path[i + 1][1]));
+  for (const variants of PATH_VARIANTS)
+    for (const path of variants)
+      for (let i = 0; i < path.length - 1; i++)
+        m = Math.min(m, distToSeg(px, py, path[i][0], path[i][1], path[i + 1][0], path[i + 1][1]));
   return m;
 }
 const loadPB = () => { try { const v = localStorage.getItem(PB_KEY); return v ? +v : null; } catch { return null; } };
@@ -273,6 +334,13 @@ class Game {
     this.hoverWorld = null;
     this.speed = 1;             // 1× / 2× / 3× game speed (persists across restarts)
     this.numPlayers = 1;
+    this.difficulty = "normal";
+    this.fixedPath = false;
+    this.reducedMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    try {
+      const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+      if (mq.addEventListener) mq.addEventListener("change", (e) => { this.reducedMotion = e.matches; });
+    } catch {}
     // Sector Scope rendering: a cached world-space layer for everything static
     // (rings/bezel/paths/border), a screen-space "trail" layer for phosphor
     // persistence (fed each frame, faded not cleared), and the global PPI
@@ -282,6 +350,8 @@ class Game {
     this.trailCtx = this.trailCanvas.getContext("2d");
     this.sweepAngle = -Math.PI / 2;
     this._decayGrad = {};
+    this._shellFlash = 0;
+    this._centerThreat = 0;
     this.reset();
     this.pb = loadPB();
     this.selected = "basic";
@@ -299,7 +369,9 @@ class Game {
 
   reset() {
     const n = this.numPlayers || 1;
-    this.players = Array.from({ length: n }, (_, i) => ({ gold: START_GOLD, color: PLAYER_COLORS[i], name: `P${i + 1}` }));
+    const diff = DIFFICULTY[this.difficulty] || DIFFICULTY.normal;
+    const gold0 = Math.round(START_GOLD * diff.gold);
+    this.players = Array.from({ length: n }, (_, i) => ({ gold: gold0, color: PLAYER_COLORS[i], name: `P${i + 1}` }));
     this.activePlayer = 0;
     this.lives = START_LIVES;
     this.towers = [];
@@ -309,7 +381,11 @@ class Game {
     this.bullets = [];
     this.fx = [];
     this._shake = null;
+    this._shellFlash = 0;
+    this._centerThreat = 0;
     this.waveIndex = 0;
+    this.seed = (Date.now() >>> 0) ^ (n * 0x9E3779B9);
+    this.rng = mulberry32(this.seed);
     this.waves = shuffleWaveOrder();
     this.spawnQueue = [];
     this.activeWaves = [];
@@ -318,9 +394,6 @@ class Game {
     this.runMs = 0;
     this.elapsed = 0;
     this.gameTime = 0;
-    // Rebuild the cached static layer — cheap, infrequent (once per
-    // run/restart), and the only thing in it that can change is the
-    // zone-divider geometry when numPlayers differs.
     if (this.staticLayer) this.buildStaticLayer();
   }
 
@@ -428,10 +501,10 @@ class Game {
       : `Send wave ${this.waveIndex + 1} ▶${live ? ` · ${live} live` : ""}`;
     document.getElementById("wave").textContent = `Wave ${Math.min(this.waveIndex, WAVES.length)} / ${WAVES.length}`;
     document.getElementById("gold").textContent = this.players.length > 1
-      ? `${this.players[this.activePlayer].name} 💰 ${Math.floor(this.gold)}`
-      : `💰 ${Math.floor(this.gold)}`;
+      ? `${this.players[this.activePlayer].name} ${Math.floor(this.gold)}g`
+      : `${Math.floor(this.gold)}g`;
     const livesEl = document.getElementById("lives");
-    livesEl.textContent = `❤ ${Math.max(0, this.lives)}`;
+    livesEl.textContent = `Lives ${Math.max(0, this.lives)}`;
     livesEl.classList.toggle("low", this.lives <= 5 && this.state !== "won");
     if (this.selectedTower) this.renderInspector();
     if (this.renderPlayerPanel) this.renderPlayerPanel();
@@ -467,23 +540,32 @@ class Game {
   overlay(html, stateClass = "") { const o = document.getElementById("overlay"); o.className = "overlay" + (stateClass ? " " + stateClass : ""); o.innerHTML = html; return o; }
   showStart() {
     this.numPlayers = this.numPlayers || 1;
+    this.difficulty = this.difficulty || "normal";
     const mkpsb = (n) => `<button class="psb${n === this.numPlayers ? " psel" : ""}" data-n="${n}">${n}P</button>`;
+    const mkdiff = (id, label) => `<button class="psb${id === this.difficulty ? " psel" : ""}" data-diff="${id}">${label}</button>`;
     const o = this.overlay(
-      `<h2>🟢 Green Circle TD</h2>` +
+      `<h2>Green Circle TD</h2>` +
       `<p>Creeps spawn at the four corners and circle inward. Build towers to stop them — match damage type to armor. Survive all 30 waves as fast as you can.</p>` +
       `<div class="prow"><span class="phint">Players:</span><div class="pbtns">${[1, 2, 3, 4].map(mkpsb).join("")}</div></div>` +
+      `<div class="prow"><span class="phint">Difficulty:</span><div class="pbtns">${mkdiff("normal", "Normal")}${mkdiff("hard", "Hard")}${mkdiff("intense", "Intense")}</div></div>` +
+      `<label class="prow pathopt"><input type="checkbox" id="fixedPathChk"${this.fixedPath ? " checked" : ""}/> Fixed Path <span class="phint">(speedrun — no fork variance)</span></label>` +
       `<button id="goBtn">Begin</button>` +
-      `<button id="onlineBtn" class="nonline">🌐 Online Multiplayer</button>`,
+      `<button id="onlineBtn" class="nonline">Online Multiplayer</button>`,
     );
     o.querySelector("#onlineBtn").onclick = () => window.GCTDNet?.openLobby(this);
-    o.querySelectorAll(".psb").forEach(b => {
-      b.onclick = () => { this.numPlayers = +b.dataset.n; o.querySelectorAll(".psb").forEach(bb => bb.classList.toggle("psel", bb === b)); };
+    o.querySelectorAll(".psb[data-n]").forEach(b => {
+      b.onclick = () => { this.numPlayers = +b.dataset.n; o.querySelectorAll(".psb[data-n]").forEach(bb => bb.classList.toggle("psel", bb === b)); };
     });
+    o.querySelectorAll(".psb[data-diff]").forEach(b => {
+      b.onclick = () => { this.difficulty = b.dataset.diff; o.querySelectorAll(".psb[data-diff]").forEach(bb => bb.classList.toggle("psel", bb === b)); };
+    });
+    o.querySelector("#fixedPathChk").onchange = (e) => { this.fixedPath = !!e.target.checked; };
     o.querySelector("#goBtn").onclick = () => {
       this.numPlayers = this.numPlayers || 1;
       this.reset();
       this.hideOverlay();
       this.state = "running";
+      this.shellEvent("ready");
       if (this.renderPlayerPanel) this.renderPlayerPanel();
     };
   }
@@ -561,12 +643,24 @@ class Game {
       `<span class="pgdot" style="border-color:${p.color}"></span>` +
       `<span class="pgcs" style="color:${p.color}">${CALLSIGNS[i] || ""}</span>` +
       `<span class="pgname">${p.name}</span>` +
-      `<span class="pgcoin">💰 ${Math.floor(p.gold)}</span></div>`
+      `<span class="pgcoin">${Math.floor(p.gold)}g</span></div>`
     ).join("");
+  }
+  shellEvent(kind) {
+    const app = document.getElementById("app");
+    if (!app) return;
+    app.classList.remove("ev-wave", "ev-boss", "ev-phase", "ev-clear", "ev-leak");
+    void app.offsetWidth;
+    if (kind === "wave") app.classList.add("ev-wave");
+    else if (kind === "boss") app.classList.add("ev-boss");
+    else if (kind === "phase") app.classList.add("ev-phase");
+    else if (kind === "clear") app.classList.add("ev-clear");
+    else if (kind === "leak") app.classList.add("ev-leak");
+    this._shellFlash = MOTION.event;
   }
   updatePauseBtn() {
     const b = document.getElementById("pauseBtn");
-    if (b) { b.textContent = this.state === "paused" ? "▶ Resume" : "⏸ Pause"; b.classList.toggle("active", this.state === "paused"); }
+    if (b) { b.textContent = this.state === "paused" ? "Resume" : "Pause"; b.classList.toggle("active", this.state === "paused"); }
   }
 
   // ---- input (drag-to-pan vs click-to-build, wheel zoom, keyboard pan)
@@ -719,9 +813,10 @@ class Game {
     if (this.gold < def.cost || !this.cellBuildable(c, r)) return false;
     if (this.net) { this.net.send({ t: "build", c, r, tower: type }); return true; } // server confirms via towers sync
     const ctr = this.cellCenter(c, r);
-    this.towers.push({ c, r, x: ctr.x, y: ctr.y, type, def, level: 1, spec: null, invested: def.cost, s: statsFor(type, 1, null), lastFire: -999, dmgMult: 1, cdMult: 1, angle: -Math.PI / 2, player: this.activePlayer });
+    this.towers.push({ c, r, x: ctr.x, y: ctr.y, type, def, level: 1, spec: null, invested: def.cost, s: statsFor(type, 1, null), lastFire: -999, dmgMult: 1, cdMult: 1, angle: -Math.PI / 2, player: this.activePlayer, priority: "furthest", recoil: 0 });
     this.occupied.add(c + "," + r);
     this.players[this.activePlayer].gold -= def.cost;
+    this.spawnFx(ctr.x, ctr.y, BRASS, "build");
     this.recomputeAuras();
     this.refreshButtons();
     return true;
@@ -812,22 +907,57 @@ class Game {
     } else {
       const max = document.createElement("div"); max.className = "imax"; max.textContent = "Fully upgraded"; actions.appendChild(max);
     }
+    if (tw.s.dtype || tw.s.detect) {
+      const row = document.createElement("div");
+      row.className = "prio-row";
+      row.innerHTML = `<span class="phint">Target</span>`;
+      for (const p of PRIORITIES) {
+        const b = document.createElement("button");
+        b.className = "prio-btn" + ((tw.priority || "furthest") === p ? " on" : "");
+        b.textContent = p[0].toUpperCase() + p.slice(1);
+        b.onclick = () => this.setTowerPriority(tw, p);
+        row.appendChild(b);
+      }
+      actions.appendChild(row);
+    }
     const sell = document.createElement("button");
     sell.className = "ibtn sell";
     sell.innerHTML = `<span>Sell</span><span class="icost">+${Math.floor(tw.invested * 0.7)}g</span>`;
     sell.onclick = () => this.sellAt(tw.c, tw.r);
     actions.appendChild(sell);
   }
+  setTowerPriority(tw, prio) {
+    if (!tw || !PRIORITIES.includes(prio)) return;
+    if (this.net) { this.net.send({ t: "priority", c: tw.c, r: tw.r, prio }); return; }
+    if (this.players.length > 1 && tw.player !== this.activePlayer) return;
+    tw.priority = prio;
+    this.renderInspector();
+  }
 
-  // ---- effects (muzzle flashes, hit sparks, death puffs)
-  spawnFx(x, y, color, kind, angle = 0) {
-    if (this.fx.length > 280) return; // cap for 3× speed / mass waves
+  // ---- effects (typed Sector Scope emitters)
+  spawnFx(x, y, color, kind, angle = 0, extra = {}) {
+    const cap = this.speed >= 3 ? 160 : this.speed >= 2 ? 220 : 280;
+    if (this.fx.length > cap) return;
+    const push = (o) => this.fx.push(o);
     if (kind === "muzzle") {
-      this.fx.push({ x: x + Math.cos(angle) * 14, y: y + Math.sin(angle) * 14, vx: Math.cos(angle) * 30, vy: Math.sin(angle) * 30, t: 0.07, max: 0.07, color, r: 5, kind });
+      const dtype = extra.dtype || "normal";
+      const len = dtype === "siege" ? 10 : dtype === "magic" ? 6 : dtype === "chaos" ? 8 : 12;
+      push({ x: x + Math.cos(angle) * 14, y: y + Math.sin(angle) * 14, vx: Math.cos(angle) * 55, vy: Math.sin(angle) * 55, t: MOTION.snap, max: MOTION.snap, color, r: len * 0.35, kind, angle, dtype });
     } else if (kind === "spark") {
-      for (let i = 0; i < 4; i++) { const a = Math.random() * 7, sp = 45 + Math.random() * 70; this.fx.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: 0.18, max: 0.18, color, r: 2.4, kind }); }
+      for (let i = 0; i < 4; i++) { const a = Math.random() * 7, sp = 45 + Math.random() * 70; push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: 0.18, max: 0.18, color, r: 2.4, kind }); }
     } else if (kind === "puff") {
-      for (let i = 0; i < 8; i++) { const a = Math.random() * 7, sp = 25 + Math.random() * 80; this.fx.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: 0.32, max: 0.32, color, r: 3.6, kind }); }
+      for (let i = 0; i < 8; i++) { const a = Math.random() * 7, sp = 25 + Math.random() * 80; push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: 0.32, max: 0.32, color, r: 3.6, kind }); }
+    } else if (kind === "splash") {
+      push({ x, y, vx: 0, vy: 0, t: 0.28, max: 0.28, color, r: extra.r || 40, kind });
+    } else if (kind === "frost") {
+      for (let i = 0; i < 5; i++) { const a = (i / 5) * Math.PI * 2; push({ x, y, vx: Math.cos(a) * 40, vy: Math.sin(a) * 40, t: 0.22, max: 0.22, color: "#67e8f9", r: 2.2, kind }); }
+    } else if (kind === "ring") {
+      push({ x, y, vx: 0, vy: 0, t: 0.45, max: 0.45, color, r: extra.r || 30, kind });
+    } else if (kind === "build") {
+      push({ x, y, vx: 0, vy: 0, t: 0.3, max: 0.3, color: BRASS, r: 18, kind });
+    } else if (kind === "bossburst") {
+      for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2, sp = 60 + Math.random() * 90; push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: 0.5, max: 0.5, color: THREAT.crit, r: 4, kind: "puff" }); }
+      push({ x, y, vx: 0, vy: 0, t: 0.6, max: 0.6, color: THREAT.crit, r: 80, kind: "ring" });
     }
   }
 
@@ -842,20 +972,19 @@ class Game {
     this.waveIndex++;
     this.started = true;
     const rec = { id: w.id, name: w.name, reward: w.reward, pending: 0, alive: 0, done: false };
-    // Geometric HP scaling: ~+10% per wave — mid-game stays manageable, late-game gets brutal
-    const hpBase = Math.round(40 * Math.pow(1.1, this.waveIndex - 1));
+    const diff = DIFFICULTY[this.difficulty] || DIFFICULTY.normal;
+    const hpBase = Math.round(40 * Math.pow(1.1, this.waveIndex - 1) * diff.hp);
     w.spawns.forEach((sp, gi) => {
       const e = ENEMIES[sp.e];
       const count = Math.max(1, sp.n + e.count_bonus);
-      // spread spawn groups across the four corners (faithful 4-corner play)
       const corner = (sp.corner ?? (w.id + gi)) % 4;
       for (let i = 0; i < count; i++) {
         this.spawnQueue.push({
-          time: this.gameTime + sp.at + i * sp.iv, // absolute sim time → waves stack cleanly
+          time: this.gameTime + sp.at + i * sp.iv,
           enemy: sp.e, def: e, corner,
           hp: hpBase * e.health_mult,
           speed: BASE_SPEED * e.speed_mult,
-          bounty: 3 + Math.floor(this.waveIndex / 3) + e.bounty_bonus,
+          bounty: Math.max(1, Math.round((3 + Math.floor(this.waveIndex / 3) + e.bounty_bonus) * diff.bounty)),
           rec,
         });
         rec.pending++;
@@ -863,29 +992,32 @@ class Game {
     });
     this.activeWaves.push(rec);
     this.spawnQueue.sort((a, b) => a.time - b.time);
-    const waveTitle = stackBonus ? `Wave ${w.id}: ${w.name}  +${stackBonus}g ★` : `Wave ${w.id}: ${w.name}`;
+    const waveTitle = stackBonus ? `Wave ${w.id}: ${w.name}  +${stackBonus}g` : `Wave ${w.id}: ${w.name}`;
     this.setWaveText(waveTitle, w.hint);
-    // Show armor type pill so players know what's coming
     const armorTypes = [...new Set(w.spawns.map((sp) => ENEMIES[sp.e].armor))];
     const hasAir = w.spawns.some(sp => ENEMIES[sp.e].flags?.includes("air"));
     this.setArmorPill(armorTypes, hasAir);
-    // Boss wave: signal danger on the wave panel + screen shake
     const wavePanel = document.getElementById("wavePanel");
     if (wavePanel) wavePanel.classList.toggle("boss-wave", !!w.boss);
-    if (w.boss) this.shakeCamera(0.55, 10);
+    if (w.boss) { this.shakeCamera(0.55, 10); this.shellEvent("boss"); }
+    else this.shellEvent("wave");
     this.refreshButtons();
   }
 
   spawnEnemy(s) {
-    const path = PATHS[s.corner];
+    const fork = this.fixedPath ? 0 : ((this.rng?.() ?? Math.random()) < 0.5 ? 0 : 1);
+    const path = PATH_VARIANTS[s.corner][fork];
     s.rec.pending--; s.rec.alive++;
-    this.enemies.push({
-      x: path[0][0], y: path[0][1], wp: 0, path,
-      hp: s.hp, maxHp: s.hp, speed: s.speed,
+    const en = {
+      x: path[0][0], y: path[0][1], wp: 0, path, fork, corner: s.corner,
+      hp: s.hp, maxHp: s.hp, speed: s.speed, baseSpeed: s.speed,
       def: s.def, enemy: s.enemy, bounty: s.bounty, rec: s.rec,
       flags: s.def.flags, armor: s.def.armor, color: s.def.color,
       slowUntil: 0, slowFactor: 0, poison: 0, poisonUntil: 0, revealed: false,
-    });
+      phase: s.def.flags.includes("boss") ? 1 : 0,
+      revealFlash: 0,
+    };
+    this.enemies.push(en);
   }
 
   // ---- simulation
@@ -911,9 +1043,15 @@ class Game {
 
     const detectors = this.towers.filter((t) => t.s.detect);
     for (const en of this.enemies) {
-      if (en.flags.includes("invisible"))
+      if (en.flags.includes("invisible")) {
+        const was = en.revealed;
         en.revealed = detectors.some((d) => Math.hypot(d.x - en.x, d.y - en.y) <= d.s.range);
-      else en.revealed = true;
+        if (en.revealed && !was) {
+          en.revealFlash = this.gameTime + 0.4;
+          const d0 = detectors.find((d) => Math.hypot(d.x - en.x, d.y - en.y) <= d.s.range);
+          if (d0) this.spawnFx(d0.x, d0.y, DECAY.hot, "ring", 0, { r: 40 });
+        }
+      } else en.revealed = true;
     }
 
     this.moveEnemies(dt);
@@ -925,7 +1063,10 @@ class Game {
 
     for (const en of this.enemies) {
       if (en.hp <= 0) continue;
-      if (en.poison > 0 && this.gameTime < en.poisonUntil) en.hp -= en.poison * dt;
+      if (en.poison > 0 && this.gameTime < en.poisonUntil) {
+        en.hp -= en.poison * dt;
+        this.checkBossPhase(en);
+      }
       if (en.hp <= 0) this.onKill(en);
     }
     this.enemies = this.enemies.filter((e) => {
@@ -954,7 +1095,7 @@ class Game {
 
       // Interest economy (2% of current gold, capped +80) — rewards saving
       let interest = 0;
-      this.players.forEach(p => { const pi = Math.min(80, Math.floor(p.gold * 0.02)); if (pi > 0) { p.gold += pi; interest += pi; } });
+      this.players.forEach(p => { const pi = Math.min(60, Math.floor(p.gold * 0.02)); if (pi > 0) { p.gold += pi; interest += pi; } });
 
       // Income benchmarks: show "on pace / behind" at key waves (per Legion TD design)
       const BENCHMARKS = { 5: 400, 10: 700, 15: 1000, 20: 1400 };
@@ -976,6 +1117,7 @@ class Game {
         : `+${reward}g${extStr}. Next: ${nextName}${benchMsg}`;
       this.setWaveText(`Wave ${last.id} cleared`, clearHint);
       this.setArmorPill([]);
+      this.shellEvent("clear");
       this.refreshButtons();
     }
     if (this.lives <= 0) this.end(false);
@@ -1009,10 +1151,12 @@ class Game {
       if (!targets.length) continue;
       tw.lastFire = t;
       const base = d.damage * tw.dmgMult;
-      if (d.dtype) this.spawnFx(tw.x, tw.y, DECAY.hot, "muzzle", Math.atan2(targets[0].y - tw.y, targets[0].x - tw.x));
+      if (d.dtype) this.spawnFx(tw.x, tw.y, DECAY.hot, "muzzle", Math.atan2(targets[0].y - tw.y, targets[0].x - tw.x), { dtype: d.dtype });
+      tw.recoil = 1;
       for (const target of targets) {
-        this.bullets.push({ x1: tw.x, y1: tw.y, x2: target.x, y2: target.y, color: tw.def.color, t: 0.09 });
+        this.bullets.push({ x1: tw.x, y1: tw.y, x2: target.x, y2: target.y, color: tw.def.color, t: 0.09, dtype: d.dtype });
         if (d.splash) {
+          this.spawnFx(target.x, target.y, tw.def.color, "splash", 0, { r: d.splash });
           for (const en of this.enemies) {
             if (en.hp <= 0) continue;
             if (Math.hypot(en.x - target.x, en.y - target.y) <= d.splash) this.hit(en, base, d, tw);
@@ -1032,11 +1176,53 @@ class Game {
         const last = en.path.length - 1;
         const next = en.path[Math.min(en.wp + 1, last)];
         en._prog = en.wp * 10000 - Math.hypot(en.x - next[0], en.y - next[1]);
-      } else en._prog = en.netProg ?? 0; // online: server-computed progress
+      } else en._prog = en.netProg ?? 0;
+      en._dist = Math.hypot(en.x - tw.x, en.y - tw.y);
       inRange.push(en);
     }
-    if (inRange.length > 1) inRange.sort((a, b) => b._prog - a._prog);
+    const prio = tw.priority || "furthest";
+    if (inRange.length > 1) {
+      inRange.sort((a, b) => {
+        if (prio === "closest") return a._dist - b._dist;
+        if (prio === "strongest") return b.hp - a.hp;
+        if (prio === "weakest") return a.hp - b.hp;
+        return b._prog - a._prog;
+      });
+    }
     return n <= 1 ? (inRange.length ? [inRange[0]] : []) : inRange.slice(0, n);
+  }
+  checkBossPhase(en) {
+    if (!en.flags.includes("boss") || en.hp <= 0) return;
+    const frac = en.hp / en.maxHp;
+    if (en.phase < 2 && frac <= 0.6) {
+      en.phase = 2;
+      en.speed *= 1.25;
+      this.shellEvent("phase");
+      this.shakeCamera(0.35, 8);
+      this.spawnFx(en.x, en.y, THREAT.crit, "bossburst");
+      this.setWaveText("PHASE 2", "Boss accelerating — hold the line.");
+    } else if (en.phase < 3 && frac <= 0.25) {
+      en.phase = 3;
+      en.speed *= 1.15;
+      this.shellEvent("phase");
+      this.shakeCamera(0.45, 10);
+      this.spawnFx(en.x, en.y, THREAT.crit, "bossburst");
+      this.setWaveText("PHASE 3", "Adds inbound — finish it.");
+      const path = en.path || PATH_VARIANTS[en.corner || 0][en.fork || 0];
+      const diff = DIFFICULTY[this.difficulty] || DIFFICULTY.normal;
+      for (let i = 0; i < 2; i++) {
+        const e = ENEMIES.Armored;
+        const hp = Math.round(40 * Math.pow(1.1, Math.max(0, this.waveIndex - 1)) * diff.hp * e.health_mult);
+        this.enemies.push({
+          x: path[0][0], y: path[0][1], wp: 0, path, fork: en.fork || 0, corner: en.corner || 0,
+          hp, maxHp: hp, speed: BASE_SPEED * e.speed_mult, baseSpeed: BASE_SPEED * e.speed_mult,
+          def: e, enemy: "Armored", bounty: Math.round((3 + Math.floor(this.waveIndex / 3) + e.bounty_bonus) * diff.bounty),
+          rec: en.rec, flags: e.flags, armor: e.armor, color: e.color,
+          slowUntil: 0, slowFactor: 0, poison: 0, poisonUntil: 0, revealed: true, phase: 0, revealFlash: 0,
+        });
+        if (en.rec) en.rec.alive++;
+      }
+    }
   }
   hit(en, base, d, tw) {
     if (en.hp <= 0) return;
@@ -1045,35 +1231,43 @@ class Game {
     en.hp -= base * mult;
     const immune = en.flags.includes("immune");
     if (d.slow && !immune) {
-      // keep the strongest slow currently in effect (don't let a weaker hit dilute it)
       const activeSlow = (en.slowUntil > this.gameTime) ? (en.slowFactor || 0) : 0;
       en.slowFactor = Math.max(activeSlow, d.slow);
       en.slowUntil = this.gameTime + d.slowDur / 60;
+      this.spawnFx(en.x, en.y, "#67e8f9", "frost");
+    } else if (d.slow && immune) {
+      // crossed frost glyph handled in draw
+      en._immuneFlash = this.gameTime + 0.25;
     }
     if (d.poison && !immune) {
-      // keep the strongest poison currently in effect (don't let a weaker DoT overwrite it)
       const activePoison = (en.poisonUntil > this.gameTime) ? en.poison : 0;
       en.poison = Math.max(activePoison, d.poison);
       en.poisonUntil = this.gameTime + d.poisonDur / 60;
     }
     if (en.hp > 0) this.spawnFx(en.x, en.y, DECAY.hot, "spark");
+    this.checkBossPhase(en);
     if (en.hp <= 0) this.onKill(en);
   }
   onKill(en) {
     if (en._dead) return; en._dead = true;
     this.players[en.lastHitPlayer ?? 0].gold += en.bounty;
-    this.spawnFx(en.x, en.y, en.color, "puff");
-    if (en.flags.includes("boss")) this.shakeCamera(0.38, 7);
-    else if (en.flags.includes("hero")) this.shakeCamera(0.18, 3);
+    if (en.flags.includes("boss")) { this.spawnFx(en.x, en.y, en.color, "bossburst"); this.shakeCamera(0.38, 7); }
+    else {
+      this.spawnFx(en.x, en.y, en.color, "puff");
+      if (en.flags.includes("hero")) this.shakeCamera(0.18, 3);
+    }
     this.refreshButtons();
   }
   shakeCamera(duration, intensity) {
-    if (this._shake && this._shake.t > 0 && intensity < this._shake.intensity) return; // don't downgrade
+    if (this.reducedMotion) { intensity *= 0.35; duration *= 0.7; }
+    if (this._shake && this._shake.t > 0 && intensity < this._shake.intensity) return;
     this._shake = { t: duration, dur: duration, intensity };
   }
   onLeak(en) {
     const cost = en.flags.includes("boss") ? 10 : en.flags.includes("hero") ? 4 : 1;
     this.lives -= cost;
+    this.shellEvent("leak");
+    this.spawnFx(CENTER.x, CENTER.y, THREAT.crit, "ring", 0, { r: 60 });
     this.refreshButtons();
   }
 
@@ -1083,9 +1277,19 @@ class Game {
     let dt = (t - this.last) / 1000; this.last = t;
     if (dt > 0.05) dt = 0.05;
     this.panFromKeys(dt);
-    // Global PPI sweep — one slow full-field rotation, ~5s/rev. Runs on real
-    // time (not sim time) so the scope stays "alive" even paused/on menu.
-    this.sweepAngle = (this.sweepAngle + dt * (Math.PI * 2 / 5)) % (Math.PI * 2);
+    // Global PPI sweep — wall-clock. Reduced-motion: freeze sweep.
+    if (!this.reducedMotion) this.sweepAngle = (this.sweepAngle + dt * (Math.PI * 2 / MOTION.sweep)) % (Math.PI * 2);
+    if (this._shellFlash > 0) this._shellFlash -= dt;
+    // Center threat: nearest enemy progress toward leak
+    let threat = 0;
+    for (const en of this.enemies) {
+      if (en.hp <= 0) continue;
+      const prog = en.path ? en.wp / Math.max(1, en.path.length - 1) : (en.netProg || 0);
+      threat = Math.max(threat, prog);
+      if (en.flags.includes("boss")) threat = Math.max(threat, 0.55 + (en.phase || 1) * 0.12);
+    }
+    this._centerThreat = threat;
+    if (this.lives <= 5) this._centerThreat = Math.max(this._centerThreat, 0.7);
     // 2×/3× = run the fixed-step sim multiple times per frame (keeps physics stable)
     const steps = this.net ? 1 : this.state === "running" ? this.speed : 1;
     for (let i = 0; i < steps; i++) this.update(dt);
@@ -1148,15 +1352,7 @@ class Game {
       g.beginPath(); g.arc(cx, cy, 3, 0, Math.PI * 2); g.fill();
     }
 
-    // corner call-sign tags — ambient grid reference, independent of numPlayers
-    g.font = "700 15px ui-monospace, SFMono-Regular, Menlo, monospace";
-    g.fillStyle = BRASS; g.globalAlpha = 0.5; g.textAlign = "center"; g.textBaseline = "middle";
-    const cOff = [[-26, -26], [26, -26], [26, 26], [-26, 26]];
-    ENTRIES.forEach((c, i) => g.fillText(CALLSIGNS[i][0], c[0] + cOff[i][0], c[1] + cOff[i][1]));
-    g.globalAlpha = 1;
-
-    // multiplayer zone dividers — geometry only; the call-sign labels are
-    // drawn live every frame so the active-player emphasis can change
+    // multiplayer zone dividers — geometry only; live labels drawn per-frame
     if (this.players.length > 1) {
       const half = WORLD / 2;
       g.save(); g.setLineDash([10, 6]); g.strokeStyle = "rgba(232,227,211,.12)"; g.lineWidth = 1.5;
@@ -1165,44 +1361,76 @@ class Game {
       g.restore();
     }
 
-    // spiral paths — dark structural groove + thin afterglow core line (Bearing Zero graft)
+    // path trenches — groove + floor + phosphor core; fork-1 as dashed alternate
     g.lineCap = "round"; g.lineJoin = "round";
-    for (const path of PATHS) {
-      g.strokeStyle = "rgba(20,36,23,.55)"; g.lineWidth = PATH_W;
-      g.beginPath(); g.moveTo(path[0][0], path[0][1]);
-      for (let i = 1; i < path.length; i++) g.lineTo(path[i][0], path[i][1]);
-      g.stroke();
-      g.strokeStyle = "rgba(10,20,12,.6)"; g.lineWidth = PATH_W - 10; g.stroke();
-      g.strokeStyle = DECAY.after; g.globalAlpha = 0.85; g.lineWidth = 2; g.stroke();
-      g.globalAlpha = 1;
+    for (let k = 0; k < 4; k++) {
+      for (let f = 0; f < 2; f++) {
+        const path = PATH_VARIANTS[k][f];
+        const alt = f === 1;
+        g.strokeStyle = alt ? "rgba(20,36,23,.28)" : "rgba(20,36,23,.6)";
+        g.lineWidth = PATH_W;
+        if (alt) g.setLineDash([8, 10]);
+        g.beginPath(); g.moveTo(path[0][0], path[0][1]);
+        for (let i = 1; i < path.length; i++) g.lineTo(path[i][0], path[i][1]);
+        g.stroke();
+        if (!alt) {
+          g.setLineDash([]);
+          g.strokeStyle = "rgba(10,20,12,.65)"; g.lineWidth = PATH_W - 10; g.stroke();
+          g.strokeStyle = DECAY.after; g.globalAlpha = 0.9; g.lineWidth = 2.2; g.stroke();
+          g.globalAlpha = 1;
+          // hatch marks every ~cell along trench
+          g.strokeStyle = "rgba(58,66,56,.35)"; g.lineWidth = 1;
+          for (let i = 0; i < path.length - 1; i++) {
+            const ax = path[i][0], ay = path[i][1], bx = path[i + 1][0], by = path[i + 1][1];
+            const len = Math.hypot(bx - ax, by - ay) || 1;
+            const nx = -(by - ay) / len, ny = (bx - ax) / len;
+            for (let d = 20; d < len; d += 40) {
+              const x = ax + (bx - ax) * (d / len), y = ay + (by - ay) * (d / len);
+              g.beginPath(); g.moveTo(x + nx * 6, y + ny * 6); g.lineTo(x - nx * 6, y - ny * 6); g.stroke();
+            }
+          }
+        } else {
+          g.strokeStyle = DECAY.after; g.globalAlpha = 0.35; g.lineWidth = 1.5; g.stroke();
+          g.globalAlpha = 1; g.setLineDash([]);
+        }
+      }
     }
 
-    // corner spawn markers — brass rivet + ring
-    for (const path of PATHS) {
-      const [sx, sy] = path[0];
+    // corner spawn pads — brass rivet + ring + call-sign
+    g.font = "700 13px ui-monospace, SFMono-Regular, Menlo, monospace";
+    g.textAlign = "center"; g.textBaseline = "middle";
+    ENTRIES.forEach((c, i) => {
+      const [sx, sy] = c;
+      g.fillStyle = "rgba(20,36,23,.8)"; g.beginPath(); g.arc(sx, sy, 14, 0, Math.PI * 2); g.fill();
       g.fillStyle = BRASS; g.beginPath(); g.arc(sx, sy, 5, 0, Math.PI * 2); g.fill();
-      g.strokeStyle = BRASS; g.globalAlpha = 0.7; g.lineWidth = 1.5;
-      g.beginPath(); g.arc(sx, sy, 9, 0, Math.PI * 2); g.stroke();
+      g.strokeStyle = BRASS; g.globalAlpha = 0.75; g.lineWidth = 1.5;
+      g.beginPath(); g.arc(sx, sy, 10, 0, Math.PI * 2); g.stroke();
+      g.globalAlpha = 0.55; g.fillStyle = BRASS;
+      const cOff = [[-28, -28], [28, -28], [28, 28], [-28, 28]];
+      g.fillText(CALLSIGNS[i], sx + cOff[i][0], sy + cOff[i][1]);
       g.globalAlpha = 1;
-    }
+    });
 
-    // landmark tick anchors (formerly 8 rainbow "✶" markers — static, so brass)
-    g.strokeStyle = BRASS; g.globalAlpha = 0.55; g.lineWidth = 1.4;
+    // starter-pocket ticks (WC3 worker spots)
+    g.strokeStyle = BRASS; g.globalAlpha = 0.5; g.lineWidth = 1.4;
     for (const p of POSITIONS) {
       g.beginPath();
-      g.moveTo(p.x - 6, p.y); g.lineTo(p.x + 6, p.y);
-      g.moveTo(p.x, p.y - 6); g.lineTo(p.x, p.y + 6);
+      g.moveTo(p.x - 7, p.y); g.lineTo(p.x + 7, p.y);
+      g.moveTo(p.x, p.y - 7); g.lineTo(p.x, p.y + 7);
       g.stroke();
+      g.beginPath(); g.arc(p.x, p.y, 3, 0, 7); g.stroke();
     }
     g.globalAlpha = 1;
 
-    // center — welded bezel dish around the leak point (the live pulse is drawn per-frame)
-    g.strokeStyle = BEZEL; g.lineWidth = 2;
-    g.beginPath(); g.arc(CENTER.x, CENTER.y, 24, 0, Math.PI * 2); g.stroke();
-    g.fillStyle = BRASS; g.globalAlpha = 0.6;
+    // center bezel dish — green circle landmark housing
+    g.strokeStyle = BEZEL; g.lineWidth = 3;
+    g.beginPath(); g.arc(CENTER.x, CENTER.y, 28, 0, Math.PI * 2); g.stroke();
+    g.strokeStyle = BRASS; g.globalAlpha = 0.45; g.lineWidth = 1.5;
+    g.beginPath(); g.arc(CENTER.x, CENTER.y, 34, 0, Math.PI * 2); g.stroke();
+    g.fillStyle = BRASS; g.globalAlpha = 0.65;
     for (let i = 0; i < 8; i++) {
       const a = (i / 8) * Math.PI * 2;
-      g.beginPath(); g.arc(CENTER.x + Math.cos(a) * 24, CENTER.y + Math.sin(a) * 24, 1.6, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.arc(CENTER.x + Math.cos(a) * 28, CENTER.y + Math.sin(a) * 28, 1.8, 0, Math.PI * 2); g.fill();
     }
     g.globalAlpha = 1;
   }
@@ -1282,11 +1510,15 @@ class Game {
     // cached static world layer (void gradient + range rings + bezel + paths + ticks)
     ctx.drawImage(this.staticLayer, 0, 0, WORLD, WORLD);
 
-    // the green circle — the game's namesake leak point, the one bit of
-    // "center" that stays alive, so it keeps the decay-ramp pulse
-    const cpulse = 0.5 + 0.5 * Math.sin(this.gameTime * 2.4);
-    ctx.fillStyle = DECAY.hot; ctx.globalAlpha = 0.9;
-    ctx.beginPath(); ctx.arc(CENTER.x, CENTER.y, 7 + cpulse * 2, 0, 7); ctx.fill();
+    // the green circle — beacon intensity tracks leak threat / boss / low lives
+    const threat = this._centerThreat || 0;
+    const cpulse = this.reducedMotion ? 0.5 : (0.5 + 0.5 * Math.sin(this.gameTime * (2.4 + threat * 2)));
+    const cr = 8 + cpulse * 3 + threat * 6;
+    ctx.fillStyle = threat > 0.75 ? THREAT.crit : DECAY.hot;
+    ctx.globalAlpha = 0.85 + threat * 0.15;
+    ctx.beginPath(); ctx.arc(CENTER.x, CENTER.y, cr, 0, 7); ctx.fill();
+    ctx.strokeStyle = DECAY.core; ctx.globalAlpha = 0.35 + threat * 0.4; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(CENTER.x, CENTER.y, 18 + cpulse * 4 + threat * 8, 0, 7); ctx.stroke();
     ctx.globalAlpha = 1;
 
     // multiplayer zone call-signs — live (active-player emphasis changes every frame)
@@ -1404,88 +1636,107 @@ class Game {
   }
   drawTower(ctx, tw, dt) {
     const x = tw.x, y = tw.y, s = tw.s, col = tw.def.color, t = this.gameTime;
-    const kind = s.aura ? "aura" : s.income ? "mint" : tw.type === "frost" ? "crystal" : (tw.type === "poison" && !s.splash) ? "orb" : tw.type === "detector" ? "radar" : tw.type === "void" ? "void" : "barrel";
+    const kind = s.aura ? "aura" : s.income && !s.dtype ? "mint" : tw.type === "frost" ? "crystal" : (tw.type === "poison" && !s.splash) ? "orb" : tw.type === "detector" ? "radar" : tw.type === "void" ? "void" : "barrel";
+    const selected = this.selectedTower === tw;
     let target = null;
-    // aim (visual turret rotation — per-kind flavor, independent of the wedge below)
-    if (kind === "barrel") {
+    if (kind === "barrel" || kind === "crystal" || kind === "orb" || (kind === "void")) {
       target = this.pickTargets(tw, 1)[0];
-      if (target) { let a = Math.atan2(target.y - y, target.x - x), d = a - tw.angle; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI; tw.angle += d * 0.3; }
-    } else if (kind === "radar") tw.angle += 0.06;
+      if (target) {
+        let a = Math.atan2(target.y - y, target.x - x), d = a - tw.angle;
+        while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;
+        tw.angle += d * (this.reducedMotion ? 1 : 0.28);
+      }
+    } else if (kind === "radar" && !this.reducedMotion) tw.angle += 0.06;
+    if (tw.recoil > 0) tw.recoil = Math.max(0, tw.recoil - dt * 6);
 
-    // cached tick-marked bezel housing — built once per tower instance, blitted every frame
     if (!tw._bezel) tw._bezel = this.buildTowerBezel();
     ctx.drawImage(tw._bezel, x - 15, y - 15, 30, 30);
 
-    // conical sweep-beam wedge — the range indicator itself: slow idle scan,
-    // snaps to and holds the target with a brighter pulse while firing
-    if (s.range > 0) {
-      if (target === null && kind !== "barrel") target = this.pickTargets(tw, 1)[0];
+    // Range wedge only when selected/hovered/placing — cuts clutter
+    const hover = this.hoverWorld && Math.hypot(this.hoverWorld.x - x, this.hoverWorld.y - y) < CELL;
+    if (s.range > 0 && (selected || hover)) {
+      if (target === null) target = this.pickTargets(tw, 1)[0];
       if (tw._wedgeAngle == null) tw._wedgeAngle = -Math.PI / 2;
       if (target) {
         let a = Math.atan2(target.y - y, target.x - x), d = a - tw._wedgeAngle;
         while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;
         tw._wedgeAngle += d * 0.35;
-      } else {
-        tw._wedgeAngle += dt * 0.7;
-      }
-      const firing = t - tw.lastFire < 0.12;
-      const wedgeW = firing ? 0.32 : 0.5;
+      } else if (!this.reducedMotion) tw._wedgeAngle += dt * 0.7;
+      const firing = t - tw.lastFire < MOTION.snap;
+      const wedgeW = firing ? 0.28 : 0.48;
       ctx.save();
-      ctx.globalAlpha = firing ? 0.2 : 0.09;
+      ctx.globalAlpha = firing ? 0.22 : 0.12;
       ctx.fillStyle = DECAY.hot;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
+      ctx.beginPath(); ctx.moveTo(x, y);
       ctx.arc(x, y, s.range, tw._wedgeAngle - wedgeW / 2, tw._wedgeAngle + wedgeW / 2);
       ctx.closePath(); ctx.fill();
       ctx.restore();
     }
+    if (s.aura) {
+      ctx.save();
+      ctx.setLineDash([4, 6]);
+      ctx.strokeStyle = col;
+      ctx.globalAlpha = selected ? 0.35 : 0.14;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(x, y, s.aura.radius, 0, 7); ctx.stroke();
+      ctx.restore();
+    }
 
-    // Ring — shadowBlur scales with level: Lv1 clean, Lv2 soft glow, Lv3 bright, spec blazing
-    // shadowBlur NOT expensive per spec; refuted by MDN perf research (canvas-performance)
-    ctx.shadowBlur = tw.spec ? 22 : tw.level === 3 ? 14 : tw.level === 2 ? 7 : 0;
-    ctx.shadowColor = col;
-    ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, 11, 0, 7); ctx.stroke();
-    ctx.shadowBlur = 0; ctx.shadowColor = "transparent";
-    // turret
+    // Level glow via alpha ring (avoid per-frame shadowBlur)
+    ctx.strokeStyle = col;
+    ctx.globalAlpha = tw.spec ? 0.95 : tw.level === 3 ? 0.8 : tw.level === 2 ? 0.55 : 0.35;
+    ctx.lineWidth = tw.spec ? 2.6 : 2;
+    ctx.beginPath(); ctx.arc(x, y, 11, 0, 7); ctx.stroke();
+    ctx.globalAlpha = 1;
+
     ctx.fillStyle = col;
+    const recoil = (tw.recoil || 0) * 3;
     if (kind === "barrel") {
       ctx.save(); ctx.translate(x, y); ctx.rotate(tw.angle);
-      const n = s.multishot || (tw.type === "rapid" ? 2 : 1), len = 9 + Math.min(15, s.range / 42);
+      const n = s.multishot || (tw.type === "rapid" ? 2 : 1), len = 9 + Math.min(15, s.range / 42) - recoil;
       for (let i = 0; i < n; i++) { const off = (i - (n - 1) / 2) * 4.2; ctx.fillRect(2, off - 1.7, len, 3.4); }
       if (s.splash) { ctx.beginPath(); ctx.arc(2 + len, 0, 4, 0, 7); ctx.fill(); }
       ctx.restore();
     } else if (kind === "crystal") {
-      ctx.save(); ctx.translate(x, y); ctx.rotate(t * 0.7);
-      ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(6, 0); ctx.lineTo(0, 8); ctx.lineTo(-6, 0); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = "rgba(255,255,255,.4)"; ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(3, 0); ctx.lineTo(0, 0); ctx.closePath(); ctx.fill(); ctx.restore();
+      ctx.save(); ctx.translate(x, y); ctx.rotate(this.reducedMotion ? 0 : t * 0.7);
+      ctx.beginPath(); ctx.moveTo(0, -9); ctx.lineTo(6.5, 0); ctx.lineTo(0, 9); ctx.lineTo(-6.5, 0); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,.4)"; ctx.beginPath(); ctx.moveTo(0, -9); ctx.lineTo(3.2, 0); ctx.lineTo(0, 0); ctx.closePath(); ctx.fill();
+      ctx.restore();
     } else if (kind === "orb") {
-      ctx.beginPath(); ctx.arc(x, y - 1, 6.5, 0, 7); ctx.fill();
+      const swirl = this.reducedMotion ? 0 : Math.sin(t * 3) * 1.2;
+      ctx.beginPath(); ctx.arc(x, y - 1 + swirl * 0.3, 6.5, 0, 7); ctx.fill();
       ctx.fillStyle = "rgba(255,255,255,.35)"; ctx.beginPath(); ctx.arc(x - 2, y - 3, 2, 0, 7); ctx.fill();
     } else if (kind === "radar") {
-      ctx.save(); ctx.translate(x, y); ctx.rotate(tw.angle); ctx.strokeStyle = col; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(13, 0); ctx.stroke();
-      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(13, 0, 2.5, 0, 7); ctx.fill(); ctx.restore();
+      ctx.save(); ctx.translate(x, y); ctx.rotate(tw.angle);
+      ctx.strokeStyle = col; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(13, 0); ctx.stroke();
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(13, 0, 2.5, 0, 7); ctx.fill();
+      ctx.globalAlpha = 0.25; ctx.beginPath(); ctx.arc(0, 0, 11, -0.4, 0.4); ctx.stroke();
+      ctx.restore();
     } else if (kind === "mint") {
-      // Three stacked coins — top coin shines
       const coinColors = ["#92400e", "#ca8a04", "#fde047"];
       for (let i = 0; i < 3; i++) {
-        const cy = y + (1 - i) * 3.2; // bottom to top
+        const cy = y + (1 - i) * 3.2;
         ctx.fillStyle = coinColors[i]; ctx.beginPath(); ctx.ellipse(x, cy, 7, 3.6, 0, 0, 7); ctx.fill();
         ctx.strokeStyle = "rgba(0,0,0,.35)"; ctx.lineWidth = 1; ctx.stroke();
       }
-      ctx.fillStyle = "#713f12"; ctx.font = "bold 7px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillStyle = "#713f12"; ctx.font = "bold 7px ui-monospace,monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
       ctx.fillText("g", x, y - 3);
     } else if (kind === "void") {
-      const pulse = 0.5 + 0.5 * Math.sin(t * 3.5);
-      ctx.beginPath(); ctx.arc(x, y, 7 + pulse * 1.5, 0, 7); ctx.fill();
-      ctx.fillStyle = "rgba(255,255,255,.28)"; ctx.beginPath(); ctx.arc(x - 2.2, y - 2.2, 2.8, 0, 7); ctx.fill();
-      ctx.save(); ctx.translate(x, y); ctx.rotate(t * 1.9);
-      ctx.strokeStyle = col + "cc"; ctx.lineWidth = 1.5;
+      const pulse = this.reducedMotion ? 0.5 : (0.5 + 0.5 * Math.sin(t * 3.5));
+      ctx.fillStyle = "#1a0a22"; ctx.beginPath(); ctx.arc(x, y, 7 + pulse * 1.5, 0, 7); ctx.fill();
+      ctx.fillStyle = col; ctx.globalAlpha = 0.85; ctx.beginPath(); ctx.arc(x, y, 5 + pulse, 0, 7); ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.save(); ctx.translate(x, y); ctx.rotate(this.reducedMotion ? 0 : t * 1.9);
+      ctx.strokeStyle = col; ctx.globalAlpha = 0.8; ctx.lineWidth = 1.5;
       ctx.beginPath(); ctx.ellipse(0, 0, 10, 3.5, 0, 0, 7); ctx.stroke();
-      ctx.restore();
+      ctx.restore(); ctx.globalAlpha = 1;
     } else if (kind === "aura") {
-      const pulse = 0.5 + 0.5 * Math.sin(t * 2.2); ctx.strokeStyle = col; ctx.globalAlpha = 0.35 + 0.4 * pulse; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(x, y, 6.5, 0, 7); ctx.stroke(); ctx.globalAlpha = 1;
+      const pulse = this.reducedMotion ? 0.5 : (0.5 + 0.5 * Math.sin(t * 2.2));
+      ctx.strokeStyle = col; ctx.globalAlpha = 0.35 + 0.4 * pulse; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(x, y, 6.5, 0, 7); ctx.stroke();
+      ctx.beginPath(); ctx.arc(x, y, 9 + pulse * 2, 0, 7); ctx.stroke();
+      ctx.globalAlpha = 1;
     }
-    // tier marks
     const tx = tw.c * CELL, ty = tw.r * CELL;
     if (tw.spec) { ctx.fillStyle = "#fef08a"; ctx.beginPath(); ctx.moveTo(x, ty + 3); ctx.lineTo(x + 5, ty + 8); ctx.lineTo(x, ty + 13); ctx.lineTo(x - 5, ty + 8); ctx.closePath(); ctx.fill(); }
     else for (let i = 0; i < tw.level; i++) { ctx.fillStyle = "#f8fafc"; ctx.beginPath(); ctx.arc(tx + 9 + i * 7, ty + 8, 2.1, 0, 7); ctx.fill(); }
@@ -1570,18 +1821,84 @@ class Game {
       ctx.globalAlpha = ga;
     }
     ctx.restore();
-    if (t < en.slowUntil) { ctx.strokeStyle = "#67e8f9"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(en.x, en.y - lift, rad + 2.5, 0, 7); ctx.stroke(); }
-    if (en.poison > 0 && t < en.poisonUntil) { ctx.fillStyle = "rgba(132,204,22,.6)"; for (let i = 0; i < 2; i++) { ctx.beginPath(); ctx.arc(en.x + Math.sin(t * 5 + i * 3) * rad * 0.8, en.y - lift - rad - (t * 30 + i * 8) % 8, 1.7, 0, 7); ctx.fill(); } }
-    if (inv) { ctx.setLineDash([3, 3]); ctx.strokeStyle = "rgba(214,175,255,.45)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(en.x, en.y - lift, rad + 1.5, 0, 7); ctx.stroke(); ctx.setLineDash([]); }
+    // Status glyphs (phosphor ticks, not candy dots)
+    if (t < en.slowUntil) {
+      ctx.strokeStyle = "#67e8f9"; ctx.lineWidth = 1.6; ctx.globalAlpha = 0.85;
+      for (let i = 0; i < 4; i++) {
+        const a = (i / 4) * Math.PI * 2 + t;
+        ctx.beginPath();
+        ctx.arc(en.x, en.y - lift, rad + 3.5, a - 0.25, a + 0.25);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+    if (en.poison > 0 && t < en.poisonUntil) {
+      ctx.fillStyle = "rgba(132,204,22,.75)";
+      for (let i = 0; i < 3; i++) {
+        const a = t * 2 + i * 2.1;
+        const px = en.x + Math.cos(a) * rad * 0.7;
+        const py = en.y - lift - rad - 2 - ((t * 20 + i * 5) % 10);
+        ctx.fillRect(px - 1, py - 2, 2, 3);
+      }
+    }
+    if (en.revealFlash && t < en.revealFlash) {
+      ctx.strokeStyle = DECAY.hot; ctx.lineWidth = 2; ctx.globalAlpha = 0.9;
+      ctx.beginPath(); ctx.arc(en.x, en.y - lift, rad + 2, 0, 7); ctx.stroke();
+      ctx.globalAlpha = 1;
+    } else if (inv) {
+      ctx.setLineDash([3, 3]); ctx.strokeStyle = "rgba(214,175,255,.45)"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(en.x, en.y - lift, rad + 1.5, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+    }
+    // Boss phase ring segments
+    if (boss && en.phase >= 2) {
+      ctx.strokeStyle = THREAT.crit; ctx.lineWidth = 2; ctx.globalAlpha = 0.7;
+      const segs = en.phase >= 3 ? 3 : 2;
+      for (let i = 0; i < segs; i++) {
+        const a0 = (i / segs) * Math.PI * 2 + t * 0.8;
+        ctx.beginPath(); ctx.arc(en.x, en.y - lift, rad + 6, a0, a0 + Math.PI / segs); ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
     const hpf = clamp(en.hp / en.maxHp, 0, 1);
-    if (hpf < 0.999) { const w = rad * 2 + 6, yb = en.y - lift - rad - 8; ctx.fillStyle = "rgba(0,0,0,.6)"; this.round(en.x - w / 2, yb, w, 3.6, 1.6); ctx.fill(); ctx.fillStyle = hpf > 0.5 ? "#4ade80" : hpf > 0.25 ? "#facc15" : "#f87171"; this.round(en.x - w / 2, yb, w * hpf, 3.6, 1.6); ctx.fill(); }
+    if (hpf < 0.999) {
+      const w = rad * 2 + 6, yb = en.y - lift - rad - 8;
+      ctx.fillStyle = "rgba(0,0,0,.6)"; this.round(en.x - w / 2, yb, w, 3.6, 1.6); ctx.fill();
+      if (boss) {
+        // segmented phase bar
+        ctx.fillStyle = hpf > 0.6 ? DECAY.core : hpf > 0.25 ? THREAT.warn : THREAT.crit;
+        this.round(en.x - w / 2, yb, w * hpf, 3.6, 1.6); ctx.fill();
+        ctx.strokeStyle = "rgba(0,0,0,.5)"; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(en.x - w / 2 + w * 0.6, yb); ctx.lineTo(en.x - w / 2 + w * 0.6, yb + 3.6); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(en.x - w / 2 + w * 0.25, yb); ctx.lineTo(en.x - w / 2 + w * 0.25, yb + 3.6); ctx.stroke();
+      } else {
+        ctx.fillStyle = hpf > 0.5 ? "#4ade80" : hpf > 0.25 ? "#facc15" : "#f87171";
+        this.round(en.x - w / 2, yb, w * hpf, 3.6, 1.6); ctx.fill();
+      }
+    }
   }
 
   drawFx(ctx) {
     for (const p of this.fx) {
       const a = clamp(p.t / p.max, 0, 1);
-      ctx.globalAlpha = a; ctx.fillStyle = p.color;
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.kind === "muzzle" ? p.r * a + 2 : p.r * a, 0, 7); ctx.fill();
+      ctx.globalAlpha = a;
+      if (p.kind === "splash" || p.kind === "ring" || p.kind === "build") {
+        const r = p.r * (1.2 - a * 0.4);
+        ctx.strokeStyle = p.color; ctx.lineWidth = p.kind === "build" ? 2 : 2.5;
+        ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 7); ctx.stroke();
+      } else if (p.kind === "muzzle" && p.angle != null) {
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.angle);
+        ctx.fillStyle = p.color;
+        if (p.dtype === "chaos") {
+          ctx.fillStyle = "#0a060c"; ctx.beginPath(); ctx.arc(0, 0, p.r * a + 3, 0, 7); ctx.fill();
+          ctx.strokeStyle = DECAY.hot; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, p.r * a + 4, 0, 7); ctx.stroke();
+        } else {
+          ctx.beginPath(); ctx.ellipse(0, 0, (p.r * a + 4) * (p.dtype === "siege" ? 1.4 : 1), p.r * a * 0.5 + 1.5, 0, 0, 7); ctx.fill();
+        }
+        ctx.restore();
+      } else {
+        ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.kind === "muzzle" ? p.r * a + 2 : p.r * a, 0, 7); ctx.fill();
+      }
     }
     ctx.globalAlpha = 1;
   }
