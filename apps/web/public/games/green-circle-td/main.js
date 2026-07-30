@@ -438,6 +438,16 @@ class Game {
     this.cam.y += before.y - after.y;
     this.clampCamera();
   }
+  /** Zoom toward stage center (UI +/- buttons). Camera only — never scales the DOM. */
+  zoomBy(factor) {
+    const rect = this.canvas.getBoundingClientRect();
+    this.zoomAt(rect.left + rect.width / 2, rect.top + rect.height / 2, factor);
+  }
+  resetView() {
+    this._zoomInit = false;
+    this.resize();
+    this.centerCamera();
+  }
 
   // ---- buildable grid
   cellOf(wx, wy) { return { c: Math.floor(wx / CELL), r: Math.floor(wy / CELL) }; }
@@ -478,6 +488,23 @@ class Game {
     if (restartBtn) restartBtn.onclick = () => this.restart();
     const nextPlayerBtn = document.getElementById("nextPlayerBtn");
     if (nextPlayerBtn) nextPlayerBtn.onclick = () => this.cyclePlayer();
+    const zoomIn = document.getElementById("zoomInBtn");
+    const zoomOut = document.getElementById("zoomOutBtn");
+    const zoomReset = document.getElementById("zoomResetBtn");
+    if (zoomIn) zoomIn.onclick = () => this.zoomBy(1.2);
+    if (zoomOut) zoomOut.onclick = () => this.zoomBy(1 / 1.2);
+    if (zoomReset) zoomReset.onclick = () => this.resetView();
+    const inspClose = document.getElementById("inspClose");
+    if (inspClose) inspClose.onclick = () => this.deselectTower();
+    const helpToggle = document.getElementById("helpToggle");
+    if (helpToggle) {
+      helpToggle.onclick = () => {
+        const p = document.getElementById("helpPanel");
+        if (!p) return;
+        const open = p.classList.toggle("collapsed") === false;
+        helpToggle.setAttribute("aria-expanded", open ? "true" : "false");
+      };
+    }
     this.refreshButtons();
   }
   syncSpeedSeg() {
@@ -677,7 +704,28 @@ class Game {
     let longPress = null;
     const clearLong = () => { if (longPress) { clearTimeout(longPress); longPress = null; } };
 
+    // Browser page-zoom (ctrl/cmd+wheel, Safari gesture) must NEVER scale the
+    // HUD — only the canvas camera zooms. Block at window so trackpad pinch
+    // can't resize the whole document.
+    const blockPageZoom = (e) => {
+      if (e.ctrlKey || e.metaKey) e.preventDefault();
+    };
+    window.addEventListener("wheel", blockPageZoom, { passive: false, capture: true });
+    for (const ev of ["gesturestart", "gesturechange", "gestureend"]) {
+      document.addEventListener(ev, (e) => e.preventDefault(), { passive: false });
+    }
+
     c.addEventListener("pointerdown", (e) => {
+      // Middle mouse = pan (RTS / map-camera convention)
+      if (e.pointerType === "mouse" && e.button === 1) {
+        e.preventDefault();
+        try { c.setPointerCapture(e.pointerId); } catch {}
+        pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        mode = "pan";
+        downX = lastX = e.clientX; downY = lastY = e.clientY;
+        c.classList.add("panning");
+        return;
+      }
       if (e.pointerType === "mouse" && e.button !== 0) return; // let right-click → contextmenu
       try { c.setPointerCapture(e.pointerId); } catch {} // can throw if already released
       pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -761,8 +809,12 @@ class Game {
     c.addEventListener("mouseleave", () => { this.hoverWorld = null; });
     c.addEventListener("wheel", (e) => {
       e.preventDefault();
-      this.zoomAt(e.clientX, e.clientY, e.deltaY < 0 ? 1.12 : 1 / 1.12);
+      e.stopPropagation();
+      // Trackpad pinch arrives as ctrl+wheel — still zoom camera only
+      const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+      this.zoomAt(e.clientX, e.clientY, factor);
     }, { passive: false });
+    c.addEventListener("auxclick", (e) => { if (e.button === 1) e.preventDefault(); });
 
     // right-click sells the hovered tower (keeps WASD free for panning)
     c.addEventListener("contextmenu", (e) => {
@@ -774,11 +826,15 @@ class Game {
     });
 
     window.addEventListener("keydown", (e) => {
+      if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
       const k = e.key.toLowerCase();
       if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) this.keys.add(k);
       for (const [id, d] of Object.entries(TOWERS)) if (d.key === k) this.select(id);
       if (k === "escape") { this.selected = "basic"; this.deselectTower(); this.refreshButtons(); }
       else if (k === "p") this.togglePause();
+      else if (k === "u") { e.preventDefault(); this.upgradeSelected(); }
+      else if (k === "=" || k === "+" || e.code === "NumpadAdd") { e.preventDefault(); this.zoomBy(1.2); }
+      else if (k === "-" || e.code === "NumpadSubtract") { e.preventDefault(); this.zoomBy(1 / 1.2); }
       else if (k === "tab") { e.preventDefault(); this.cyclePlayer(); }
       else if (k === " " || e.code === "Space") {
         e.preventDefault();
@@ -866,11 +922,17 @@ class Game {
       }
     }
   }
-  // ---- tower inspect / upgrade panel
+  // ---- tower inspect / upgrade panel (floating dock over the map)
   selectTower(tw) { this.selectedTower = tw; this.renderInspector(); }
   deselectTower() { this.selectedTower = null; this.renderInspector(); }
+  /** Hotkey U — upgrade selected tower one step (Lv+1). Specs need a click (branch choice). */
+  upgradeSelected() {
+    const tw = this.selectedTower;
+    if (!tw || !this.towers.includes(tw) || this.state !== "running") return;
+    if (tw.level < MAX_LEVEL) this.upgradeTower(tw, "level");
+  }
   renderInspector() {
-    const panel = document.getElementById("inspector");
+    const panel = document.getElementById("towerDock");
     if (!panel) return;
     const tw = this.selectedTower;
     if (!tw || !this.towers.includes(tw)) { panel.classList.add("hidden"); return; }
@@ -892,18 +954,18 @@ class Game {
     document.getElementById("inspStats").innerHTML = rows.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join("");
     const actions = document.getElementById("inspActions");
     actions.innerHTML = "";
-    const mkBtn = (label, cost, fn, sub) => {
+    const mkBtn = (label, cost, fn, sub, primary) => {
       const b = document.createElement("button");
-      b.className = "ibtn";
+      b.className = "ibtn" + (primary ? " upgrade-primary" : "");
       b.innerHTML = `<span>${label}${sub ? `<span class="isub">${sub}</span>` : ""}</span><span class="icost">${cost}g</span>`;
       b.disabled = this.gold < cost || this.state !== "running";
       b.onclick = fn;
       actions.appendChild(b);
     };
     if (tw.level < MAX_LEVEL) {
-      mkBtn(`Upgrade → Lv ${tw.level + 1}`, upgradeCost(tw.type, tw.level), () => this.upgradeTower(tw, "level"));
+      mkBtn(`Upgrade → Lv ${tw.level + 1}`, upgradeCost(tw.type, tw.level), () => this.upgradeTower(tw, "level"), "Hotkey U", true);
     } else if (!tw.spec && hasSpec(tw.type)) {
-      for (const sp of SPECS[tw.type]) mkBtn(sp.name, specCost(tw.type), () => this.upgradeTower(tw, sp.id), sp.desc);
+      for (const sp of SPECS[tw.type]) mkBtn(sp.name, specCost(tw.type), () => this.upgradeTower(tw, sp.id), sp.desc, true);
     } else {
       const max = document.createElement("div"); max.className = "imax"; max.textContent = "Fully upgraded"; actions.appendChild(max);
     }
@@ -1554,13 +1616,24 @@ class Game {
 
     // towers
     for (const tw of this.towers) this.drawTower(ctx, tw, dt || 0.016);
-    // selected-tower highlight + range
+    // selected-tower highlight + range (classic TD: bright ring + upgrade cue)
     const sel = this.selectedTower;
     if (sel && this.towers.includes(sel)) {
-      ctx.strokeStyle = "rgba(232,227,211,.85)"; ctx.lineWidth = 2;
-      this.round(sel.c * CELL + 3, sel.r * CELL + 3, CELL - 6, CELL - 6, 7); ctx.stroke();
-      if (sel.s.range > 0) { ctx.strokeStyle = "rgba(124,252,138,.35)"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(sel.x, sel.y, sel.s.range, 0, 7); ctx.stroke(); }
-      if (sel.s.aura) { ctx.strokeStyle = "rgba(232,227,211,.22)"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(sel.x, sel.y, sel.s.aura.radius, 0, 7); ctx.stroke(); }
+      ctx.strokeStyle = DECAY.hot; ctx.lineWidth = 2.5;
+      this.round(sel.c * CELL + 2, sel.r * CELL + 2, CELL - 4, CELL - 4, 6); ctx.stroke();
+      ctx.strokeStyle = "rgba(232,227,211,.55)"; ctx.lineWidth = 1;
+      this.round(sel.c * CELL + 5, sel.r * CELL + 5, CELL - 10, CELL - 10, 5); ctx.stroke();
+      if (sel.s.range > 0) { ctx.strokeStyle = "rgba(124,252,138,.4)"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(sel.x, sel.y, sel.s.range, 0, 7); ctx.stroke(); }
+      if (sel.s.aura) { ctx.strokeStyle = "rgba(232,227,211,.25)"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(sel.x, sel.y, sel.s.aura.radius, 0, 7); ctx.stroke(); }
+      // Upgradeable cue — chevron above the pad so players see they can spend
+      const canUp = sel.level < MAX_LEVEL || (!sel.spec && hasSpec(sel.type));
+      if (canUp) {
+        const cy = sel.r * CELL - 4;
+        ctx.fillStyle = DECAY.core;
+        ctx.beginPath();
+        ctx.moveTo(sel.x, cy - 6); ctx.lineTo(sel.x + 7, cy + 2); ctx.lineTo(sel.x - 7, cy + 2);
+        ctx.closePath(); ctx.fill();
+      }
     }
 
     // bullets/beams — the decay ramp carries all "aliveness"; 'lighter' composite
@@ -1738,8 +1811,18 @@ class Game {
       ctx.globalAlpha = 1;
     }
     const tx = tw.c * CELL, ty = tw.r * CELL;
-    if (tw.spec) { ctx.fillStyle = "#fef08a"; ctx.beginPath(); ctx.moveTo(x, ty + 3); ctx.lineTo(x + 5, ty + 8); ctx.lineTo(x, ty + 13); ctx.lineTo(x - 5, ty + 8); ctx.closePath(); ctx.fill(); }
-    else for (let i = 0; i < tw.level; i++) { ctx.fillStyle = "#f8fafc"; ctx.beginPath(); ctx.arc(tx + 9 + i * 7, ty + 8, 2.1, 0, 7); ctx.fill(); }
+    if (tw.spec) {
+      ctx.fillStyle = "#fef08a";
+      ctx.beginPath(); ctx.moveTo(x, ty + 2); ctx.lineTo(x + 6, ty + 8); ctx.lineTo(x, ty + 14); ctx.lineTo(x - 6, ty + 8); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "#0a120a"; ctx.lineWidth = 1; ctx.stroke();
+    } else {
+      for (let i = 0; i < MAX_LEVEL; i++) {
+        const filled = i < tw.level;
+        ctx.fillStyle = filled ? "#f8fafc" : "rgba(232,227,211,.18)";
+        ctx.beginPath(); ctx.arc(tx + 8 + i * 8, ty + 8, 2.6, 0, 7); ctx.fill();
+        if (filled) { ctx.strokeStyle = DECAY.core; ctx.lineWidth = 1; ctx.stroke(); }
+      }
+    }
   }
 
   drawCreep(ctx, en) {
