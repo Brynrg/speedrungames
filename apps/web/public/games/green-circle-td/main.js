@@ -67,8 +67,9 @@ const TOWERS = {
   void:        T({ name: "Void",    key: "v", range: 155, damage: 32, cd: 50, cost: 380, color: "#8b5cf6", dtype: "chaos", desc: "Chaos dmg · ignores armor" }),
 };
 
-// ---- tower progression: linear Lv1→2→3, then a 2-way spec on the attackers
+// ---- tower progression: linear Lv1→2→3, then a 3-way specialization
 const MAX_LEVEL = 3;
+const AUTO_WAVE_DELAY = 2.5; // game-seconds after the last live wave clears before auto-send
 const LVL = [null, { dmg: 1.0, rng: 1.0, cd: 1.0 }, { dmg: 1.7, rng: 1.08, cd: 0.88 }, { dmg: 2.6, rng: 1.16, cd: 0.80 }];
 function scaled(base, level) {
   const m = LVL[level], k = level - 1, s = { ...base };
@@ -83,51 +84,62 @@ function scaled(base, level) {
   if (s.income) s.income = Math.round(s.income * (1 + k * 0.5)); // Lv1: 8g, Lv2: 12g, Lv3: 16g
   return s;
 }
-// each spec takes the Lv3 stat object and returns a specialized copy
+// each spec takes the Lv3 stat object and returns a specialized copy (3 niches per family)
 const SPECS = {
   basic: [
-    { id: "gatling", name: "Gatling", desc: "Rapid pierce stream", mod: (s) => ({ ...s, cd: Math.max(4, Math.round(s.cd * 0.4)), damage: Math.round(s.damage * 0.55), range: Math.round(s.range * 1.1), dtype: "pierce" }) },
-    { id: "cannon", name: "Cannon", desc: "Heavy siege splash", mod: (s) => ({ ...s, splash: 95, damage: Math.round(s.damage * 1.5), cd: Math.round(s.cd * 1.5), dtype: "siege" }) },
+    { id: "gatling", name: "Gatling", desc: "Pierce spray · high RoF", mod: (s) => ({ ...s, cd: Math.max(4, Math.round(s.cd * 0.38)), damage: Math.round(s.damage * 0.5), range: Math.round(s.range * 1.05), dtype: "pierce" }) },
+    { id: "cannon", name: "Cannon", desc: "Siege splash shells", mod: (s) => ({ ...s, splash: 100, damage: Math.round(s.damage * 1.55), cd: Math.round(s.cd * 1.55), dtype: "siege" }) },
+    { id: "bulwark", name: "Bulwark", desc: "Heavy normal punches", mod: (s) => ({ ...s, damage: Math.round(s.damage * 1.85), cd: Math.round(s.cd * 1.25), range: Math.round(s.range * 1.12), dtype: "normal" }) },
   ],
   sniper: [
-    { id: "railgun", name: "Railgun", desc: "Massive single hit", mod: (s) => ({ ...s, damage: Math.round(s.damage * 2.0), range: Math.round(s.range * 1.25), cd: Math.round(s.cd * 1.5) }) },
-    { id: "marksman", name: "Marksman", desc: "Fires at 3 targets", mod: (s) => ({ ...s, multishot: 3, damage: Math.round(s.damage * 0.7), cd: Math.max(4, Math.round(s.cd * 0.85)) }) },
+    { id: "railgun", name: "Railgun", desc: "Massive single pierce", mod: (s) => ({ ...s, damage: Math.round(s.damage * 2.15), range: Math.round(s.range * 1.3), cd: Math.round(s.cd * 1.65) }) },
+    { id: "marksman", name: "Marksman", desc: "3-target volley", mod: (s) => ({ ...s, multishot: 3, damage: Math.round(s.damage * 0.65), cd: Math.max(4, Math.round(s.cd * 0.8)) }) },
+    { id: "falcon", name: "Falcon", desc: "AA hunter · faster fire · ✈", mod: (s) => ({ ...s, canAir: true, damage: Math.round(s.damage * 1.15), cd: Math.max(4, Math.round(s.cd * 0.7)), range: Math.round(s.range * 1.1) }) },
   ],
   rapid: [
-    { id: "tempest", name: "Tempest", desc: "Blistering multi-shot · ✈", mod: (s) => ({ ...s, multishot: 2, cd: Math.max(3, Math.round(s.cd * 0.7)), canAir: true }) },
-    { id: "shredder", name: "Shredder", desc: "Siege AA shred · ✈", mod: (s) => ({ ...s, dtype: "siege", damage: Math.round(s.damage * 1.6), cd: Math.round(s.cd * 1.2), canAir: true }) },
+    { id: "tempest", name: "Tempest", desc: "Dual-stream AA · ✈", mod: (s) => ({ ...s, multishot: 2, cd: Math.max(3, Math.round(s.cd * 0.65)), canAir: true }) },
+    { id: "shredder", name: "Shredder", desc: "Siege AA shred · ✈", mod: (s) => ({ ...s, dtype: "siege", damage: Math.round(s.damage * 1.7), cd: Math.round(s.cd * 1.25), canAir: true }) },
+    { id: "needle", name: "Needle", desc: "Ultra-fast pierce · ✈", mod: (s) => ({ ...s, cd: Math.max(2, Math.round(s.cd * 0.45)), damage: Math.round(s.damage * 0.75), range: Math.round(s.range * 1.2), canAir: true, dtype: "pierce" }) },
   ],
   splash: [
-    { id: "mortar", name: "Mortar", desc: "Long-range artillery", mod: (s) => ({ ...s, splash: Math.round(s.splash * 1.6), range: Math.round(s.range * 1.3), damage: Math.round(s.damage * 1.1) }) },
-    { id: "inferno", name: "Inferno", desc: "Splash that ignites", mod: (s) => ({ ...s, poison: 9, poisonDur: 150 }) },
+    { id: "mortar", name: "Mortar", desc: "Long-range artillery", mod: (s) => ({ ...s, splash: Math.round(s.splash * 1.55), range: Math.round(s.range * 1.4), damage: Math.round(s.damage * 1.15), cd: Math.round(s.cd * 1.15) }) },
+    { id: "inferno", name: "Inferno", desc: "Napalm DoT splash", mod: (s) => ({ ...s, poison: 10, poisonDur: 160, damage: Math.round(s.damage * 0.9) }) },
+    { id: "cluster", name: "Cluster", desc: "Wider softer blast", mod: (s) => ({ ...s, splash: Math.round(s.splash * 2.0), damage: Math.round(s.damage * 0.75), cd: Math.max(4, Math.round(s.cd * 0.85)) }) },
   ],
   frost: [
-    { id: "glacier", name: "Glacier", desc: "Slows a whole area", mod: (s) => ({ ...s, splash: 120, slow: 0.62 }) },
-    { id: "shatter", name: "Shatter", desc: "Heavy magic burst", mod: (s) => ({ ...s, damage: Math.round(s.damage * 2.4), slow: 0.45 }) },
+    { id: "glacier", name: "Glacier", desc: "AoE deep chill · ✈", mod: (s) => ({ ...s, splash: 130, slow: 0.65, slowDur: Math.round(s.slowDur * 1.2) }) },
+    { id: "shatter", name: "Shatter", desc: "Heavy magic spike", mod: (s) => ({ ...s, damage: Math.round(s.damage * 2.5), slow: 0.4, cd: Math.round(s.cd * 1.2) }) },
+    { id: "rime", name: "Rime", desc: "Longer freeze · less dmg · ✈", mod: (s) => ({ ...s, slow: 0.7, slowDur: Math.round(s.slowDur * 1.8), damage: Math.round(s.damage * 0.7), range: Math.round(s.range * 1.15) }) },
   ],
   poison: [
-    { id: "plague", name: "Plague", desc: "Poison spreads on hit", mod: (s) => ({ ...s, splash: 110 }) },
-    { id: "venom", name: "Venom", desc: "Potent fast toxin", mod: (s) => ({ ...s, poison: +(s.poison * 2.4).toFixed(1), poisonDur: Math.round(s.poisonDur * 1.3) }) },
+    { id: "plague", name: "Plague", desc: "Contagion splash", mod: (s) => ({ ...s, splash: 120, poison: +(s.poison * 1.2).toFixed(1) }) },
+    { id: "venom", name: "Venom", desc: "Potent fast toxin", mod: (s) => ({ ...s, poison: +(s.poison * 2.5).toFixed(1), poisonDur: Math.round(s.poisonDur * 1.25), cd: Math.max(4, Math.round(s.cd * 0.85)) }) },
+    { id: "blight", name: "Blight", desc: "Lingering cloud DoT", mod: (s) => ({ ...s, poison: +(s.poison * 1.4).toFixed(1), poisonDur: Math.round(s.poisonDur * 2.0), splash: 70 }) },
   ],
   void: [
-    { id: "obliterator", name: "Obliterator", desc: "Massive chaos burst",  mod: (s) => ({ ...s, damage: Math.round(s.damage * 2.4), cd: Math.round(s.cd * 1.6) }) },
-    { id: "voidstorm",   name: "Voidstorm",   desc: "Rapid chaos barrage",  mod: (s) => ({ ...s, cd: Math.max(3, Math.round(s.cd * 0.38)), damage: Math.round(s.damage * 0.58), multishot: 2 }) },
+    { id: "obliterator", name: "Obliterator", desc: "Massive chaos burst", mod: (s) => ({ ...s, damage: Math.round(s.damage * 2.5), cd: Math.round(s.cd * 1.7) }) },
+    { id: "voidstorm", name: "Voidstorm", desc: "Rapid chaos barrage", mod: (s) => ({ ...s, cd: Math.max(3, Math.round(s.cd * 0.36)), damage: Math.round(s.damage * 0.55), multishot: 2 }) },
+    { id: "rift", name: "Rift", desc: "Chaos splash nova", mod: (s) => ({ ...s, splash: 100, damage: Math.round(s.damage * 1.35), cd: Math.round(s.cd * 1.15) }) },
   ],
   detector: [
-    { id: "sentinel", name: "Sentinel", desc: "Longer detect + punch", mod: (s) => ({ ...s, range: Math.round(s.range * 1.35), detect: true, damage: Math.round(s.damage * 1.4) }) },
-    { id: "pulse", name: "Pulse", desc: "Detect + splash ping", mod: (s) => ({ ...s, splash: 90, damage: Math.round(s.damage * 1.2), detect: true }) },
+    { id: "sentinel", name: "Sentinel", desc: "Long detect + punch", mod: (s) => ({ ...s, range: Math.round(s.range * 1.4), detect: true, damage: Math.round(s.damage * 1.5) }) },
+    { id: "pulse", name: "Pulse", desc: "Detect + splash ping", mod: (s) => ({ ...s, splash: 95, damage: Math.round(s.damage * 1.25), detect: true }) },
+    { id: "oracle", name: "Oracle", desc: "Huge radius · soft hits", mod: (s) => ({ ...s, range: Math.round(s.range * 1.7), detect: true, damage: Math.round(s.damage * 0.85), cd: Math.max(4, Math.round(s.cd * 0.75)) }) },
   ],
   damage_aura: [
-    { id: "warhorn", name: "Warhorn", desc: "Stronger wider dmg aura", mod: (s) => ({ ...s, aura: { ...s.aura, value: +(s.aura.value * 1.5).toFixed(3), radius: Math.round(s.aura.radius * 1.2) } }) },
-    { id: "overcharge", name: "Overcharge", desc: "Aura + light shots", mod: (s) => ({ ...s, aura: { ...s.aura, value: +(s.aura.value * 1.25).toFixed(3) }, damage: 12, cd: 40, dtype: "normal", range: Math.round((s.aura?.radius || 160) * 0.7) }) },
+    { id: "warhorn", name: "Warhorn", desc: "Stronger wider dmg aura", mod: (s) => ({ ...s, aura: { ...s.aura, value: +(s.aura.value * 1.55).toFixed(3), radius: Math.round(s.aura.radius * 1.25) } }) },
+    { id: "overcharge", name: "Overcharge", desc: "Aura + light shots", mod: (s) => ({ ...s, aura: { ...s.aura, value: +(s.aura.value * 1.25).toFixed(3) }, damage: 14, cd: 36, dtype: "normal", range: Math.round((s.aura?.radius || 160) * 0.7) }) },
+    { id: "bloodlust", name: "Bloodlust", desc: "Tight high-fury aura", mod: (s) => ({ ...s, aura: { type: "dmg", radius: Math.round(s.aura.radius * 0.75), value: Math.min(0.45, +(s.aura.value * 1.75).toFixed(3)) } }) },
   ],
   speed_aura: [
-    { id: "chrono", name: "Chrono", desc: "Stronger wider speed aura", mod: (s) => ({ ...s, aura: { ...s.aura, value: +(s.aura.value * 1.45).toFixed(3), radius: Math.round(s.aura.radius * 1.15) } }) },
-    { id: "haste", name: "Haste", desc: "Tighter, hotter haste", mod: (s) => ({ ...s, aura: { type: "cd", radius: Math.round(s.aura.radius * 0.9), value: Math.min(0.35, +(s.aura.value * 1.2).toFixed(3)) } }) },
+    { id: "chrono", name: "Chrono", desc: "Stronger wider haste", mod: (s) => ({ ...s, aura: { ...s.aura, value: +(s.aura.value * 1.5).toFixed(3), radius: Math.round(s.aura.radius * 1.2) } }) },
+    { id: "haste", name: "Haste", desc: "Tighter hotter haste", mod: (s) => ({ ...s, aura: { type: "cd", radius: Math.round(s.aura.radius * 0.85), value: Math.min(0.38, +(s.aura.value * 1.35).toFixed(3)) } }) },
+    { id: "momentum", name: "Momentum", desc: "Haste + light AA ping · ✈", mod: (s) => ({ ...s, aura: { ...s.aura, value: +(s.aura.value * 1.2).toFixed(3) }, damage: 8, cd: 28, dtype: "pierce", range: Math.round((s.aura?.radius || 150) * 0.65), canAir: true }) },
   ],
   mint: [
-    { id: "vault", name: "Vault", desc: "Big wave income", mod: (s) => ({ ...s, income: Math.round(s.income * 1.75) }) },
-    { id: "bourse", name: "Bourse", desc: "Income + light defense", mod: (s) => ({ ...s, income: Math.round(s.income * 1.25), range: 140, damage: 10, cd: 36, dtype: "normal" }) },
+    { id: "vault", name: "Vault", desc: "Big wave income", mod: (s) => ({ ...s, income: Math.round(s.income * 1.85) }) },
+    { id: "bourse", name: "Bourse", desc: "Income + light defense", mod: (s) => ({ ...s, income: Math.round(s.income * 1.3), range: 145, damage: 12, cd: 32, dtype: "normal" }) },
+    { id: "syndicate", name: "Syndicate", desc: "Income + pierce watch", mod: (s) => ({ ...s, income: Math.round(s.income * 1.4), range: 155, damage: 9, cd: 28, dtype: "pierce" }) },
   ],
 };
 function statsFor(type, level, spec) {
@@ -137,7 +149,7 @@ function statsFor(type, level, spec) {
 }
 const hasSpec = (type) => !!SPECS[type];
 const upgradeCost = (type, level) => Math.round(TOWERS[type].cost * (level === 1 ? 0.8 : 1.3)); // level → level+1
-const specCost = (type) => Math.round(TOWERS[type].cost * 1.8);
+const specCost = (type) => Math.round(TOWERS[type].cost * 2.0);
 
 const WAVES = [
   { id: 1, name: "First Light", hint: "Light infantry. Build any tower.", reward: 50, spawns: [{ e: "Normal", n: 8, iv: 0.7, at: 0 }] },
@@ -382,6 +394,7 @@ class Game {
     this.waves = shuffleWaveOrder();
     this.spawnQueue = [];
     this.activeWaves = [];
+    this.autoWaveAt = null; // gameTime when auto-start fires (null = none pending)
     this.state = "ready";
     this.started = false;
     this.runMs = 0;
@@ -958,7 +971,22 @@ class Game {
     if (tw.level < MAX_LEVEL) {
       mkBtn(`Upgrade → Lv ${tw.level + 1}`, upgradeCost(tw.type, tw.level), () => this.upgradeTower(tw, "level"), "Hotkey U", true);
     } else if (!tw.spec && hasSpec(tw.type)) {
-      for (const sp of SPECS[tw.type]) mkBtn(sp.name, specCost(tw.type), () => this.upgradeTower(tw, sp.id), sp.desc, true);
+      const label = document.createElement("div");
+      label.className = "ispec-label";
+      label.textContent = "Specialize — pick one path";
+      actions.appendChild(label);
+      const grid = document.createElement("div");
+      grid.className = "ispec-grid";
+      actions.appendChild(grid);
+      const mkSpec = (label, cost, fn, sub, primary) => {
+        const b = document.createElement("button");
+        b.className = "ibtn" + (primary ? " upgrade-primary" : "");
+        b.innerHTML = `<span>${label}${sub ? `<span class="isub">${sub}</span>` : ""}</span><span class="icost">${cost}g</span>`;
+        b.disabled = this.gold < cost || this.state !== "running";
+        b.onclick = fn;
+        grid.appendChild(b);
+      };
+      for (const sp of SPECS[tw.type]) mkSpec(sp.name, specCost(tw.type), () => this.upgradeTower(tw, sp.id), sp.desc, true);
     } else {
       const max = document.createElement("div"); max.className = "imax"; max.textContent = "Fully upgraded"; actions.appendChild(max);
     }
@@ -1016,10 +1044,11 @@ class Game {
     }
   }
 
-  // ---- waves (multiple may run at once — you can send the next early)
+  // ---- waves (multiple may run at once — Space / Send still stacks early)
   startNextWave() {
     if (this.state !== "running" || this.waveIndex >= WAVES.length) return;
     if (this.net) { this.net.send({ t: "wave" }); return; }
+    this.autoWaveAt = null; // manual or auto start cancels a pending auto-send
     // Aggressive-stacking bonus: +15g for sending while a wave is still live
     const stackBonus = this.activeWaves.length > 0 ? 15 : 0;
     if (stackBonus) this.players[this.activePlayer].gold += stackBonus;
@@ -1165,15 +1194,26 @@ class Game {
 
       const wavePanel = document.getElementById("wavePanel");
       if (wavePanel) wavePanel.classList.remove("boss-wave");
-      if (this.waveIndex >= WAVES.length && this.activeWaves.length === 0 && this.lives > 0) { this.setWaveText("All clear", "Final wave done!"); this.setArmorPill([]); this.end(true); return; }
+      if (this.waveIndex >= WAVES.length && this.activeWaves.length === 0 && this.lives > 0) { this.autoWaveAt = null; this.setWaveText("All clear", "Final wave done!"); this.setArmorPill([]); this.end(true); return; }
       const nextName = this.waves[this.waveIndex]?.name ?? "";
+      // Auto-advance only when the battlefield has no remaining live waves (stacking still works via Space)
+      const willAuto = this.activeWaves.length === 0 && this.waveIndex < WAVES.length;
+      if (willAuto) this.autoWaveAt = this.gameTime + AUTO_WAVE_DELAY;
+      else if (this.activeWaves.length > 0) this.autoWaveAt = null;
       const clearHint = this.waveIndex >= WAVES.length
         ? `+${reward}g${extStr}. Last waves still in flight.`
-        : `+${reward}g${extStr}. Next: ${nextName}${benchMsg}`;
+        : willAuto
+          ? `+${reward}g${extStr}. Next: ${nextName} in ${AUTO_WAVE_DELAY}s · Space early${benchMsg}`
+          : `+${reward}g${extStr}. Next: ${nextName} · ${this.activeWaves.length} still live${benchMsg}`;
       this.setWaveText(`Wave ${last.id} cleared`, clearHint);
       this.setArmorPill([]);
       this.shellEvent("clear");
       this.refreshButtons();
+    }
+    if (this.autoWaveAt != null && this.gameTime >= this.autoWaveAt) {
+      this.autoWaveAt = null;
+      if (this.state === "running" && this.activeWaves.length === 0 && this.waveIndex < WAVES.length)
+        this.startNextWave();
     }
     if (this.lives <= 0) this.end(false);
     if (this._shake && this._shake.t > 0) { this._shake.t -= dt; if (this._shake.t <= 0) this._shake = null; }
