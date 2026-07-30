@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Green Circle TD</title>
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -20,6 +20,11 @@
           <button class="seg-btn" data-speed="2" aria-pressed="false">2×</button>
           <button class="seg-btn" data-speed="3" aria-pressed="false">3×</button>
         </div>
+        <div class="seg" id="zoomSeg" role="group" aria-label="Map zoom">
+          <button class="seg-btn" id="zoomOutBtn" title="Zoom out">−</button>
+          <button class="seg-btn" id="zoomResetBtn" title="Reset view">⊙</button>
+          <button class="seg-btn" id="zoomInBtn" title="Zoom in">+</button>
+        </div>
         <button id="pauseBtn" class="ctrlbtn" title="Pause / resume (P)">Pause</button>
         <button id="restartBtn" class="ctrlbtn" title="Restart the game">Restart</button>
       </div>
@@ -29,42 +34,45 @@
 
     <div id="main">
       <aside id="sidebar">
-        <div class="panel">
-          <h3>Towers</h3>
-          <div id="towerButtons" class="towerlist"></div>
-        </div>
         <div class="panel" id="wavePanel">
           <h3 id="waveName">Ready</h3>
           <p id="waveHint" class="hint">Build towers, then start the first wave.</p>
           <div id="armorPill" class="armor-pill hidden"></div>
           <button id="startWave" class="primary">Start wave ▶</button>
         </div>
+        <div class="panel">
+          <h3>Towers</h3>
+          <div id="towerButtons" class="towerlist"></div>
+        </div>
         <div class="panel hidden" id="playerPanel">
           <h3>Co-op</h3>
           <div id="playerGolds"></div>
           <button id="nextPlayerBtn" class="ctrlbtn" style="width:100%;margin-top:6px" title="Switch active builder (Tab)">Next Player (Tab)</button>
         </div>
-        <div class="panel inspector hidden" id="inspector">
-          <h3 id="inspName">Tower</h3>
-          <div class="inspstats" id="inspStats"></div>
-          <div class="inspactions" id="inspActions"></div>
-          <p class="hint">Click another tower to inspect it · Esc to close</p>
-        </div>
-        <div class="panel help">
-          <h3>Controls</h3>
-          <ul>
-            <li><b>Click / tap</b> a tile to build · a <b>tower</b> to upgrade · <b>1–9, 0, v</b> pick tower</li>
-            <li><b>Drag</b> pan · <b>Wheel / pinch</b> zoom · <b>WASD/↑↓←→</b> scroll</li>
-            <li><b>Right-click / long-press</b> sell · <b>Space</b> send wave · <b>P</b> pause · <b>Esc</b> deselect</li>
-            <li><b>Tab</b> next player (local co-op) · Sniper/Rapid/Frost (+Shredder/Tempest) are anti-air · <b>v</b> Void (chaos)</li>
-            <li><b>Online</b>: create a room, share the 4-letter code — up to 4 players, shared lives</li>
-          </ul>
-          <p class="hint">Creeps circle in from all four corners to the center. Send waves early to stack them. Match damage type to armor. Fixed Path mode disables fork variance for speedruns.</p>
+        <div class="panel help collapsed" id="helpPanel">
+          <button type="button" class="helptoggle" id="helpToggle" aria-expanded="false">Controls / Help</button>
+          <div class="helpbody">
+            <ul>
+              <li><b>Click</b> empty tile to build · <b>click a tower</b> to open upgrade panel</li>
+              <li><b>U</b> upgrade selected · <b>Drag</b> pan map · <b>+/−</b> or wheel zoom · <b>WASD</b> scroll</li>
+              <li><b>Right-click</b> sell · <b>Space</b> send wave · <b>P</b> pause · <b>Esc</b> deselect</li>
+              <li>Sniper / Rapid / Frost (+ Tempest / Shredder) hit air · <b>v</b> Void (chaos)</li>
+            </ul>
+          </div>
         </div>
       </aside>
 
       <div id="stage">
         <canvas id="gameCanvas"></canvas>
+        <div id="towerDock" class="tower-dock hidden" aria-live="polite">
+          <div class="td-head">
+            <h3 id="inspName">Tower</h3>
+            <button type="button" class="td-close" id="inspClose" title="Close (Esc)">✕</button>
+          </div>
+          <div class="inspstats" id="inspStats"></div>
+          <div class="inspactions" id="inspActions"></div>
+          <p class="hint td-hint">U upgrade · Esc close · Right-click sell</p>
+        </div>
         <div id="overlay" class="overlay hidden"></div>
       </div>
     </div>
