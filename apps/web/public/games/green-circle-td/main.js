@@ -11,27 +11,22 @@
  * (wheel) the field, while the top bar + sidebar stay fixed. Balance tables and
  * path geometry must stay in sync with Brynrg/gctd-server (sim.js).
  *
- * VISUAL IDENTITY — "Sector Scope": a Cold War PPI-radar plot. One green
- * "decay" ramp carries ALL aliveness (creeps, the sweep, beams/tracers) —
- * nothing else is filled with it. Everything static (bezels, tower housings,
- * HUD chrome) is brushed steel + sparse brass, cached once and blitted, never
- * redrawn per frame. Player identity (4) is ring/outline/corner-tick only,
- * never a fill. Threat-state (2, exclusive) marks armored/warning vs
- * boss/critical tiers by shape + pulse rate, not by adding more hue. See the
- * palette block below for the full ramp/const definitions.
+ * VISUAL IDENTITY — "Iron Rain" (Red Rising / Golden Son inspired): Martian
+ * dust & rust trenches, Gold-caste pulseArmor towers, Color-hierarchy units
+ * (Red miners → Gray legion → Gold Peerless → Obsidian bosses). Alive FX use
+ * a gold/ember ramp (Society power), never candy neon. HUD stays tactical —
+ * brass + iron chrome, scarlet danger, gold timer.
  */
 
-// ----------------------------------------------------------------- palette (Sector Scope)
-// Tower-type hues (TOWERS[].color further down) are the pre-existing
-// gameplay legend for the 11 tower kinds and are kept as-is — they are not
-// part of the "6 authored hues" collision this palette resolves (that
-// collision was player-identity vs. enemy-threat colors in the source
-// pitches). Everything below IS new/authored for this pass.
-const VOID_INNER = "#060a06", VOID_OUTER = "#0a120a";                 // world base, radial, cached once
-const DECAY = { hot: "#cfffb8", core: "#7cfc8a", mid: "#3d9950", after: "#1c3d22" }; // the one "alive" ramp
-const BEZEL = "#3a4238", BRASS = "#8a6a3a";                            // static chrome: steel + sparse rivets
-const THREAT = { warn: "#d98a33", crit: "#a13a2e" };                   // armored/warning · boss/critical — exclusive, never a player color
-const CALLSIGNS = ["ALPHA", "BRAVO", "CHARLIE", "DELTA"];              // corner call-signs (co-op zones / lobby)
+// ----------------------------------------------------------------- palette (Iron Rain — Red Rising / Golden Son)
+// Tower-type hues remain the gameplay legend (11 distinct fills). World/FX
+// chrome below is authored for Mars + Gold Society; enemy `color` is render-only.
+const VOID_INNER = "#140806", VOID_OUTER = "#0a0504";                 // Martian night / deep shaft
+const DECAY = { hot: "#ffe9a8", core: "#e8c547", mid: "#a67c2a", after: "#5c3d14" }; // Gold / ember "alive" ramp
+const BEZEL = "#4a3a32", BRASS = "#c9a35c";                            // oxidized iron + Peerless gold
+const RUST = "#8b3a2f", DUST = "#6b4e3d", SCARLET = "#c41e3a";         // Mars surface accents
+const THREAT = { warn: "#d98a33", crit: "#a13a2e" };                   // armored/warning · boss/critical
+const CALLSIGNS = ["HOWL", "GOLD", "IRON", "DUST"];                    // corner houses / co-op zones
 
 // ----------------------------------------------------------------- data (ported)
 const ARMOR_MATRIX = {
@@ -42,36 +37,34 @@ const ARMOR_MATRIX = {
   chaos:  { light: 1.0, medium: 1.0, heavy: 1.0, fortified: 1.0, hero: 1.0 }, // WC3 Chaos — ignores all armor
 };
 
-// Enemy `color` is a render-only tier tag (base decay ramp vs. one of the two
-// threat accents) — it carries no balance weight, so changing it needs no
-// gctd-server changes. Archetypes stay legible via the unchanged 6-shape
-// vocabulary in drawCreep, not via 9 different hues.
+// Enemy `color` = Color caste (render-only). Archetypes stay legible via shapes
+// in drawCreep; hues echo Society hierarchy from Red Rising.
 const ENEMIES = {
-  Normal:    { color: DECAY.core,  count_bonus: 0,  health_mult: 1.0,  speed_mult: 1.0,  bounty_bonus: 0,  flags: [], armor: "medium" },
-  Swift:     { color: DECAY.core,  count_bonus: 1,  health_mult: 0.85, speed_mult: 1.34, bounty_bonus: 1,  flags: [], armor: "light" },
-  Armored:   { color: THREAT.warn, count_bonus: -1, health_mult: 1.75, speed_mult: 0.82, bounty_bonus: 5,  flags: [], armor: "heavy" },
-  Swarm:     { color: DECAY.core,  count_bonus: 5,  health_mult: 0.62, speed_mult: 1.08, bounty_bonus: 0,  flags: [], armor: "light" },
-  Air:       { color: DECAY.core,  count_bonus: 0,  health_mult: 0.95, speed_mult: 1.18, bounty_bonus: 3,  flags: ["air"], armor: "light" },
-  Immune:    { color: THREAT.warn, count_bonus: -1, health_mult: 1.25, speed_mult: 0.95, bounty_bonus: 4,  flags: ["immune"], armor: "fortified" },
-  Invisible: { color: DECAY.core,  count_bonus: 0,  health_mult: 1.05, speed_mult: 1.04, bounty_bonus: 6,  flags: ["invisible"], armor: "medium" },
-  Hero:      { color: THREAT.crit, count_bonus: -3, health_mult: 2.65, speed_mult: 0.82, bounty_bonus: 12, flags: ["hero"], armor: "hero" },
-  Boss:      { color: THREAT.crit, count_bonus: -4, health_mult: 4.2,  speed_mult: 0.72, bounty_bonus: 20, flags: ["boss", "immune"], armor: "fortified" },
+  Normal:    { color: "#c41e3a", count_bonus: 0,  health_mult: 1.0,  speed_mult: 1.0,  bounty_bonus: 0,  flags: [], armor: "medium" },      // Red
+  Swift:     { color: "#e85d04", count_bonus: 1,  health_mult: 0.85, speed_mult: 1.34, bounty_bonus: 1,  flags: [], armor: "light" },       // Orange
+  Armored:   { color: "#8a9299", count_bonus: -1, health_mult: 1.75, speed_mult: 0.82, bounty_bonus: 5,  flags: [], armor: "heavy" },       // Gray
+  Swarm:     { color: "#9a3412", count_bonus: 5,  health_mult: 0.62, speed_mult: 1.08, bounty_bonus: 0,  flags: [], armor: "light" },       // Brown
+  Air:       { color: "#3b82c4", count_bonus: 0,  health_mult: 0.95, speed_mult: 1.18, bounty_bonus: 3,  flags: ["air"], armor: "light" }, // Blue
+  Immune:    { color: "#c8cdd4", count_bonus: -1, health_mult: 1.25, speed_mult: 0.95, bounty_bonus: 4,  flags: ["immune"], armor: "fortified" }, // Silver/White
+  Invisible: { color: "#db7093", count_bonus: 0,  health_mult: 1.05, speed_mult: 1.04, bounty_bonus: 6,  flags: ["invisible"], armor: "medium" }, // Pink
+  Hero:      { color: "#e8c547", count_bonus: -3, health_mult: 2.65, speed_mult: 0.82, bounty_bonus: 12, flags: ["hero"], armor: "hero" },  // Gold
+  Boss:      { color: "#2a2428", count_bonus: -4, health_mult: 4.2,  speed_mult: 0.72, bounty_bonus: 20, flags: ["boss", "immune"], armor: "fortified" }, // Obsidian
 };
 
 const RANGE_SCALE = 0.78;
 const T = (o) => ({ ...o, range: (o.range || 0) * RANGE_SCALE });
 const TOWERS = {
-  basic:    T({ name: "Basic",   key: "1", range: 200, damage: 25, cd: 30, cost: 100, color: "rgb(42,178,84)",  dtype: "normal", desc: "Normal dmg, cheap" }),
-  sniper:   T({ name: "Sniper",  key: "2", range: 350, damage: 75, cd: 90, cost: 200, color: "rgb(64,215,255)", dtype: "pierce", canAir: true, desc: "Long-range pierce · ✈" }),
-  rapid:    T({ name: "Rapid",   key: "3", range: 120, damage: 10, cd: 10, cost: 150, color: "rgb(255,146,41)", dtype: "pierce", canAir: true, desc: "Fast pierce · ✈" }),
-  splash:   T({ name: "Splash",  key: "4", range: 180, damage: 40, cd: 60, cost: 180, color: "rgb(178,92,255)", dtype: "siege", splash: 80, desc: "Siege AoE" }),
-  frost:    T({ name: "Frost",   key: "5", range: 175, damage: 14, cd: 34, cost: 165, color: "rgb(102,185,255)",dtype: "magic", slow: 0.55, slowDur: 95, canAir: true, desc: "Magic · slows 55% · ✈" }),
-  poison:   T({ name: "Poison",  key: "6", range: 185, damage: 12, cd: 36, cost: 145, color: "rgb(100,224,66)", dtype: "magic", poison: 4, poisonDur: 140, desc: "Magic + poison DoT" }),
-  detector: T({ name: "Detector",key: "7", range: 230, damage: 8,  cd: 24, cost: 125, color: "rgb(255,214,78)", dtype: "normal", detect: true, desc: "Reveals invisible" }),
-  damage_aura: T({ name: "Dmg Aura", key: "8", range: 0, damage: 0, cd: 0, cost: 220, color: "rgb(220,70,70)",   dtype: null, aura: { type: "dmg", radius: 160, value: 0.20 }, desc: "+20% dmg nearby" }),
-  speed_aura:  T({ name: "Spd Aura", key: "9", range: 0, damage: 0, cd: 0, cost: 200, color: "rgb(220,200,70)",  dtype: null, aura: { type: "cd", radius: 150, value: 0.15 }, desc: "-15% cooldown nearby" }),
-  mint:        T({ name: "Mint",    key: "0", range: 0, damage: 0, cd: 0, cost: 150, color: "rgb(253,224,71)", dtype: null, income: 8, desc: "+8g per wave cleared" }),
-  void:        T({ name: "Void",    key: "v", range: 155, damage: 32, cd: 50, cost: 380, color: "rgb(192,85,255)", dtype: "chaos", desc: "Chaos dmg · ignores armor" }),
+  basic:    T({ name: "Basic",   key: "1", range: 200, damage: 25, cd: 30, cost: 100, color: "#6b8f71",  dtype: "normal", desc: "Normal dmg, cheap" }),
+  sniper:   T({ name: "Sniper",  key: "2", range: 350, damage: 75, cd: 90, cost: 200, color: "#5eb0d4", dtype: "pierce", canAir: true, desc: "Long-range pierce · ✈" }),
+  rapid:    T({ name: "Rapid",   key: "3", range: 120, damage: 10, cd: 10, cost: 150, color: "#e07a3a", dtype: "pierce", canAir: true, desc: "Fast pierce · ✈" }),
+  splash:   T({ name: "Splash",  key: "4", range: 180, damage: 40, cd: 60, cost: 180, color: "#9b6bb8", dtype: "siege", splash: 80, desc: "Siege AoE" }),
+  frost:    T({ name: "Frost",   key: "5", range: 175, damage: 14, cd: 34, cost: 165, color: "#7eb6d9",dtype: "magic", slow: 0.55, slowDur: 95, canAir: true, desc: "Magic · slows 55% · ✈" }),
+  poison:   T({ name: "Poison",  key: "6", range: 185, damage: 12, cd: 36, cost: 145, color: "#6aab45", dtype: "magic", poison: 4, poisonDur: 140, desc: "Magic + poison DoT" }),
+  detector: T({ name: "Detector",key: "7", range: 230, damage: 8,  cd: 24, cost: 125, color: "#e8c547", dtype: "normal", detect: true, desc: "Reveals invisible" }),
+  damage_aura: T({ name: "Dmg Aura", key: "8", range: 0, damage: 0, cd: 0, cost: 220, color: "#c41e3a",   dtype: null, aura: { type: "dmg", radius: 160, value: 0.20 }, desc: "+20% dmg nearby" }),
+  speed_aura:  T({ name: "Spd Aura", key: "9", range: 0, damage: 0, cd: 0, cost: 200, color: "#d4a84b",  dtype: null, aura: { type: "cd", radius: 150, value: 0.15 }, desc: "-15% cooldown nearby" }),
+  mint:        T({ name: "Mint",    key: "0", range: 0, damage: 0, cd: 0, cost: 150, color: "#f0d060", dtype: null, income: 8, desc: "+8g per wave cleared" }),
+  void:        T({ name: "Void",    key: "v", range: 155, damage: 32, cd: 50, cost: 380, color: "#8b5cf6", dtype: "chaos", desc: "Chaos dmg · ignores armor" }),
 };
 
 // ---- tower progression: linear Lv1→2→3, then a 2-way spec on the attackers
@@ -310,7 +303,7 @@ const savePB = (ms) => { try { localStorage.setItem(PB_KEY, String(ms)); } catch
 
 // ----------------------------------------------------------------- multiplayer
 // Player identity — ring/outline/corner-tick ONLY, never a fill (see palette).
-const PLAYER_COLORS = ["#e8e3d3", "#4a6b8a", "#8a7ba3", "#5c8a72"]; // chalk · china-blue · muted violet · muted sage
+const PLAYER_COLORS = ["#e8e3d3", "#5a7a9a", "#9a7bb0", "#6a9a7a"]; // chalk · china-blue · muted violet · muted sage
 function cellOwner(c, r, numPlayers) {
   if (numPlayers <= 1) return 0;
   const half = GRID / 2;
@@ -1360,43 +1353,57 @@ class Game {
     requestAnimationFrame(() => this.loop());
   }
 
-  // Everything static (world-border range rings, degree-tick bezel + numerals,
-  // the spiral-path groove+core, spawn/landmark ticks, zone-divider geometry)
-  // is rendered ONCE here into a world-space offscreen canvas and blitted
-  // every frame in draw() — never recomputed per frame.
+  // Martian arena: dust field, rust trenches, Gold Society pit, Iron Rain pads.
+  // Cached once into a world-space offscreen canvas and blitted every frame.
   buildStaticLayer() {
     const cv = this.staticLayer;
     cv.width = WORLD; cv.height = WORLD;
     const g = cv.getContext("2d");
     g.clearRect(0, 0, WORLD, WORLD);
 
-    // void base — radial gradient, drawn once per rebuild, not per frame
-    const vg = g.createRadialGradient(CENTER.x, CENTER.y, 0, CENTER.x, CENTER.y, WORLD * 0.8);
-    vg.addColorStop(0, VOID_INNER); vg.addColorStop(1, VOID_OUTER);
+    // Martian night — warm void radial
+    const vg = g.createRadialGradient(CENTER.x, CENTER.y, 0, CENTER.x, CENTER.y, WORLD * 0.85);
+    vg.addColorStop(0, "#1c0e0a"); vg.addColorStop(0.45, VOID_INNER); vg.addColorStop(1, VOID_OUTER);
     g.fillStyle = vg; g.fillRect(0, 0, WORLD, WORLD);
 
-    // PPI range rings — concentric distance rings, brass/steel, low alpha
+    // Dust / regolith speckles (seeded, stable)
+    let dustSeed = 0xC0FFEE ^ (this.seed || 1);
+    const dustRand = () => { dustSeed |= 0; dustSeed = dustSeed + 0x6D2B79F5 | 0; let t = Math.imul(dustSeed ^ dustSeed >>> 15, 1 | dustSeed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+    for (let i = 0; i < 900; i++) {
+      const x = dustRand() * WORLD, y = dustRand() * WORLD, a = 0.04 + dustRand() * 0.1;
+      g.fillStyle = dustRand() > 0.7 ? `rgba(201,163,92,${a})` : `rgba(107,78,61,${a + 0.05})`;
+      g.fillRect(x, y, 1 + (dustRand() > 0.85 ? 1 : 0), 1);
+    }
+    // Soft crater scars
+    for (let i = 0; i < 18; i++) {
+      const x = 80 + dustRand() * (WORLD - 160), y = 80 + dustRand() * (WORLD - 160);
+      const r = 18 + dustRand() * 55;
+      g.strokeStyle = `rgba(139,58,47,${0.08 + dustRand() * 0.1})`; g.lineWidth = 2;
+      g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.stroke();
+    }
+
+    // Concentric range rings — oxidized iron, faint gold numerals
     const ringCount = 5, maxR = WORLD * 0.7;
     g.lineWidth = 1; g.strokeStyle = BEZEL;
     g.font = "600 11px ui-monospace, SFMono-Regular, Menlo, monospace";
     g.textAlign = "left"; g.textBaseline = "middle";
     for (let i = 1; i <= ringCount; i++) {
       const r = (maxR / ringCount) * i;
-      g.globalAlpha = 0.38;
+      g.globalAlpha = 0.32;
       g.beginPath(); g.arc(CENTER.x, CENTER.y, r, 0, Math.PI * 2); g.stroke();
-      g.globalAlpha = 0.55; g.fillStyle = BRASS;
+      g.globalAlpha = 0.5; g.fillStyle = BRASS;
       g.fillText(String(Math.round(r)), CENTER.x + 6, CENTER.y - r);
     }
     g.globalAlpha = 1;
 
-    // degree-tick bezel around the outer ring
+    // Outer bezel ticks
     const bezelR = maxR;
     for (let deg = 0; deg < 360; deg += 10) {
       const a = (deg * Math.PI) / 180, long = deg % 30 === 0;
       const r0 = bezelR - (long ? 14 : 7);
-      g.globalAlpha = long ? 0.65 : 0.32;
+      g.globalAlpha = long ? 0.55 : 0.25;
       g.lineWidth = long ? 1.6 : 1;
-      g.strokeStyle = BEZEL;
+      g.strokeStyle = long ? BRASS : BEZEL;
       g.beginPath();
       g.moveTo(CENTER.x + Math.cos(a) * r0, CENTER.y + Math.sin(a) * r0);
       g.lineTo(CENTER.x + Math.cos(a) * bezelR, CENTER.y + Math.sin(a) * bezelR);
@@ -1404,17 +1411,16 @@ class Game {
     }
     g.globalAlpha = 1;
 
-    // world border — brushed-steel double frame + brass corner rivets
+    // World frame — iron double border + gold corner studs
     g.strokeStyle = BEZEL; g.lineWidth = 3;
     g.strokeRect(1.5, 1.5, WORLD - 3, WORLD - 3);
-    g.strokeStyle = "rgba(58,66,56,.5)"; g.lineWidth = 1;
+    g.strokeStyle = "rgba(139,58,47,.45)"; g.lineWidth = 1;
     g.strokeRect(6, 6, WORLD - 12, WORLD - 12);
     g.fillStyle = BRASS;
     for (const [cx, cy] of [[10, 10], [WORLD - 10, 10], [WORLD - 10, WORLD - 10], [10, WORLD - 10]]) {
       g.beginPath(); g.arc(cx, cy, 3, 0, Math.PI * 2); g.fill();
     }
 
-    // multiplayer zone dividers — geometry only; live labels drawn per-frame
     if (this.players.length > 1) {
       const half = WORLD / 2;
       g.save(); g.setLineDash([10, 6]); g.strokeStyle = "rgba(232,227,211,.12)"; g.lineWidth = 1.5;
@@ -1423,13 +1429,13 @@ class Game {
       g.restore();
     }
 
-    // path trenches — groove + floor + phosphor core; fork-1 as dashed alternate
+    // Path trenches — mined shafts / Iron Rain approach lanes (rust floor + gold core)
     g.lineCap = "round"; g.lineJoin = "round";
     for (let k = 0; k < 4; k++) {
       for (let f = 0; f < 2; f++) {
         const path = PATH_VARIANTS[k][f];
         const alt = f === 1;
-        g.strokeStyle = alt ? "rgba(20,36,23,.28)" : "rgba(20,36,23,.6)";
+        g.strokeStyle = alt ? "rgba(60,28,22,.3)" : "rgba(55,24,18,.72)";
         g.lineWidth = PATH_W;
         if (alt) g.setLineDash([8, 10]);
         g.beginPath(); g.moveTo(path[0][0], path[0][1]);
@@ -1437,11 +1443,11 @@ class Game {
         g.stroke();
         if (!alt) {
           g.setLineDash([]);
-          g.strokeStyle = "rgba(10,20,12,.65)"; g.lineWidth = PATH_W - 10; g.stroke();
-          g.strokeStyle = DECAY.after; g.globalAlpha = 0.9; g.lineWidth = 2.2; g.stroke();
+          g.strokeStyle = "rgba(20,8,6,.7)"; g.lineWidth = PATH_W - 10; g.stroke();
+          g.strokeStyle = RUST; g.globalAlpha = 0.85; g.lineWidth = 2.4; g.stroke();
+          g.strokeStyle = DECAY.after; g.globalAlpha = 0.55; g.lineWidth = 1.2; g.stroke();
           g.globalAlpha = 1;
-          // hatch marks every ~cell along trench
-          g.strokeStyle = "rgba(58,66,56,.35)"; g.lineWidth = 1;
+          g.strokeStyle = "rgba(74,58,50,.4)"; g.lineWidth = 1;
           for (let i = 0; i < path.length - 1; i++) {
             const ax = path[i][0], ay = path[i][1], bx = path[i + 1][0], by = path[i + 1][1];
             const len = Math.hypot(bx - ax, by - ay) || 1;
@@ -1452,29 +1458,35 @@ class Game {
             }
           }
         } else {
-          g.strokeStyle = DECAY.after; g.globalAlpha = 0.35; g.lineWidth = 1.5; g.stroke();
+          g.strokeStyle = RUST; g.globalAlpha = 0.3; g.lineWidth = 1.5; g.stroke();
           g.globalAlpha = 1; g.setLineDash([]);
         }
       }
     }
 
-    // corner spawn pads — brass rivet + ring + call-sign
-    g.font = "700 13px ui-monospace, SFMono-Regular, Menlo, monospace";
+    // Corner drop-pod pads (Iron Rain) + house call-signs
+    g.font = "700 12px ui-monospace, SFMono-Regular, Menlo, monospace";
     g.textAlign = "center"; g.textBaseline = "middle";
     ENTRIES.forEach((c, i) => {
       const [sx, sy] = c;
-      g.fillStyle = "rgba(20,36,23,.8)"; g.beginPath(); g.arc(sx, sy, 14, 0, Math.PI * 2); g.fill();
-      g.fillStyle = BRASS; g.beginPath(); g.arc(sx, sy, 5, 0, Math.PI * 2); g.fill();
-      g.strokeStyle = BRASS; g.globalAlpha = 0.75; g.lineWidth = 1.5;
-      g.beginPath(); g.arc(sx, sy, 10, 0, Math.PI * 2); g.stroke();
+      g.fillStyle = "rgba(40,16,12,.85)";
+      g.beginPath();
+      for (let h = 0; h < 6; h++) {
+        const a = (h / 6) * Math.PI * 2 - Math.PI / 6;
+        const px = sx + Math.cos(a) * 16, py = sy + Math.sin(a) * 16;
+        h ? g.lineTo(px, py) : g.moveTo(px, py);
+      }
+      g.closePath(); g.fill();
+      g.strokeStyle = BRASS; g.lineWidth = 1.6; g.globalAlpha = 0.85; g.stroke();
+      g.fillStyle = SCARLET; g.globalAlpha = 0.9; g.beginPath(); g.arc(sx, sy, 4.5, 0, Math.PI * 2); g.fill();
       g.globalAlpha = 0.55; g.fillStyle = BRASS;
-      const cOff = [[-28, -28], [28, -28], [28, 28], [-28, 28]];
+      const cOff = [[-30, -30], [30, -30], [30, 30], [-30, 30]];
       g.fillText(CALLSIGNS[i], sx + cOff[i][0], sy + cOff[i][1]);
       g.globalAlpha = 1;
     });
 
-    // starter-pocket ticks (WC3 worker spots)
-    g.strokeStyle = BRASS; g.globalAlpha = 0.5; g.lineWidth = 1.4;
+    // Starter pocket crosses
+    g.strokeStyle = BRASS; g.globalAlpha = 0.45; g.lineWidth = 1.4;
     for (const p of POSITIONS) {
       g.beginPath();
       g.moveTo(p.x - 7, p.y); g.lineTo(p.x + 7, p.y);
@@ -1484,26 +1496,35 @@ class Game {
     }
     g.globalAlpha = 1;
 
-    // center bezel dish — green circle landmark housing
+    // Center — Gold Society pit / Howler's circle (the leak landmark)
+    const pit = g.createRadialGradient(CENTER.x, CENTER.y, 4, CENTER.x, CENTER.y, 42);
+    pit.addColorStop(0, "rgba(232,197,71,.35)"); pit.addColorStop(0.5, "rgba(92,61,20,.4)"); pit.addColorStop(1, "rgba(20,8,6,0)");
+    g.fillStyle = pit; g.beginPath(); g.arc(CENTER.x, CENTER.y, 42, 0, Math.PI * 2); g.fill();
     g.strokeStyle = BEZEL; g.lineWidth = 3;
     g.beginPath(); g.arc(CENTER.x, CENTER.y, 28, 0, Math.PI * 2); g.stroke();
-    g.strokeStyle = BRASS; g.globalAlpha = 0.45; g.lineWidth = 1.5;
+    g.strokeStyle = BRASS; g.globalAlpha = 0.7; g.lineWidth = 2;
     g.beginPath(); g.arc(CENTER.x, CENTER.y, 34, 0, Math.PI * 2); g.stroke();
-    g.fillStyle = BRASS; g.globalAlpha = 0.65;
+    // Laurel arcs
+    g.lineWidth = 1.5; g.globalAlpha = 0.55;
+    for (const side of [-1, 1]) {
+      g.beginPath();
+      g.arc(CENTER.x + side * 6, CENTER.y + 2, 20, side > 0 ? -1.35 : Math.PI - 1.35, side > 0 ? 1.35 : Math.PI + 1.35);
+      g.stroke();
+    }
+    g.fillStyle = BRASS; g.globalAlpha = 0.75;
     for (let i = 0; i < 8; i++) {
       const a = (i / 8) * Math.PI * 2;
-      g.beginPath(); g.arc(CENTER.x + Math.cos(a) * 28, CENTER.y + Math.sin(a) * 28, 1.8, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.arc(CENTER.x + Math.cos(a) * 28, CENTER.y + Math.sin(a) * 28, 2, 0, Math.PI * 2); g.fill();
     }
     g.globalAlpha = 1;
   }
 
-  // Phosphor-trail layer: faded (not cleared) each frame, so bright marks —
-  // the PPI sweep, creep blips, bullet tracers — persist and decay like a
-  // real scope. Composited under the sharp live-render layer in draw().
+  // Ember-trail layer: faded each frame so Gold/Scarlet marks persist like
+  // heat shimmer over Mars dust. Composited under the sharp live-render layer.
   drawTrailLayer() {
     const tctx = this.trailCtx;
     tctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    tctx.fillStyle = "rgba(6,10,6,0.19)";
+    tctx.fillStyle = "rgba(18,8,6,0.2)";
     tctx.fillRect(0, 0, this.cssW, this.cssH);
 
     tctx.save();
@@ -1516,29 +1537,26 @@ class Game {
     }
     tctx.globalCompositeOperation = "lighter";
 
-    // global sweep arm — alpha-stepped triangular slices trailing the beam
-    // (deliberately not a conic gradient — crisper trailing-wedge read)
+    // Global sweep arm — Gold Society searchlight over the arena
     const slices = 14, sliceW = (Math.PI * 2) / 90, sweepR = WORLD * 0.78;
     tctx.fillStyle = DECAY.hot;
     for (let i = 0; i < slices; i++) {
       const a0 = this.sweepAngle - i * sliceW, a1 = a0 - sliceW;
-      tctx.globalAlpha = 0.05 * (1 - i / slices);
+      tctx.globalAlpha = 0.045 * (1 - i / slices);
       tctx.beginPath();
       tctx.moveTo(CENTER.x, CENTER.y);
       tctx.arc(CENTER.x, CENTER.y, sweepR, a0, a1, true);
       tctx.closePath(); tctx.fill();
     }
 
-    // creep phosphor blips — leave a brief bright trace as they move
     for (const en of this.enemies) {
       if (en.hp <= 0) continue;
-      tctx.globalAlpha = 0.5;
+      tctx.globalAlpha = 0.45;
       tctx.fillStyle = en.color;
       tctx.beginPath(); tctx.arc(en.x, en.y, 3, 0, Math.PI * 2); tctx.fill();
     }
 
-    // bullet tracer afterglow
-    tctx.globalAlpha = 0.45; tctx.strokeStyle = DECAY.hot; tctx.lineWidth = 3;
+    tctx.globalAlpha = 0.4; tctx.strokeStyle = DECAY.hot; tctx.lineWidth = 3;
     for (const b of this.bullets) {
       tctx.beginPath(); tctx.moveTo(b.x1, b.y1); tctx.lineTo(b.x2, b.y2); tctx.stroke();
     }
@@ -1572,15 +1590,20 @@ class Game {
     // cached static world layer (void gradient + range rings + bezel + paths + ticks)
     ctx.drawImage(this.staticLayer, 0, 0, WORLD, WORLD);
 
-    // the green circle — beacon intensity tracks leak threat / boss / low lives
+    // Gold Society pit beacon — intensity tracks leak threat / boss / low lives
     const threat = this._centerThreat || 0;
     const cpulse = this.reducedMotion ? 0.5 : (0.5 + 0.5 * Math.sin(this.gameTime * (2.4 + threat * 2)));
     const cr = 8 + cpulse * 3 + threat * 6;
     ctx.fillStyle = threat > 0.75 ? THREAT.crit : DECAY.hot;
     ctx.globalAlpha = 0.85 + threat * 0.15;
     ctx.beginPath(); ctx.arc(CENTER.x, CENTER.y, cr, 0, 7); ctx.fill();
-    ctx.strokeStyle = DECAY.core; ctx.globalAlpha = 0.35 + threat * 0.4; ctx.lineWidth = 2;
+    ctx.strokeStyle = DECAY.core; ctx.globalAlpha = 0.4 + threat * 0.4; ctx.lineWidth = 2.2;
     ctx.beginPath(); ctx.arc(CENTER.x, CENTER.y, 18 + cpulse * 4 + threat * 8, 0, 7); ctx.stroke();
+    // Inner scarlet ring when under pressure
+    if (threat > 0.35) {
+      ctx.strokeStyle = SCARLET; ctx.globalAlpha = 0.25 + threat * 0.35; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(CENTER.x, CENTER.y, 12 + cpulse * 2, 0, 7); ctx.stroke();
+    }
     ctx.globalAlpha = 1;
 
     // multiplayer zone call-signs — live (active-player emphasis changes every frame)
@@ -1601,11 +1624,11 @@ class Game {
       const { c, r } = this.cellOf(this.hoverWorld.x, this.hoverWorld.y);
       const def = TOWERS[this.selected];
       const ok = this.gold >= def.cost && this.cellBuildable(c, r);
-      ctx.fillStyle = ok ? "rgba(124,252,138,.22)" : "rgba(161,58,46,.26)";
+      ctx.fillStyle = ok ? "rgba(232,197,71,.22)" : "rgba(161,58,46,.28)";
       ctx.fillRect(c * CELL, r * CELL, CELL, CELL);
       const ctr = this.cellCenter(c, r);
       if (ok && def.range > 0) {
-        ctx.strokeStyle = "rgba(232,227,211,.22)"; ctx.lineWidth = 1;
+        ctx.strokeStyle = "rgba(232,197,71,.28)"; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.arc(ctr.x, ctr.y, def.range, 0, 7); ctx.stroke();
       }
       if (ok && def.aura) {
@@ -1623,7 +1646,7 @@ class Game {
       this.round(sel.c * CELL + 2, sel.r * CELL + 2, CELL - 4, CELL - 4, 6); ctx.stroke();
       ctx.strokeStyle = "rgba(232,227,211,.55)"; ctx.lineWidth = 1;
       this.round(sel.c * CELL + 5, sel.r * CELL + 5, CELL - 10, CELL - 10, 5); ctx.stroke();
-      if (sel.s.range > 0) { ctx.strokeStyle = "rgba(124,252,138,.4)"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(sel.x, sel.y, sel.s.range, 0, 7); ctx.stroke(); }
+      if (sel.s.range > 0) { ctx.strokeStyle = "rgba(232,197,71,.45)"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(sel.x, sel.y, sel.s.range, 0, 7); ctx.stroke(); }
       if (sel.s.aura) { ctx.strokeStyle = "rgba(232,227,211,.25)"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(sel.x, sel.y, sel.s.aura.radius, 0, 7); ctx.stroke(); }
       // Upgradeable cue — chevron above the pad so players see they can spend
       const canUp = sel.level < MAX_LEVEL || (!sel.spec && hasSpec(sel.type));
@@ -1666,44 +1689,48 @@ class Game {
     ctx.lineWidth = 1;
   }
 
-  // ---- procedural sprites
-  // Radial decay-ramp gradients are defined in LOCAL (untranslated) space and
-  // reused every frame for every creep of a given radius bucket — the canvas
-  // resolves gradient coordinates against the CTM at fill time, so one cached
-  // gradient per radius correctly re-centers under each creep's translate().
-  getDecayGradient(ctx, rad) {
-    const key = Math.round(rad * 4);
+  // ---- procedural sprites (Iron Rain / Society castes)
+  // Unit fills use caste color with a light→dark radial so Red miners, Gray
+  // legion, Gold Peerless, etc. read at a glance. Shape vocabulary unchanged.
+  getCasteGradient(ctx, rad, hex) {
+    const key = Math.round(rad * 4) + "|" + hex;
     let grad = this._decayGrad[key];
     if (!grad) {
       grad = ctx.createRadialGradient(0, 0, 0, 0, 0, rad);
-      grad.addColorStop(0, DECAY.hot);
-      grad.addColorStop(0.45, DECAY.core);
-      grad.addColorStop(0.8, DECAY.mid);
-      grad.addColorStop(1, DECAY.after);
+      grad.addColorStop(0, "#fff6e0");
+      grad.addColorStop(0.22, hex);
+      grad.addColorStop(0.75, hex);
+      grad.addColorStop(1, "#1a0a08");
       this._decayGrad[key] = grad;
     }
     return grad;
   }
+  getDecayGradient(ctx, rad) { return this.getCasteGradient(ctx, rad, DECAY.core); }
 
-  // Static tick-marked bezel housing — built once per tower instance (cheap:
-  // one small offscreen canvas), then just blitted every frame instead of
-  // re-stroking the ring/rivets each time.
+  // PulseArmor housing — iron plate + gold studs (cached per tower instance)
   buildTowerBezel() {
-    const S = 30, R = S / 2;
+    const S = 32, R = S / 2;
     const cv = document.createElement("canvas"); cv.width = S; cv.height = S;
     const g = cv.getContext("2d");
-    g.fillStyle = "#0e1a12";
-    this.round(1, 1, S - 2, S - 2, 7, g); g.fill();
-    g.fillStyle = "#16271b"; g.beginPath(); g.arc(R, R, 12, 0, Math.PI * 2); g.fill();
-    g.strokeStyle = BEZEL; g.lineWidth = 1.4; g.globalAlpha = 0.85;
-    g.beginPath(); g.arc(R, R, 13.5, 0, Math.PI * 2); g.stroke();
-    g.globalAlpha = 1; g.strokeStyle = BRASS; g.lineWidth = 1.2;
-    for (let i = 0; i < 8; i++) {
-      const a = (i / 8) * Math.PI * 2, r1 = i % 2 === 0 ? 16 : 15;
-      g.beginPath();
-      g.moveTo(R + Math.cos(a) * 13.5, R + Math.sin(a) * 13.5);
-      g.lineTo(R + Math.cos(a) * r1, R + Math.sin(a) * r1);
-      g.stroke();
+    g.fillStyle = "#1a100c";
+    this.round(1, 1, S - 2, S - 2, 5, g); g.fill();
+    // Hex pad silhouette
+    g.fillStyle = "#2a1a14";
+    g.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2 - Math.PI / 6;
+      const px = R + Math.cos(a) * 13, py = R + Math.sin(a) * 13;
+      i ? g.lineTo(px, py) : g.moveTo(px, py);
+    }
+    g.closePath(); g.fill();
+    g.strokeStyle = BEZEL; g.lineWidth = 1.5; g.stroke();
+    g.fillStyle = "#3a241c"; g.beginPath(); g.arc(R, R, 9, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = BRASS; g.lineWidth = 1.2; g.globalAlpha = 0.85;
+    g.beginPath(); g.arc(R, R, 11, 0, Math.PI * 2); g.stroke();
+    g.globalAlpha = 1; g.fillStyle = BRASS;
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2 - Math.PI / 6;
+      g.beginPath(); g.arc(R + Math.cos(a) * 13, R + Math.sin(a) * 13, 1.6, 0, Math.PI * 2); g.fill();
     }
     return cv;
   }
@@ -1723,9 +1750,8 @@ class Game {
     if (tw.recoil > 0) tw.recoil = Math.max(0, tw.recoil - dt * 6);
 
     if (!tw._bezel) tw._bezel = this.buildTowerBezel();
-    ctx.drawImage(tw._bezel, x - 15, y - 15, 30, 30);
+    ctx.drawImage(tw._bezel, x - 16, y - 16, 32, 32);
 
-    // Range wedge only when selected/hovered/placing — cuts clutter
     const hover = this.hoverWorld && Math.hypot(this.hoverWorld.x - x, this.hoverWorld.y - y) < CELL;
     if (s.range > 0 && (selected || hover)) {
       if (target === null) target = this.pickTargets(tw, 1)[0];
@@ -1738,7 +1764,7 @@ class Game {
       const firing = t - tw.lastFire < MOTION.snap;
       const wedgeW = firing ? 0.28 : 0.48;
       ctx.save();
-      ctx.globalAlpha = firing ? 0.22 : 0.12;
+      ctx.globalAlpha = firing ? 0.24 : 0.12;
       ctx.fillStyle = DECAY.hot;
       ctx.beginPath(); ctx.moveTo(x, y);
       ctx.arc(x, y, s.range, tw._wedgeAngle - wedgeW / 2, tw._wedgeAngle + wedgeW / 2);
@@ -1755,72 +1781,99 @@ class Game {
       ctx.restore();
     }
 
-    // Level glow via alpha ring (avoid per-frame shadowBlur)
+    // PulseArmor rim (caste accent = tower type color)
     ctx.strokeStyle = col;
-    ctx.globalAlpha = tw.spec ? 0.95 : tw.level === 3 ? 0.8 : tw.level === 2 ? 0.55 : 0.35;
-    ctx.lineWidth = tw.spec ? 2.6 : 2;
-    ctx.beginPath(); ctx.arc(x, y, 11, 0, 7); ctx.stroke();
+    ctx.globalAlpha = tw.spec ? 0.95 : tw.level === 3 ? 0.8 : tw.level === 2 ? 0.55 : 0.4;
+    ctx.lineWidth = tw.spec ? 2.8 : 2.1;
+    ctx.beginPath(); ctx.arc(x, y, 10.5, 0, 7); ctx.stroke();
     ctx.globalAlpha = 1;
 
     ctx.fillStyle = col;
     const recoil = (tw.recoil || 0) * 3;
     if (kind === "barrel") {
+      // Slanted razor / pulse-cannon — Gold Society war engine
       ctx.save(); ctx.translate(x, y); ctx.rotate(tw.angle);
-      const n = s.multishot || (tw.type === "rapid" ? 2 : 1), len = 9 + Math.min(15, s.range / 42) - recoil;
-      for (let i = 0; i < n; i++) { const off = (i - (n - 1) / 2) * 4.2; ctx.fillRect(2, off - 1.7, len, 3.4); }
-      if (s.splash) { ctx.beginPath(); ctx.arc(2 + len, 0, 4, 0, 7); ctx.fill(); }
+      const n = s.multishot || (tw.type === "rapid" ? 2 : 1), len = 10 + Math.min(16, s.range / 40) - recoil;
+      ctx.fillStyle = "#2a1a14";
+      ctx.beginPath(); ctx.moveTo(0, -5); ctx.lineTo(4, -5); ctx.lineTo(4, 5); ctx.lineTo(0, 5); ctx.closePath(); ctx.fill();
+      for (let i = 0; i < n; i++) {
+        const off = (i - (n - 1) / 2) * 4.5;
+        ctx.fillStyle = col;
+        ctx.beginPath();
+        ctx.moveTo(3, off - 2); ctx.lineTo(3 + len, off - 1.2); ctx.lineTo(3 + len, off + 1.2); ctx.lineTo(3, off + 2);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = DECAY.hot; ctx.globalAlpha = 0.55;
+        ctx.fillRect(3 + len - 3, off - 0.8, 3, 1.6);
+        ctx.globalAlpha = 1; ctx.fillStyle = col;
+      }
+      if (s.splash) {
+        ctx.fillStyle = col;
+        ctx.beginPath(); ctx.arc(3 + len + 1, 0, 4.5, 0, 7); ctx.fill();
+        ctx.strokeStyle = BRASS; ctx.lineWidth = 1; ctx.stroke();
+      }
       ctx.restore();
     } else if (kind === "crystal") {
-      ctx.save(); ctx.translate(x, y); ctx.rotate(this.reducedMotion ? 0 : t * 0.7);
-      ctx.beginPath(); ctx.moveTo(0, -9); ctx.lineTo(6.5, 0); ctx.lineTo(0, 9); ctx.lineTo(-6.5, 0); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = "rgba(255,255,255,.4)"; ctx.beginPath(); ctx.moveTo(0, -9); ctx.lineTo(3.2, 0); ctx.lineTo(0, 0); ctx.closePath(); ctx.fill();
+      // Luna ice shard — Blue/Silver crystal
+      ctx.save(); ctx.translate(x, y); ctx.rotate(this.reducedMotion ? 0 : t * 0.55);
+      ctx.beginPath(); ctx.moveTo(0, -10); ctx.lineTo(5, -2); ctx.lineTo(7, 8); ctx.lineTo(0, 5); ctx.lineTo(-7, 8); ctx.lineTo(-5, -2); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,.45)"; ctx.beginPath(); ctx.moveTo(0, -10); ctx.lineTo(3, -1); ctx.lineTo(0, 2); ctx.closePath(); ctx.fill();
       ctx.restore();
     } else if (kind === "orb") {
+      // Carver toxin flask
       const swirl = this.reducedMotion ? 0 : Math.sin(t * 3) * 1.2;
       ctx.beginPath(); ctx.arc(x, y - 1 + swirl * 0.3, 6.5, 0, 7); ctx.fill();
+      ctx.strokeStyle = BRASS; ctx.lineWidth = 1.2; ctx.stroke();
       ctx.fillStyle = "rgba(255,255,255,.35)"; ctx.beginPath(); ctx.arc(x - 2, y - 3, 2, 0, 7); ctx.fill();
     } else if (kind === "radar") {
+      // Yellow scanner dish
       ctx.save(); ctx.translate(x, y); ctx.rotate(tw.angle);
-      ctx.strokeStyle = col; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(13, 0); ctx.stroke();
-      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(13, 0, 2.5, 0, 7); ctx.fill();
-      ctx.globalAlpha = 0.25; ctx.beginPath(); ctx.arc(0, 0, 11, -0.4, 0.4); ctx.stroke();
+      ctx.fillStyle = "#2a1a14"; ctx.beginPath(); ctx.arc(0, 0, 5, 0, 7); ctx.fill();
+      ctx.strokeStyle = col; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(14, 0); ctx.stroke();
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(14, 0, 3, 0, 7); ctx.fill();
+      ctx.globalAlpha = 0.3; ctx.beginPath(); ctx.arc(0, 0, 12, -0.5, 0.5); ctx.stroke();
       ctx.restore();
     } else if (kind === "mint") {
-      const coinColors = ["#92400e", "#ca8a04", "#fde047"];
+      // Sovereign vault — stacked gold coins + eagle notch
+      const coinColors = ["#7a4e12", "#c9a35c", "#f0d060"];
       for (let i = 0; i < 3; i++) {
         const cy = y + (1 - i) * 3.2;
-        ctx.fillStyle = coinColors[i]; ctx.beginPath(); ctx.ellipse(x, cy, 7, 3.6, 0, 0, 7); ctx.fill();
+        ctx.fillStyle = coinColors[i]; ctx.beginPath(); ctx.ellipse(x, cy, 7.5, 3.8, 0, 0, 7); ctx.fill();
         ctx.strokeStyle = "rgba(0,0,0,.35)"; ctx.lineWidth = 1; ctx.stroke();
       }
-      ctx.fillStyle = "#713f12"; ctx.font = "bold 7px ui-monospace,monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText("g", x, y - 3);
+      ctx.fillStyle = "#5c3d14";
+      ctx.beginPath(); ctx.moveTo(x, y - 7); ctx.lineTo(x + 3, y - 3); ctx.lineTo(x - 3, y - 3); ctx.closePath(); ctx.fill();
     } else if (kind === "void") {
+      // Obsidian chaos core
       const pulse = this.reducedMotion ? 0.5 : (0.5 + 0.5 * Math.sin(t * 3.5));
-      ctx.fillStyle = "#1a0a22"; ctx.beginPath(); ctx.arc(x, y, 7 + pulse * 1.5, 0, 7); ctx.fill();
+      ctx.fillStyle = "#120810"; ctx.beginPath(); ctx.arc(x, y, 7.5 + pulse * 1.5, 0, 7); ctx.fill();
       ctx.fillStyle = col; ctx.globalAlpha = 0.85; ctx.beginPath(); ctx.arc(x, y, 5 + pulse, 0, 7); ctx.fill();
       ctx.globalAlpha = 1;
       ctx.save(); ctx.translate(x, y); ctx.rotate(this.reducedMotion ? 0 : t * 1.9);
       ctx.strokeStyle = col; ctx.globalAlpha = 0.8; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.ellipse(0, 0, 10, 3.5, 0, 0, 7); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(0, 0, 11, 3.8, 0, 0, 7); ctx.stroke();
       ctx.restore(); ctx.globalAlpha = 1;
     } else if (kind === "aura") {
+      // Warhorn / Howler ring
       const pulse = this.reducedMotion ? 0.5 : (0.5 + 0.5 * Math.sin(t * 2.2));
       ctx.strokeStyle = col; ctx.globalAlpha = 0.35 + 0.4 * pulse; ctx.lineWidth = 2.5;
       ctx.beginPath(); ctx.arc(x, y, 6.5, 0, 7); ctx.stroke();
       ctx.beginPath(); ctx.arc(x, y, 9 + pulse * 2, 0, 7); ctx.stroke();
+      ctx.fillStyle = col; ctx.globalAlpha = 0.7;
+      ctx.beginPath(); ctx.moveTo(x, y - 5); ctx.lineTo(x + 4, y + 3); ctx.lineTo(x - 4, y + 3); ctx.closePath(); ctx.fill();
       ctx.globalAlpha = 1;
     }
     const tx = tw.c * CELL, ty = tw.r * CELL;
     if (tw.spec) {
-      ctx.fillStyle = "#fef08a";
+      // Peerless diamond
+      ctx.fillStyle = DECAY.hot;
       ctx.beginPath(); ctx.moveTo(x, ty + 2); ctx.lineTo(x + 6, ty + 8); ctx.lineTo(x, ty + 14); ctx.lineTo(x - 6, ty + 8); ctx.closePath(); ctx.fill();
-      ctx.strokeStyle = "#0a120a"; ctx.lineWidth = 1; ctx.stroke();
+      ctx.strokeStyle = "#1a0a08"; ctx.lineWidth = 1; ctx.stroke();
     } else {
       for (let i = 0; i < MAX_LEVEL; i++) {
         const filled = i < tw.level;
-        ctx.fillStyle = filled ? "#f8fafc" : "rgba(232,227,211,.18)";
+        ctx.fillStyle = filled ? DECAY.hot : "rgba(232,227,211,.15)";
         ctx.beginPath(); ctx.arc(tx + 8 + i * 8, ty + 8, 2.6, 0, 7); ctx.fill();
-        if (filled) { ctx.strokeStyle = DECAY.core; ctx.lineWidth = 1; ctx.stroke(); }
+        if (filled) { ctx.strokeStyle = BRASS; ctx.lineWidth = 1; ctx.stroke(); }
       }
     }
   }
@@ -1831,58 +1884,66 @@ class Game {
     const inv = en.flags.includes("invisible") && !en.revealed;
     const ang = en.path
       ? Math.atan2(en.path[Math.min(en.wp + 1, en.path.length - 1)][1] - en.y, en.path[Math.min(en.wp + 1, en.path.length - 1)][0] - en.x)
-      : (en.netAng ?? 0); // online: server-sent heading
+      : (en.netAng ?? 0);
     const bob = Math.sin(t * 6 + (en.x + en.y) * 0.05);
     const lift = air ? 7 + bob * 2 : 0;
-    // Threat tier — shape (unchanged 6-shape vocabulary) still does the
-    // primary identification; tier only adds a rim/tick/pulse accent, never
-    // a new fill hue. base = decay ramp only · warn = armored/immune (amber)
-    // · crit = hero/boss (grease-red).
     const tier = boss || hero ? "crit" : (en.flags.includes("immune") || en.enemy === "Armored") ? "warn" : "base";
-    const rim = tier === "crit" ? THREAT.crit : tier === "warn" ? THREAT.warn : DECAY.hot;
-    if (air) { ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(en.x, en.y + rad + 4, rad * 0.9, rad * 0.4, 0, 0, 7); ctx.fill(); }
+    const rim = tier === "crit" ? (hero ? DECAY.core : THREAT.crit) : tier === "warn" ? THREAT.warn : en.color;
+    if (air) { ctx.fillStyle = "rgba(0,0,0,.28)"; ctx.beginPath(); ctx.ellipse(en.x, en.y + rad + 4, rad * 0.9, rad * 0.4, 0, 0, 7); ctx.fill(); }
     ctx.save(); ctx.globalAlpha = inv ? 0.22 : 1; ctx.translate(en.x, en.y - lift);
-    ctx.fillStyle = this.getDecayGradient(ctx, rad);
+    ctx.fillStyle = this.getCasteGradient(ctx, rad, en.color);
     if (en.enemy === "Swift") {
-      ctx.rotate(ang); ctx.beginPath(); ctx.moveTo(rad * 1.1, 0); ctx.lineTo(-rad * 0.65, rad * 0.7); ctx.lineTo(-rad * 0.25, 0); ctx.lineTo(-rad * 0.65, -rad * 0.7); ctx.closePath(); ctx.fill();
+      // Orange Helldiver wedge
+      ctx.rotate(ang); ctx.beginPath(); ctx.moveTo(rad * 1.15, 0); ctx.lineTo(-rad * 0.7, rad * 0.75); ctx.lineTo(-rad * 0.2, 0); ctx.lineTo(-rad * 0.7, -rad * 0.75); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.moveTo(rad * 0.3, 0); ctx.lineTo(-rad * 0.5, rad * 0.4); ctx.lineTo(-rad * 0.5, -rad * 0.4); ctx.closePath(); ctx.fill();
     } else if (air) {
+      // Blue ripWing
       ctx.save(); ctx.rotate(ang);
       ctx.beginPath(); ctx.ellipse(0, 0, rad * 0.55, rad * 0.28, 0, 0, 7); ctx.fill();
-      ctx.beginPath(); ctx.moveTo(-rad * 0.2, 0); ctx.lineTo(rad * 0.1, -rad * 1.15); ctx.lineTo(rad * 0.55, -rad * 0.25); ctx.lineTo(rad * 0.1, 0); ctx.closePath(); ctx.fill();
-      ctx.beginPath(); ctx.moveTo(-rad * 0.2, 0); ctx.lineTo(rad * 0.1, rad * 1.15); ctx.lineTo(rad * 0.55, rad * 0.25); ctx.lineTo(rad * 0.1, 0); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-rad * 0.2, 0); ctx.lineTo(rad * 0.1, -rad * 1.2); ctx.lineTo(rad * 0.6, -rad * 0.2); ctx.lineTo(rad * 0.1, 0); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-rad * 0.2, 0); ctx.lineTo(rad * 0.1, rad * 1.2); ctx.lineTo(rad * 0.6, rad * 0.2); ctx.lineTo(rad * 0.1, 0); ctx.closePath(); ctx.fill();
       ctx.restore();
     } else if (en.enemy === "Swarm") {
+      // Brown pit-viper diamond
       ctx.beginPath(); ctx.moveTo(0, -rad * 1.15); ctx.lineTo(rad * 0.85, 0); ctx.lineTo(0, rad * 1.15); ctx.lineTo(-rad * 0.85, 0); ctx.closePath(); ctx.fill();
     } else if (en.enemy === "Armored") {
+      // Gray legion hex + iron spokes
       ctx.beginPath(); for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; const px = Math.cos(a) * rad, py = Math.sin(a) * rad; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); } ctx.closePath(); ctx.fill();
-      ctx.strokeStyle = "rgba(0,0,0,.4)"; ctx.lineWidth = 1.5;
+      ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.lineWidth = 1.5;
       for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * rad * 0.55, Math.sin(a) * rad * 0.55); ctx.stroke(); }
-      { const ga = ctx.globalAlpha; ctx.strokeStyle = rim; ctx.globalAlpha = ga * 0.7;
+      { const ga = ctx.globalAlpha; ctx.strokeStyle = rim; ctx.globalAlpha = ga * 0.75; ctx.lineWidth = 1.8;
         ctx.beginPath(); for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; i ? ctx.lineTo(Math.cos(a)*rad, Math.sin(a)*rad) : ctx.moveTo(Math.cos(a)*rad, Math.sin(a)*rad); } ctx.closePath(); ctx.stroke();
         ctx.globalAlpha = ga; }
     } else if (en.flags.includes("immune")) {
+      // Silver/White shield
       ctx.beginPath(); ctx.moveTo(0, -rad * 1.2); ctx.lineTo(rad * 0.95, -rad * 0.45); ctx.lineTo(rad * 0.95, rad * 0.25); ctx.quadraticCurveTo(0, rad * 1.45, -rad * 0.95, rad * 0.25); ctx.lineTo(-rad * 0.95, -rad * 0.45); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = "rgba(255,255,255,.2)"; ctx.beginPath(); ctx.moveTo(0, -rad * 0.75); ctx.lineTo(rad * 0.55, -rad * 0.2); ctx.lineTo(rad * 0.55, rad * 0.1); ctx.quadraticCurveTo(0, rad * 0.85, -rad * 0.55, rad * 0.1); ctx.lineTo(-rad * 0.55, -rad * 0.2); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,.28)"; ctx.beginPath(); ctx.moveTo(0, -rad * 0.75); ctx.lineTo(rad * 0.55, -rad * 0.2); ctx.lineTo(rad * 0.55, rad * 0.1); ctx.quadraticCurveTo(0, rad * 0.85, -rad * 0.55, rad * 0.1); ctx.lineTo(-rad * 0.55, -rad * 0.2); ctx.closePath(); ctx.fill();
     } else if (hero) {
+      // Gold Peerless star
       const r = rad * (1 + 0.05 * Math.sin(t * 4));
       ctx.beginPath(); for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2 - Math.PI / 2; const rr = i % 2 === 0 ? r : r * 0.42; ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } ctx.closePath(); ctx.fill();
-      ctx.fillStyle = "rgba(255,255,255,.22)"; ctx.beginPath(); for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2 - Math.PI / 2; const rr = i % 2 === 0 ? r * 0.52 : r * 0.22; ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,.28)"; ctx.beginPath(); for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2 - Math.PI / 2; const rr = i % 2 === 0 ? r * 0.52 : r * 0.22; ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = DECAY.hot; ctx.lineWidth = 1.4; ctx.stroke();
     } else if (boss) {
+      // Obsidian Stained crown
       const r = rad * (1 + 0.07 * Math.sin(t * 3));
       ctx.beginPath(); for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2; const rr = i % 2 === 0 ? r * 1.38 : r * 0.68; ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } ctx.closePath(); ctx.fill();
-      ctx.fillStyle = "rgba(255,255,255,.18)"; ctx.beginPath(); ctx.arc(0, 0, r * 0.45, 0, 7); ctx.fill();
+      ctx.fillStyle = DECAY.core; ctx.globalAlpha = ctx.globalAlpha * 0.85;
+      ctx.beginPath(); ctx.arc(0, 0, r * 0.4, 0, 7); ctx.fill();
+      ctx.strokeStyle = DECAY.hot; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, r * 0.55, 0, 7); ctx.stroke();
+      ctx.globalAlpha = inv ? 0.22 : 1;
     } else {
+      // Red miner / Helldiver disc
       ctx.beginPath(); ctx.arc(0, 0, rad, 0, 7); ctx.fill();
-      ctx.fillStyle = "rgba(255,255,255,.22)"; ctx.beginPath(); ctx.arc(-rad * 0.28, -rad * 0.28, rad * 0.38, 0, 7); ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,.2)"; ctx.beginPath(); ctx.arc(-rad * 0.28, -rad * 0.28, rad * 0.35, 0, 7); ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,.3)"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(-rad * 0.5, 0); ctx.lineTo(rad * 0.5, 0); ctx.stroke();
     }
-    // thin bright rim stroke (base tier: dim decay-hot edge · warn/crit: the
-    // tier accent) — every archetype gets one, boss/hero read widest
     {
       const ga = ctx.globalAlpha, ringR = rad + (boss ? 3 : hero ? 2.5 : 1.8);
-      ctx.strokeStyle = rim; ctx.lineWidth = tier === "base" ? 1.2 : 1.8;
-      ctx.globalAlpha = ga * (tier === "base" ? 0.55 : 0.9);
+      ctx.strokeStyle = rim; ctx.lineWidth = tier === "base" ? 1.3 : 1.9;
+      ctx.globalAlpha = ga * (tier === "base" ? 0.65 : 0.92);
       ctx.beginPath(); ctx.arc(0, 0, ringR, 0, 7); ctx.stroke();
-      // 1-2 short corner tick marks — circuit-trace detail (Bearing Zero graft)
       ctx.lineWidth = 1;
       for (const da of [-0.55, 0.55]) {
         const a = -Math.PI / 2 + da;
@@ -1893,8 +1954,6 @@ class Game {
       }
       ctx.globalAlpha = ga;
     }
-    // hazard-chevron corner tick for the two threat tiers — pulse rate (not
-    // hue) separates armored/warning from boss/critical
     if (tier !== "base") {
       const pr = tier === "crit" ? 5.5 : 3.2, p = 0.5 + 0.5 * Math.sin(t * pr);
       const ga = ctx.globalAlpha, cy = -(rad + 6.5);
@@ -1904,9 +1963,8 @@ class Game {
       ctx.globalAlpha = ga;
     }
     ctx.restore();
-    // Status glyphs (phosphor ticks, not candy dots)
     if (t < en.slowUntil) {
-      ctx.strokeStyle = "#67e8f9"; ctx.lineWidth = 1.6; ctx.globalAlpha = 0.85;
+      ctx.strokeStyle = "#7eb6d9"; ctx.lineWidth = 1.6; ctx.globalAlpha = 0.85;
       for (let i = 0; i < 4; i++) {
         const a = (i / 4) * Math.PI * 2 + t;
         ctx.beginPath();
@@ -1916,7 +1974,7 @@ class Game {
       ctx.globalAlpha = 1;
     }
     if (en.poison > 0 && t < en.poisonUntil) {
-      ctx.fillStyle = "rgba(132,204,22,.75)";
+      ctx.fillStyle = "rgba(106,171,69,.8)";
       for (let i = 0; i < 3; i++) {
         const a = t * 2 + i * 2.1;
         const px = en.x + Math.cos(a) * rad * 0.7;
@@ -1954,7 +2012,7 @@ class Game {
         ctx.beginPath(); ctx.moveTo(en.x - w / 2 + w * 0.6, yb); ctx.lineTo(en.x - w / 2 + w * 0.6, yb + 3.6); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(en.x - w / 2 + w * 0.25, yb); ctx.lineTo(en.x - w / 2 + w * 0.25, yb + 3.6); ctx.stroke();
       } else {
-        ctx.fillStyle = hpf > 0.5 ? "#4ade80" : hpf > 0.25 ? "#facc15" : "#f87171";
+        ctx.fillStyle = hpf > 0.5 ? DECAY.core : hpf > 0.25 ? THREAT.warn : THREAT.crit;
         this.round(en.x - w / 2, yb, w * hpf, 3.6, 1.6); ctx.fill();
       }
     }
@@ -1994,7 +2052,7 @@ class Game {
     ctx.globalAlpha = 0.92;
     ctx.fillStyle = VOID_INNER; ctx.strokeStyle = BEZEL; ctx.lineWidth = 1;
     ctx.fillRect(x0, y0, S, S); ctx.strokeRect(x0, y0, S, S);
-    ctx.strokeStyle = "rgba(28,61,34,.7)"; // afterglow-tone, dimmer than the live layer
+    ctx.strokeStyle = "rgba(139,58,47,.55)"; // rust trench on minimap
     for (const path of PATHS) {
       ctx.beginPath(); ctx.moveTo(x0 + path[0][0] * k, y0 + path[0][1] * k);
       for (let i = 1; i < path.length; i++) ctx.lineTo(x0 + path[i][0] * k, y0 + path[i][1] * k);
@@ -2014,12 +2072,12 @@ class Game {
   }
 
   drawVignette() {
-    // Screen-space radial vignette — pulls the eye toward the field center
+    // Screen-space vignette — Martian dust haze at the edges
     const ctx = this.ctx, W = this.cssW, H = this.cssH;
     const inner = Math.min(W, H) * 0.26, outer = Math.max(W, H) * 0.78;
     const g = ctx.createRadialGradient(W / 2, H / 2, inner, W / 2, H / 2, outer);
-    g.addColorStop(0, "rgba(6,10,6,0)");
-    g.addColorStop(1, "rgba(6,10,6,0.5)");
+    g.addColorStop(0, "rgba(20,8,6,0)");
+    g.addColorStop(1, "rgba(10,5,4,0.55)");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
   }
