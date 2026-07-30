@@ -215,7 +215,10 @@
       const wavePanel = document.getElementById("wavePanel");
       if (wavePanel) wavePanel.classList.remove("boss-wave");
       if (m.next === null) g.setWaveText("All clear", "Final wave done!");
-      else g.setWaveText(`Wave ${m.id} cleared`, `+${m.reward}g${extStr}. Next: ${m.next}`);
+      else {
+        const auto = m.autoIn > 0 ? ` in ${m.autoIn}s · Space early` : (g.activeWaves?.length > 0 ? " · waves still live" : "");
+        g.setWaveText(`Wave ${m.id} cleared`, `+${m.reward}g${extStr}. Next: ${m.next}${auto}`);
+      }
       g.setArmorPill([]);
       g.refreshButtons();
     }
