@@ -1,5 +1,4 @@
 import { clearSendsBtn, sendButtons, sendQueueEl } from "./dom.js";
-import { saveRun } from "./save.js";
 import { game, getActivePlayerState, syncActiveToLegacyIfDuel } from "./state.js";
 import { status } from "./status.js";
 
@@ -232,7 +231,6 @@ export function queueSend(key) {
       : `${option.label} pushed into next wave. War Bonds +${option.incomeGain}.`
   );
   syncActiveToLegacyIfDuel();
-  saveRun(false);
 }
 
 export function clearSendQueue() {
@@ -263,7 +261,6 @@ export function clearSendQueue() {
       : `Send queue cleared. Refunded ${refund}g and removed ${incomeBack} War Bonds.`
   );
   syncActiveToLegacyIfDuel();
-  saveRun(false);
 }
 
 export function consumeSendQueueForWave(state, wave, laneTarget = 0) {

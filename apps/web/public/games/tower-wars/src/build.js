@@ -5,7 +5,6 @@ import { inBounds, worldFromCell } from "./grid.js";
 import { computeMazeDistanceMap, isMazeReservedCell, rebuildMazeDistances } from "./maze.js";
 import { DUEL_PATH_SET, PATH_SET } from "./paths.js";
 import { getTowerAtCell } from "./picking.js";
-import { saveRun } from "./save.js";
 import { effects, enemies, game, getLaneOwnerForCell, getPlayerState, syncActiveToLegacyIfDuel, towers } from "./state.js";
 import { updateSelectionPanel } from "./selection.js";
 import { status } from "./status.js";
@@ -99,7 +98,6 @@ export function tryBuildTower(cx, cy) {
   syncActiveToLegacyIfDuel();
   status(`${TOWER_DATA[type].name} constructed.`);
   playSfx("build");
-  saveRun(false);
 }
 
 export function tryUpgradeSelectedTower() {
@@ -216,7 +214,6 @@ export function sellSelectedTower() {
   syncActiveToLegacyIfDuel();
   status(`${tower.data.name} sold for ${refund} gold.`);
   playSfx("build");
-  saveRun(false);
 }
 
 export function castSelectedAbility() {
