@@ -324,6 +324,65 @@ function cellOwner(c, r, numPlayers) {
   return r < half ? (c < half ? 0 : 1) : (c < half ? 3 : 2);
 }
 
+// ----------------------------------------------------------------- sfx
+// Tiny WebAudio synth (game-feel layer): no assets, no network, all sounds are
+// short envelope blips. Context is created lazily on the first user gesture
+// (browser autoplay policy). M toggles mute (persisted). Kill blips are
+// rate-limited so 3× speed doesn't turn mass kills into a buzz.
+const SFX = (() => {
+  let ac = null, master = null, lastKill = 0;
+  let muted = false;
+  try { muted = localStorage.getItem("gctd.muted") === "1"; } catch { /* private mode */ }
+  const ensure = () => {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    if (!ac) {
+      ac = new AC();
+      master = ac.createGain();
+      master.gain.value = muted ? 0 : 0.5;
+      master.connect(ac.destination);
+    }
+    if (ac.state === "suspended") ac.resume();
+    return ac;
+  };
+  // One blip: pitch glides f0→f1 over dur with an exponential fade-out.
+  const blip = (f0, f1, dur, type = "square", g = 0.2, delay = 0) => {
+    if (muted || !ensure()) return;
+    const t0 = ac.currentTime + delay;
+    const o = ac.createOscillator(), gn = ac.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(Math.max(1, f0), t0);
+    o.frequency.exponentialRampToValueAtTime(Math.max(1, f1), t0 + dur);
+    gn.gain.setValueAtTime(g, t0);
+    gn.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+    o.connect(gn); gn.connect(master);
+    o.start(t0); o.stop(t0 + dur + 0.02);
+  };
+  window.addEventListener("pointerdown", ensure, { once: true });
+  window.addEventListener("keydown", ensure, { once: true });
+  return {
+    toggleMute() {
+      muted = !muted;
+      try { localStorage.setItem("gctd.muted", muted ? "1" : "0"); } catch { /* ignore */ }
+      if (master) master.gain.value = muted ? 0 : 0.5;
+      return muted;
+    },
+    isMuted: () => muted,
+    kill() {
+      const n = performance.now();
+      if (n - lastKill < 35) return; // rate-limit at high game speed
+      lastKill = n;
+      blip(620 + Math.random() * 160, 210, 0.09, "square", 0.09);
+    },
+    boss() { blip(170, 38, 0.5, "sawtooth", 0.3); blip(85, 30, 0.62, "triangle", 0.24, 0.05); },
+    leak() { blip(460, 115, 0.26, "sawtooth", 0.24); blip(340, 85, 0.3, "sawtooth", 0.2, 0.12); },
+    place() { blip(215, 340, 0.07, "triangle", 0.2); },
+    wave() { blip(330, 494, 0.12, "square", 0.14); },
+    win() { [523, 659, 784, 1047].forEach((f, i) => blip(f, f, 0.16, "triangle", 0.18, i * 0.12)); },
+    lose() { [392, 330, 262, 196].forEach((f, i) => blip(f, f * 0.94, 0.2, "sawtooth", 0.18, i * 0.14)); },
+  };
+})();
+
 // ----------------------------------------------------------------- game
 class Game {
   get gold() { return this.players?.[this.activePlayer]?.gold ?? 0; }
@@ -604,6 +663,7 @@ class Game {
   }
   end(won) {
     this.state = won ? "won" : "lost";
+    if (won) SFX.win(); else SFX.lose();
     this.elapsed = this.runMs;
     this.updatePauseBtn();
     let sub = "";
@@ -838,6 +898,7 @@ class Game {
       for (const [id, d] of Object.entries(TOWERS)) if (d.key === k) this.select(id);
       if (k === "escape") { this.selected = "basic"; this.deselectTower(); this.refreshButtons(); }
       else if (k === "p") this.togglePause();
+      else if (k === "m") SFX.toggleMute();
       else if (k === "u") { e.preventDefault(); this.upgradeSelected(); }
       else if (k === "=" || k === "+" || e.code === "NumpadAdd") { e.preventDefault(); this.zoomBy(1.2); }
       else if (k === "-" || e.code === "NumpadSubtract") { e.preventDefault(); this.zoomBy(1 / 1.2); }
@@ -875,10 +936,11 @@ class Game {
     if (this.gold < def.cost || !this.cellBuildable(c, r)) return false;
     if (this.net) { this.net.send({ t: "build", c, r, tower: type }); return true; } // server confirms via towers sync
     const ctr = this.cellCenter(c, r);
-    this.towers.push({ c, r, x: ctr.x, y: ctr.y, type, def, level: 1, spec: null, invested: def.cost, s: statsFor(type, 1, null), lastFire: -999, dmgMult: 1, cdMult: 1, angle: -Math.PI / 2, player: this.activePlayer, priority: "furthest", recoil: 0 });
+    this.towers.push({ c, r, x: ctr.x, y: ctr.y, type, def, level: 1, spec: null, invested: def.cost, s: statsFor(type, 1, null), lastFire: -999, dmgMult: 1, cdMult: 1, angle: -Math.PI / 2, player: this.activePlayer, priority: "furthest", recoil: 0, pop: 0.25 });
     this.occupied.add(c + "," + r);
     this.players[this.activePlayer].gold -= def.cost;
     this.spawnFx(ctr.x, ctr.y, BRASS, "build");
+    SFX.place();
     this.recomputeAuras();
     this.refreshButtons();
     return true;
@@ -1038,6 +1100,10 @@ class Game {
       push({ x, y, vx: 0, vy: 0, t: 0.45, max: 0.45, color, r: extra.r || 30, kind });
     } else if (kind === "build") {
       push({ x, y, vx: 0, vy: 0, t: 0.3, max: 0.3, color: BRASS, r: 18, kind });
+    } else if (kind === "text") {
+      // Floating number pop (game-feel): rises and fades; drag in the fx update
+      // slows it near the top so it reads before it dies.
+      push({ x, y, vx: 0, vy: -46, t: 0.7, max: 0.7, color, r: 0, kind, txt: extra.txt || "" });
     } else if (kind === "bossburst") {
       for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2, sp = 60 + Math.random() * 90; push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: 0.5, max: 0.5, color: THREAT.crit, r: 4, kind: "puff" }); }
       push({ x, y, vx: 0, vy: 0, t: 0.6, max: 0.6, color: THREAT.crit, r: 80, kind: "ring" });
@@ -1047,8 +1113,9 @@ class Game {
   // ---- waves (multiple may run at once — Space / Send still stacks early)
   startNextWave() {
     if (this.state !== "running" || this.waveIndex >= WAVES.length) return;
-    if (this.net) { this.net.send({ t: "wave" }); return; }
+    if (this.net) { this.net.send({ t: "wave" }); SFX.wave(); return; }
     this.autoWaveAt = null; // manual or auto start cancels a pending auto-send
+    SFX.wave();
     // Aggressive-stacking bonus: +15g for sending while a wave is still live
     const stackBonus = this.activeWaves.length > 0 ? 15 : 0;
     if (stackBonus) this.players[this.activePlayer].gold += stackBonus;
@@ -1346,11 +1413,13 @@ class Game {
   onKill(en) {
     if (en._dead) return; en._dead = true;
     this.players[en.lastHitPlayer ?? 0].gold += en.bounty;
-    if (en.flags.includes("boss")) { this.spawnFx(en.x, en.y, en.color, "bossburst"); this.shakeCamera(0.38, 7); }
+    if (en.flags.includes("boss")) { this.spawnFx(en.x, en.y, en.color, "bossburst"); this.shakeCamera(0.38, 7); SFX.boss(); }
     else {
       this.spawnFx(en.x, en.y, en.color, "puff");
       if (en.flags.includes("hero")) this.shakeCamera(0.18, 3);
+      SFX.kill();
     }
+    if (en.bounty > 0) this.spawnFx(en.x, en.y - 10, BRASS, "text", 0, { txt: `+${en.bounty}` });
     this.refreshButtons();
   }
   shakeCamera(duration, intensity) {
@@ -1363,6 +1432,8 @@ class Game {
     this.lives -= cost;
     this.shellEvent("leak");
     this.spawnFx(CENTER.x, CENTER.y, THREAT.crit, "ring", 0, { r: 60 });
+    this.spawnFx(CENTER.x, CENTER.y - 28, THREAT.crit, "text", 0, { txt: cost === 1 ? "-1 life" : `-${cost} lives` });
+    SFX.leak();
     this.refreshButtons();
   }
 
@@ -1788,9 +1859,13 @@ class Game {
       }
     } else if (kind === "radar" && !this.reducedMotion) tw.angle += 0.06;
     if (tw.recoil > 0) tw.recoil = Math.max(0, tw.recoil - dt * 6);
+    // Placement pop (game-feel): one quick scale pulse when the tower lands.
+    // `pop` may be absent on server-mirrored towers (net.js) — guard with ??.
+    if ((tw.pop ?? 0) > 0) tw.pop = Math.max(0, tw.pop - dt);
 
     if (!tw._bezel) tw._bezel = this.buildTowerBezel();
-    ctx.drawImage(tw._bezel, x - 16, y - 16, 32, 32);
+    const popSc = this.reducedMotion || !(tw.pop > 0) ? 1 : 1 + 0.22 * Math.sin((tw.pop / 0.25) * Math.PI);
+    ctx.drawImage(tw._bezel, x - 16 * popSc, y - 16 * popSc, 32 * popSc, 32 * popSc);
 
     const hover = this.hoverWorld && Math.hypot(this.hoverWorld.x - x, this.hoverWorld.y - y) < CELL;
     if (s.range > 0 && (selected || hover)) {
@@ -2076,6 +2151,12 @@ class Game {
           ctx.beginPath(); ctx.ellipse(0, 0, (p.r * a + 4) * (p.dtype === "siege" ? 1.4 : 1), p.r * a * 0.5 + 1.5, 0, 0, 7); ctx.fill();
         }
         ctx.restore();
+      } else if (p.kind === "text") {
+        ctx.fillStyle = p.color;
+        ctx.font = "bold 13px system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(p.txt, p.x, p.y);
+        ctx.textAlign = "left";
       } else {
         ctx.fillStyle = p.color;
         ctx.beginPath(); ctx.arc(p.x, p.y, p.kind === "muzzle" ? p.r * a + 2 : p.r * a, 0, 7); ctx.fill();
