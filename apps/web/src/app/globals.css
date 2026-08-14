@@ -246,11 +246,9 @@ main { min-height: calc(100vh - 57px); }
   letter-spacing: 0.01em;
   line-height: 1.12;
   text-wrap: balance;
-  background: linear-gradient(100deg, var(--text) 30%, var(--primary-soft) 70%, var(--record) 105%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: var(--text); /* fallback if clip unsupported */
+  /* Solid ink (hallmark audit: gradient-fill headlines read as generated).
+     The display face carries the identity; neon lives in the accents. */
+  color: var(--text);
 }
 
 .home .tagline {
@@ -343,15 +341,16 @@ main { min-height: calc(100vh - 57px); }
   transition: opacity 0.18s var(--ease-out);
 }
 
+/* Hover: two signals + the genre glow (hallmark audit trimmed the lift —
+   border + background + glow read as one coherent response, not a pile). */
 .game-tile:hover {
   border-color: var(--border-strong);
   background: var(--surface-2);
-  transform: translateY(-2px);
   box-shadow: var(--glow-primary);
 }
 
 .game-tile:hover::before { opacity: 1; }
-.game-tile:active { transform: translateY(0); }
+.game-tile:active { background: var(--surface); }
 
 .game-emoji {
   grid-row: 1 / 3;
