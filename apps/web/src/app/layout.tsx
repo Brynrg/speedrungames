@@ -1,7 +1,22 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Russo_One, Chakra_Petch } from "next/font/google";
 import { visibleGames } from "@/lib/games";
 import "./globals.css";
+
+const display = Russo_One({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+});
+
+const body = Chakra_Petch({
+  weight: ["300", "400", "500", "600", "700"],
+  subsets: ["latin"],
+  variable: "--font-body",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Speed Run Games",
@@ -15,7 +30,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
+      <body className={`${display.variable} ${body.variable}`}>
         <header>
           <div className="header-inner">
             <Link href="/" className="site-logo">
