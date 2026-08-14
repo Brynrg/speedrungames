@@ -4,6 +4,7 @@ import { getById, killEntity, moveUnitTo, nearestApproachTile, currentTile, rese
 import { tileCenterPixel } from './map.js';
 import { pushMessage } from './messages.js';
 import { spawnHitFlash, spawnDeathBurst, spawnImpact } from './vfx.js';
+import { sfxImpact, sfxUnitDeath, sfxBuildingDeath, sfxUnderAttack } from './sfx.js';
 
 const REPATH_INTERVAL = 600;
 // Must exceed sqrt(2)-1 (~0.414): nearestApproachTile treats any tile
@@ -37,15 +38,19 @@ function dealDamage(state, attacker, target) {
   const armor = target.armor + armorBonus(state, target);
   const dmg = calcDamage(raw, armor);
   target.hp -= dmg;
+  if (target.side === 'player') sfxUnderAttack();
   if (target.hp <= 0) {
     killEntity(state, target);
     spawnDeathBurst(state, target.x, target.y, FACTIONS[target.side].color);
+    if (target.kind === 'building') sfxBuildingDeath();
+    else sfxUnitDeath();
     if (target.kind === 'building' && !target.constructing) {
       const label = target.side === 'player' ? 'Your' : 'Enemy';
       pushMessage(state, `${label} ${BUILDING_DATA[target.type].label} was destroyed`);
     }
   } else {
     spawnHitFlash(state, target.id);
+    sfxImpact();
   }
   return dmg;
 }

@@ -9,6 +9,8 @@ import { updateAI, createAIState } from './ai.js';
 import { updateMessages } from './messages.js';
 import { updateCameraScroll } from './input.js';
 import { updateVfx } from './vfx.js';
+import { recordResult } from './save.js';
+import { sfxVictory, sfxDefeat } from './sfx.js';
 
 function spawnStartingBase(state, side, base) {
   const hallKey = MAIN_HALL[side];
@@ -73,6 +75,12 @@ function checkWinLose(state) {
   const enemyHasBuildings = state.entities.some((e) => e.kind === 'building' && e.side === 'enemy' && !e.isDead);
   if (!playerHasBuildings) state.mode = 'defeat';
   else if (!enemyHasBuildings) state.mode = 'victory';
+  if (state.mode !== 'playing') {
+    // Autosave boundary (save-systems): record the match once, at game end.
+    recordResult(state.mode === 'victory', state.time);
+    if (state.mode === 'victory') sfxVictory();
+    else sfxDefeat();
+  }
 }
 
 export function updateGame(state, map, fow, dt) {

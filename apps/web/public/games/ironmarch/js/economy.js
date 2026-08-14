@@ -3,6 +3,7 @@ import { tileAt, chopForest, mineGold, tileCenterPixel } from './map.js';
 import { spawnUnit, spawnBuilding, getById, moveUnitTo, nearestApproachTile, stopUnit, resetForNewOrder, buildOccupiedSet, currentTile } from './entities.js';
 import { pushMessage } from './messages.js';
 import { spawnFloatText, spawnSparkle, spawnDust } from './vfx.js';
+import { sfxComplete, sfxUnitReady } from './sfx.js';
 
 export function canAfford(state, side, cost) {
   const res = state.resources[side];
@@ -269,6 +270,7 @@ export function updateConstruction(state, map, dt) {
         }
       }
       pushMessage(state, `${stats.label} complete`, e.side);
+      if (e.side === 'player') sfxComplete();
     }
   }
 }
@@ -321,6 +323,7 @@ export function updateProduction(state, map, dt) {
         moveUnitTo(state, map, unit, building.rallyPoint.x, building.rallyPoint.y);
       }
       pushMessage(state, `${UNIT_DATA[item.unitType].label} ready`, side);
+      if (side === 'player') sfxUnitReady();
     } else {
       item.stuckMs = (item.stuckMs || 0) + dt;
       if (item.stuckMs > SPAWN_STUCK_TIMEOUT_MS) {
