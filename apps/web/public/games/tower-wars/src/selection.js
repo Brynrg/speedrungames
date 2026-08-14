@@ -9,6 +9,7 @@ export function updateSelectionPanel() {
     selectionNoneEl.classList.remove("hidden");
     selectionDetailsEl.classList.add("hidden");
     branchControlsEl.classList.add("hidden");
+    delete upgradeTowerBtn.dataset.tip;
     if (selTitleEl) {
       selTitleEl.textContent = "Tower";
     }
@@ -50,9 +51,16 @@ export function updateSelectionPanel() {
   if (!tower.canUpgrade()) {
     upgradeTowerBtn.textContent = "Max Level";
     upgradeTowerBtn.disabled = true;
+    delete upgradeTowerBtn.dataset.tip;
   } else {
     upgradeTowerBtn.textContent = `Upgrade (U) - ${tower.upgradeCost}g`;
     upgradeTowerBtn.disabled = !controllable || ownerState.gold < tower.upgradeCost;
+    const next = tower.upgradePreview();
+    upgradeTowerBtn.dataset.tip =
+      `Upgrade to L${tower.level + 1} for ${tower.upgradeCost}g: ` +
+      `damage ${tower.effectiveDamage} > ${next.damage}, ` +
+      `range ${Math.round(tower.effectiveRange)} > ${Math.round(next.range)}, ` +
+      `rate ${(1 / tower.effectiveFireRate).toFixed(2)} > ${(1 / next.fireRate).toFixed(2)}/s`;
   }
 
   if (targetPriorityBtn) {

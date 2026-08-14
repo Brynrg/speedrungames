@@ -1,12 +1,10 @@
+import { ABILITIES } from "./abilities.js";
 import { playSfx } from "./audio.js";
 import { chooseBranch } from "./build.js";
-import { dealDamageToEnemy } from "./combat.js";
-import { update } from "./loop.js";
 import { TOWER_COLORS } from "./palette.js";
 import { getEnemyProgress } from "./picking.js";
-import { AreaEffect, Effect, Projectile } from "./projectiles.js";
-import { areaEffects, buffZones, effects, enemies, game, getEnemyLane, projectiles } from "./state.js";
-import { status } from "./status.js";
+import { Effect, Projectile } from "./projectiles.js";
+import { effects, enemies, game, getEnemyLane, projectiles } from "./state.js";
 
 export const TOWER_DATA = {
   arrow: {
@@ -503,6 +501,19 @@ export class Tower {
     return true;
   }
 
+  // Post-upgrade stats without committing: run the real upgrade() so the
+  // preview can never drift from the applied math, then restore.
+  upgradePreview() {
+    if (!this.canUpgrade()) {
+      return null;
+    }
+    const saved = { level: this.level, baseDamage: this.baseDamage, baseRange: this.baseRange, baseFireRate: this.baseFireRate };
+    this.upgrade();
+    const preview = { damage: this.effectiveDamage, range: this.effectiveRange, fireRate: this.effectiveFireRate };
+    Object.assign(this, saved);
+    return preview;
+  }
+
   chooseBranch(branchKey) {
     if (!this.canChooseBranch()) {
       return false;
@@ -607,172 +618,9 @@ export class Tower {
       return false;
     }
 
-    const range = this.effectiveRange;
-
-    if (ability.id === "volley") {
-      const targets = enemies
-        .filter((enemy) => this.canTarget(enemy))
-        .sort((a, b) => getEnemyProgress(b) - getEnemyProgress(a))
-        .slice(0, 6);
-
-      for (const enemy of targets) {
-        const dmg = Math.round(this.effectiveDamage * 1.4);
-        dealDamageToEnemy(enemy, dmg, "piercing", this, { allowZero: false });
-      }
-      effects.push(new Effect(this.x, this.y, "ring", { radius: range * 0.85, color: "rgba(248, 223, 135, 0.45)" }));
-    }
-
-    if (ability.id === "rally") {
-      buffZones.push({
-        x: this.x,
-        y: this.y,
-        owner: this.owner,
-        radius: 145,
-        damageMul: 1.22,
-        rateMul: 1.35,
-        timer: 6,
-        name: "Rally",
-      });
-      effects.push(new Effect(this.x, this.y, "ring", { radius: 145, color: "rgba(244, 214, 130, 0.35)" }));
-    }
-
-    if (ability.id === "shatter") {
-      const blastRadius = Math.round(range * 0.6);
-      for (const enemy of enemies) {
-        const d = Math.hypot(enemy.x - this.x, enemy.y - this.y);
-        if (d <= blastRadius) {
-          const falloff = 1 - d / (blastRadius + 1);
-          const dmg = Math.round(this.effectiveDamage * (1.6 * Math.max(0.4, falloff)));
-          dealDamageToEnemy(enemy, dmg, "magic", this, { allowZero: true });
-          enemy.applySlow(0.42, 1.4);
-        }
-      }
-      effects.push(new Effect(this.x, this.y, "ring", { radius: blastRadius, color: "rgba(128, 210, 255, 0.45)" }));
-    }
-
-    if (ability.id === "blizzard") {
-      areaEffects.push(
-        new AreaEffect({
-          x: this.x,
-          y: this.y,
-          radius: Math.round(range * 0.7),
-          duration: 4.2,
-          interval: 0.36,
-          damage: Math.round(this.effectiveDamage * 0.7),
-          damageType: "magic",
-          slowFactor: 0.52,
-          slowDuration: 0.7,
-          color: "rgba(136, 214, 255, 0.34)",
-        })
-      );
-    }
-
-    if (ability.id === "barrage") {
-      let target = null;
-      let farthest = -1;
-      for (const enemy of enemies) {
-        const d = Math.hypot(enemy.x - this.x, enemy.y - this.y);
-        if (d > range || !this.canTarget(enemy)) {
-          continue;
-        }
-        const progress = getEnemyProgress(enemy);
-        if (progress > farthest) {
-          farthest = progress;
-          target = enemy;
-        }
-      }
-      const center = target ? { x: target.x, y: target.y } : { x: this.x, y: this.y };
-      const splash = Math.round(this.splashRadius * 1.8);
-      for (const enemy of [...enemies]) {
-        const d = Math.hypot(enemy.x - center.x, enemy.y - center.y);
-        if (d <= splash) {
-          const dmg = Math.round(this.effectiveDamage * (2 - d / (splash + 1)));
-          dealDamageToEnemy(enemy, dmg, "siege", this, { allowZero: false });
-        }
-      }
-      effects.push(new Effect(center.x, center.y, "explosion", { radius: splash }));
-      game.shake = Math.max(game.shake, 6);
-    }
-
-    if (ability.id === "skyfire") {
-      const hitRadius = range + 40;
-      let hits = 0;
-      for (const enemy of [...enemies]) {
-        if (!enemy.flying) {
-          continue;
-        }
-        if (Math.hypot(enemy.x - this.x, enemy.y - this.y) > hitRadius) {
-          continue;
-        }
-        hits += 1;
-        const dmg = Math.round(this.effectiveDamage * 1.7);
-        dealDamageToEnemy(enemy, dmg, "piercing", this, { allowZero: false });
-      }
-      effects.push(new Effect(this.x, this.y, "ring", { radius: hitRadius, color: "rgba(193, 220, 255, 0.45)" }));
-      if (hits === 0) {
-        status("Skyfire cast, but no air targets in range.");
-      }
-    }
-
-    if (ability.id === "arcane_nova") {
-      const novaRadius = Math.round(range * 0.62);
-      for (const enemy of [...enemies]) {
-        const d = Math.hypot(enemy.x - this.x, enemy.y - this.y);
-        if (d > novaRadius) {
-          continue;
-        }
-        const falloff = 1 - d / (novaRadius + 1);
-        const dmg = Math.round(this.effectiveDamage * (2.05 * Math.max(0.35, falloff)));
-        dealDamageToEnemy(enemy, dmg, "spell", this, { allowZero: false });
-      }
-      effects.push(new Effect(this.x, this.y, "ring", { radius: novaRadius, color: "rgba(186, 160, 255, 0.44)" }));
-    }
-
-    if (ability.id === "time_lock") {
-      let affected = 0;
-      for (const enemy of [...enemies]) {
-        const dmg = Math.round(this.effectiveDamage * 0.9);
-        dealDamageToEnemy(enemy, dmg, "spell", this, { allowZero: true });
-        enemy.applySlow(0.58, 2.6);
-        affected += 1;
-      }
-      effects.push(new Effect(this.x, this.y, "ring", { radius: range * 0.96, color: "rgba(154, 186, 255, 0.42)" }));
-      if (affected === 0) {
-        status("Time Lock cast, but there were no targets.");
-      }
-    }
-
-    if (ability.id === "acid_rain") {
-      areaEffects.push(
-        new AreaEffect({
-          x: this.x,
-          y: this.y,
-          radius: Math.round(range * 0.76),
-          duration: 5.1,
-          interval: 0.38,
-          damage: Math.round(this.effectiveDamage * 0.76),
-          damageType: "magic",
-          slowFactor: 0.82,
-          slowDuration: 0.58,
-          color: "rgba(133, 205, 112, 0.34)",
-        })
-      );
-    }
-
-    if (ability.id === "venom_spike") {
-      const targets = enemies
-        .filter((enemy) => this.canTarget(enemy))
-        .sort((a, b) => getEnemyProgress(b) - getEnemyProgress(a))
-        .slice(0, 5);
-      for (const enemy of targets) {
-        const dmg = Math.round(this.effectiveDamage * 1.35);
-        dealDamageToEnemy(enemy, dmg, "magic", this, { allowZero: true });
-        enemy.applySlow(0.68, 1.2);
-      }
-      effects.push(new Effect(this.x, this.y, "ring", { radius: range * 0.84, color: "rgba(174, 225, 118, 0.42)" }));
-      if (targets.length === 0) {
-        status("Venom Spike cast, but no targets were in range.");
-      }
+    const impl = ABILITIES[ability.id];
+    if (impl) {
+      impl(this, this.effectiveRange);
     }
 
     this.abilityCooldown = ability.cooldown;

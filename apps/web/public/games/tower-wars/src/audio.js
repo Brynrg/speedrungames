@@ -28,6 +28,18 @@ export function ensureAudioActive() {
   if (audio.ctx && audio.ctx.state === "suspended") {
     audio.ctx.resume();
   }
+  // The loop is torn down for good on defeat (stopMusicLoop); once a fresh
+  // run is underway, the next interaction restarts it here.
+  if (audio.ctx && !audio.musicTimer && !game.gameOver) {
+    startMusicLoop();
+  }
+}
+
+export function stopMusicLoop() {
+  if (audio.musicTimer) {
+    clearInterval(audio.musicTimer);
+    audio.musicTimer = null;
+  }
 }
 
 export function playTone(freq, duration, type, gain) {

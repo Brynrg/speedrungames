@@ -69,14 +69,12 @@ export function startWave() {
   status(`Wave ${game.wave} (${plan.tag}) started. ${game.spawnQueue.length} enemies incoming.${sendText}`);
   playSfx("wave");
   syncActiveToLegacyIfDuel();
-  saveRun(false);
 }
 
 export function toggleAutoWave() {
   game.autoWaveEnabled = !game.autoWaveEnabled;
   game.autoWaveTimer = 0;
   status(game.autoWaveEnabled ? "Auto-next wave enabled." : "Auto-next wave disabled.");
-  saveRun(false);
 }
 
 export function setGameMode(mode) {

@@ -1,4 +1,4 @@
-import { playSfx } from "./audio.js";
+import { playSfx, stopMusicLoop } from "./audio.js";
 import { submitRun } from "./leaderboard.js";
 import { updateBuffsAndAuras } from "./auras.js";
 import { applyCameraTransform, camera } from "./camera.js";
@@ -101,7 +101,6 @@ export function update(dt) {
       }
       playSfx("clear");
       syncActiveToLegacyIfDuel();
-      saveRun(false);
     }
   }
 
@@ -160,6 +159,8 @@ export function update(dt) {
         }
         syncActiveToLegacyIfDuel();
         recordHighScore();
+        stopMusicLoop();
+        saveRun(false);
       }
     }
   }
