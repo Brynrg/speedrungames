@@ -4,6 +4,8 @@ import { pixelToTile, tileAt, tileCenterPixel } from './map.js';
 import { getById, moveUnitTo, resetForNewOrder } from './entities.js';
 import { orderHarvest, assistBuild, orderBuild, footprintClear } from './economy.js';
 import { issueAttack } from './combat.js';
+import { pushMessage } from './messages.js';
+import { toggleMute, initSfx } from './sfx.js';
 
 function entityAtPoint(state, wx, wy) {
   for (const e of state.entities) {
@@ -138,6 +140,7 @@ function confirmPlacement(state, map) {
 }
 
 export function setupInput(state, map, canvas, minimapCanvas) {
+  initSfx();
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
   canvas.addEventListener('mousedown', (e) => {
@@ -209,6 +212,11 @@ export function setupInput(state, map, canvas, minimapCanvas) {
     if (key === 'escape') {
       if (state.placement) cancelPlacement(state);
       else state.selection = [];
+      return;
+    }
+    if (key === 'm') {
+      const nowMuted = toggleMute();
+      pushMessage(state, nowMuted ? 'Sound muted (M to unmute)' : 'Sound on');
       return;
     }
     const num = parseInt(e.key, 10);

@@ -2,6 +2,7 @@ import { UNIT_DATA, BUILDING_DATA, BUILDABLE } from './constants.js';
 import { getById, stopUnit } from './entities.js';
 import { queueProduction, purchaseUpgrade, hasBlacksmith } from './economy.js';
 import { startPlacement } from './input.js';
+import { getRecords } from './save.js';
 
 const UNIT_ICON = { peasant: '🧑‍🌾', footman: '🗡️', archer: '🏹', knight: '🐴', peon: '🧑‍🌾', grunt: '🗡️', spearman: '🏹', raider: '🐺' };
 const BUILD_ICON = { farm: '🌾', barracks: '⚔️', blacksmith: '🛡️', tower: '🗼', pigfarm: '🌾', warmill: '⚔️', tradehall: '🛡️', watchtower: '🗼' };
@@ -219,6 +220,16 @@ export function initUI(state, map, { onRestart }) {
     els.overlay.classList.remove('hidden');
     els.overlayTitle.textContent = state.mode === 'victory' ? 'Victory!' : 'Defeat';
     els.overlayTitle.className = state.mode === 'victory' ? 'victory' : 'defeat';
+    // Career record (save-systems): persisted across sessions.
+    const rec = getRecords();
+    const fastest = rec.fastestWinMs !== null ? ` · fastest win ${formatClock(rec.fastestWinMs)}` : '';
+    let recEl = document.getElementById('gameOverRecord');
+    if (!recEl) {
+      recEl = document.createElement('p');
+      recEl.id = 'gameOverRecord';
+      els.overlayTitle.insertAdjacentElement('afterend', recEl);
+    }
+    recEl.textContent = `Record: ${rec.wins}W – ${rec.losses}L${fastest}`;
   }
 
   function formatClock(ms) {
