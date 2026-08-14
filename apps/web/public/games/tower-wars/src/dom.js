@@ -52,6 +52,7 @@ export const loadRunBtn = document.getElementById("loadRun");
 export const newRunBtn = document.getElementById("newRun");
 export const upgradeTowerBtn = document.getElementById("upgradeTower");
 export const castAbilityBtn = document.getElementById("castAbility");
+export const targetPriorityBtn = document.getElementById("targetPriority");
 export const sellTowerBtn = document.getElementById("sellTower");
 export const branchAButton = document.getElementById("branchA");
 export const branchBButton = document.getElementById("branchB");

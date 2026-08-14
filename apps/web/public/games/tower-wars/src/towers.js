@@ -326,6 +326,7 @@ export class Tower {
     this.cooldown = Math.random() * this.baseFireRate;
     this.invested = base.cost;
     this.kills = 0;
+    this.priority = "first"; // targeting: first | last | strong | weak
 
     this.branch = null;
     this.abilityCooldown = 0;
@@ -355,6 +356,7 @@ export class Tower {
     tower._freezeCd = data._freezeCd || 0;
     tower.invested = data.invested ?? TOWER_DATA[data.type].cost;
     tower.kills = data.kills ?? 0;
+    tower.priority = data.priority ?? "first";
     return tower;
   }
 
@@ -377,6 +379,7 @@ export class Tower {
       _freezeCd: this._freezeCd,
       invested: this.invested,
       kills: this.kills,
+      priority: this.priority,
     };
   }
 
@@ -531,22 +534,37 @@ export class Tower {
     return dx * dx + dy * dy <= this.effectiveRange * this.effectiveRange;
   }
 
+  // Targeting priority (TD canon): "first" (furthest along — stops leaks,
+  // the default), "last" (guards the entrance), "strong" (burn down tanks),
+  // "weak" (secure kills). Score is maximized; sign flips invert the pick.
   acquireTarget() {
     let best = null;
-    let bestProgress = -1;
+    let bestScore = -Infinity;
 
     for (const enemy of enemies) {
       if (!this.canTarget(enemy)) {
         continue;
       }
-      const progress = getEnemyProgress(enemy);
-      if (progress > bestProgress) {
-        bestProgress = progress;
+      let score;
+      switch (this.priority) {
+        case "last": score = -getEnemyProgress(enemy); break;
+        case "strong": score = enemy.hp; break;
+        case "weak": score = -enemy.hp; break;
+        default: score = getEnemyProgress(enemy); break;
+      }
+      if (score > bestScore) {
+        bestScore = score;
         best = enemy;
       }
     }
 
     return best;
+  }
+
+  cyclePriority() {
+    const modes = ["first", "last", "strong", "weak"];
+    this.priority = modes[(modes.indexOf(this.priority) + 1) % modes.length];
+    return this.priority;
   }
 
   fire(target) {

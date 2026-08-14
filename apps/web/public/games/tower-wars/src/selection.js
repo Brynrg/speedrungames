@@ -1,5 +1,5 @@
 import { DAMAGE_LABELS } from "./damage.js";
-import { branchAButton, branchBButton, branchControlsEl, castAbilityBtn, selAuraEl, selBranchEl, selDamageEl, selDamageTypeEl, selLevelEl, selRangeEl, selRateEl, selSubEl, selTitleEl, selTypeEl, selectionDetailsEl, selectionNoneEl, upgradeTowerBtn, sellTowerBtn, selKillsEl } from "./dom.js";
+import { branchAButton, branchBButton, branchControlsEl, castAbilityBtn, selAuraEl, selBranchEl, selDamageEl, selDamageTypeEl, selLevelEl, selRangeEl, selRateEl, selSubEl, selTitleEl, selTypeEl, selectionDetailsEl, selectionNoneEl, upgradeTowerBtn, sellTowerBtn, selKillsEl, targetPriorityBtn } from "./dom.js";
 import { game, getPlayerState, towers } from "./state.js";
 
 export function updateSelectionPanel() {
@@ -53,6 +53,12 @@ export function updateSelectionPanel() {
   } else {
     upgradeTowerBtn.textContent = `Upgrade (U) - ${tower.upgradeCost}g`;
     upgradeTowerBtn.disabled = !controllable || ownerState.gold < tower.upgradeCost;
+  }
+
+  if (targetPriorityBtn) {
+    const labels = { first: "First", last: "Last", strong: "Strong", weak: "Weak" };
+    targetPriorityBtn.textContent = `Target: ${labels[tower.priority] || "First"} (G)`;
+    targetPriorityBtn.disabled = !controllable;
   }
 
   if (tower.ability) {

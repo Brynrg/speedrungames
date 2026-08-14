@@ -1,8 +1,8 @@
 import { ensureAudioActive } from "./audio.js";
-import { castSelectedAbility, chooseBranch, sellSelectedTower, setSelectedType, tryUpgradeSelectedTower } from "./build.js";
+import { castSelectedAbility, chooseBranch, cycleSelectedPriority, sellSelectedTower, setSelectedType, tryUpgradeSelectedTower } from "./build.js";
 import { clampCamera, keyState, resizeCanvasToViewport } from "./camera.js";
 import { HOME_URL } from "./constants.js";
-import { autoWaveBtn, branchAButton, branchBButton, canvas, castAbilityBtn, clearSendsBtn, commandTabButtons, duelP1Btn, duelP2Btn, loadRunBtn, menuBtn, menuHomeBtn, menuOverlayEl, menuRestartBtn, menuResumeBtn, miniMapEl, modeClassicBtn, modeDuelBtn, modeMazeBtn, newRunBtn, nextWaveBtn, pauseGameBtn, saveRunBtn, sendAirBtn, sendArmorBtn, sendBreakerBtn, sendMiniBossBtn, sendRunnerBtn, sendSplitterBtn, speedBtn, speedGameBtn, startWaveBtn, towerButtons, upgradeTowerBtn, sellTowerBtn, defeatNewRunBtn, defeatLoadRunBtn, defeatHomeBtn, collapseLeftBtn, collapseRightBtn } from "./dom.js";
+import { targetPriorityBtn, autoWaveBtn, branchAButton, branchBButton, canvas, castAbilityBtn, clearSendsBtn, commandTabButtons, duelP1Btn, duelP2Btn, loadRunBtn, menuBtn, menuHomeBtn, menuOverlayEl, menuRestartBtn, menuResumeBtn, miniMapEl, modeClassicBtn, modeDuelBtn, modeMazeBtn, newRunBtn, nextWaveBtn, pauseGameBtn, saveRunBtn, sendAirBtn, sendArmorBtn, sendBreakerBtn, sendMiniBossBtn, sendRunnerBtn, sendSplitterBtn, speedBtn, speedGameBtn, startWaveBtn, towerButtons, upgradeTowerBtn, sellTowerBtn, defeatNewRunBtn, defeatLoadRunBtn, defeatHomeBtn, collapseLeftBtn, collapseRightBtn } from "./dom.js";
 import { runStartupGuardrails } from "./guardrails.js";
 import { handleBoardClick, handleCanvasMouseDown, handleCanvasMouseUp, handleCanvasMove, handleCanvasWheel } from "./input.js";
 import { closeMenu, cycleSpeed, openMenu, restartRun, setActivePlayer, setGameMode, startWave, toggleAutoWave, togglePause } from "./lifecycle.js";
@@ -144,6 +144,12 @@ export function bindEvents() {
     ensureAudioActive();
     castSelectedAbility();
   });
+  if (targetPriorityBtn) {
+    targetPriorityBtn.addEventListener("click", () => {
+      ensureAudioActive();
+      cycleSelectedPriority();
+    });
+  }
   if (sellTowerBtn) {
     sellTowerBtn.addEventListener("click", () => {
       ensureAudioActive();
@@ -317,6 +323,10 @@ export function bindEvents() {
     if (key === "f") {
       event.preventDefault();
       castSelectedAbility();
+    }
+    if (key === "g") {
+      event.preventDefault();
+      cycleSelectedPriority();
     }
     if (key === "p") {
       event.preventDefault();
