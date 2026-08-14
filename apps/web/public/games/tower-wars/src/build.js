@@ -7,6 +7,7 @@ import { DUEL_PATH_SET, PATH_SET } from "./paths.js";
 import { getTowerAtCell } from "./picking.js";
 import { saveRun } from "./save.js";
 import { effects, enemies, game, getLaneOwnerForCell, getPlayerState, syncActiveToLegacyIfDuel, towers } from "./state.js";
+import { updateSelectionPanel } from "./selection.js";
 import { status } from "./status.js";
 import { TOWER_DATA, Tower } from "./towers.js";
 
@@ -165,6 +166,23 @@ export function chooseBranch(branchKey) {
   syncActiveToLegacyIfDuel();
   status(`${tower.data.name} specialized into ${tower.branchData.name}.`);
   playSfx("upgrade");
+}
+
+
+export function cycleSelectedPriority() {
+  const tower = game.selectedTower;
+  if (!tower || !towers.includes(tower)) {
+    status("Select a tower to change its targeting.");
+    return;
+  }
+  if (game.duelMode && tower.owner !== game.activePlayer) {
+    status(`Switch to P${tower.owner + 1} to command this tower.`);
+    return;
+  }
+  const labels = { first: "First (stops leaks)", last: "Last (guards the entrance)", strong: "Strongest (burns tanks)", weak: "Weakest (secures kills)" };
+  const mode = tower.cyclePriority();
+  status(`Targeting: ${labels[mode]}`);
+  updateSelectionPanel();
 }
 
 export function sellSelectedTower() {
