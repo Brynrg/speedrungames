@@ -5,30 +5,42 @@
 }
 
 :root {
-  /* Surfaces: near-black with a faint green cast (timer / track), not AI-purple. */
-  --bg: #0b0e0c;
-  --surface: #161b17;
-  --surface-2: #1d231f;
-  --border: #2a322c;
-  --border-strong: #3a443d;
+  /* Neon rebrand (2026-08-13, ui-ux-pro-max design system "SpeedrunGames"):
+     deep indigo-black surfaces, neon purple primary, rose CTA/record accent.
+     Green is retained ONLY as the live-status semantic (the palette has no
+     success color and a speedrun site needs "live" to read instantly). */
+  --bg: #0f0f23;
+  --surface: #1e1c35;
+  --surface-2: #27273b;
+  --border: #302d52;
+  --border-strong: #4c1d95;
 
   /* Ink */
-  --text: #e9efe9;
-  --dim: #c2ccc6;
-  --muted: #9aa6a0;
+  --text: #e2e8f0;
+  --dim: #c3c8e8;
+  --muted: #94a3b8;
 
-  /* Accents: "go" green for live/primary, amber for records. */
+  /* Accents */
+  --primary: #7c3aed;
+  --primary-soft: #a78bfa;
   --go: #33d17a;
   --go-strong: #3fe388;
   --go-ink: #06210f;
-  --record: #f5b942;
-  --record-dim: #c79433;
+  --record: #f43f5e;
+  --record-dim: #fb7185;
+
+  --glow-primary: 0 0 22px -2px color-mix(in srgb, var(--primary) 55%, transparent);
+  --glow-record: 0 0 18px -4px color-mix(in srgb, var(--record) 50%, transparent);
 
   --radius: 12px;
   --radius-sm: 8px;
 
-  /* Type */
+  /* Type: Chakra Petch body / Russo One display, loaded via next/font.
+     NOTE: --font-body / --font-display are injected on <body>, so the
+     composite vars below are (re)declared on body — declaring them here
+     would substitute against :root, where the injected vars don't exist. */
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-heading: var(--font-sans);
   --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Mono",
     "Roboto Mono", Menlo, Consolas, monospace;
 
@@ -48,6 +60,9 @@
 }
 
 body {
+  --font-sans: var(--font-body), system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  --font-heading: var(--font-display), system-ui, sans-serif;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
@@ -65,7 +80,7 @@ body {
 }
 
 :focus-visible {
-  outline: 2px solid var(--go);
+  outline: 2px solid var(--primary-soft);
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -95,11 +110,13 @@ header {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 1.0625rem;
-  font-weight: 700;
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 400;
   color: var(--text);
   text-decoration: none;
-  letter-spacing: -0.01em;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   min-height: 40px;
 }
 
@@ -110,7 +127,7 @@ header {
 
 .site-logo .logo-name { white-space: nowrap; }
 
-.site-logo:hover { color: var(--go-strong); }
+.site-logo:hover { color: var(--primary-soft); text-shadow: 0 0 14px color-mix(in srgb, var(--primary) 60%, transparent); }
 
 .site-nav {
   display: flex;
@@ -223,11 +240,17 @@ main { min-height: calc(100vh - 57px); }
 }
 
 .home h1 {
+  font-family: var(--font-heading);
   font-size: var(--step-4);
-  font-weight: 800;
-  letter-spacing: -0.025em;
-  line-height: 1.05;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 1.12;
   text-wrap: balance;
+  background: linear-gradient(100deg, var(--text) 30%, var(--primary-soft) 70%, var(--record) 105%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: var(--text); /* fallback if clip unsupported */
 }
 
 .home .tagline {
@@ -305,14 +328,14 @@ main { min-height: calc(100vh - 57px); }
 }
 
 .game-tile::before {
-  /* faint track sheen behind the emoji, sits under content */
+  /* faint neon sheen behind the emoji, sits under content */
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
   background: radial-gradient(
     120px 80px at 36px 36px,
-    color-mix(in srgb, var(--go) 9%, transparent),
+    color-mix(in srgb, var(--primary) 14%, transparent),
     transparent 70%
   );
   opacity: 0;
@@ -324,6 +347,7 @@ main { min-height: calc(100vh - 57px); }
   border-color: var(--border-strong);
   background: var(--surface-2);
   transform: translateY(-2px);
+  box-shadow: var(--glow-primary);
 }
 
 .game-tile:hover::before { opacity: 1; }
@@ -350,13 +374,14 @@ main { min-height: calc(100vh - 57px); }
 
 .game-title {
   align-self: center;
-  font-size: var(--step-3);
-  font-weight: 700;
-  letter-spacing: -0.015em;
-  line-height: 1.15;
+  font-family: var(--font-heading);
+  font-size: 1.125rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
 }
 
-.is-featured .game-title { font-size: 1.625rem; }
+.is-featured .game-title { font-size: 1.375rem; }
 
 .game-desc {
   grid-column: 2;
@@ -424,7 +449,7 @@ main { min-height: calc(100vh - 57px); }
   transition: color 0.15s var(--ease-out), gap 0.15s var(--ease-out);
 }
 
-.game-tile:hover .game-go { color: var(--go-strong); gap: 0.55rem; }
+.game-tile:hover .game-go { color: var(--primary-soft); gap: 0.55rem; }
 .game-go .arrow { transition: transform 0.15s var(--ease-out); }
 .game-tile:hover .game-go .arrow { transform: translateX(2px); }
 
@@ -445,9 +470,11 @@ main { min-height: calc(100vh - 57px); }
 }
 
 .records-head h2 {
-  font-size: var(--step-3);
-  font-weight: 700;
-  letter-spacing: -0.015em;
+  font-family: var(--font-heading);
+  font-size: 1.125rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .records-head .records-sub {
@@ -502,7 +529,7 @@ main { min-height: calc(100vh - 57px); }
   text-overflow: ellipsis;
 }
 
-.record-game:hover { color: var(--go-strong); }
+.record-game:hover { color: var(--primary-soft); }
 
 .record-sub {
   font-size: var(--step-0);
@@ -522,11 +549,14 @@ main { min-height: calc(100vh - 57px); }
   font-size: var(--step-2);
   font-weight: 600;
   letter-spacing: -0.02em;
-  color: var(--go);
+  color: var(--primary-soft);
   text-align: right;
 }
 
-.record-row.is-podium .record-time { color: var(--go-strong); }
+.record-row.is-podium .record-time {
+  color: var(--record-dim);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--record) 45%, transparent);
+}
 
 /* Skeleton loading */
 .record-skeleton {
@@ -587,7 +617,7 @@ main { min-height: calc(100vh - 57px); }
 }
 
 .records-empty .empty-link {
-  color: var(--go-strong);
+  color: var(--primary-soft);
   text-decoration: none;
   font-weight: 600;
   font-size: var(--step-1);
@@ -617,5 +647,5 @@ main { min-height: calc(100vh - 57px); }
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
-  .game-tile:hover { transform: none; }
+  .game-tile:hover { transform: none; box-shadow: none; }
 }
