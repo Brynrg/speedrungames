@@ -28,6 +28,20 @@
     "emoji": "🟢"
   },
   {
+    "slug": "iron-meridian",
+    "title": "Iron Meridian",
+    "description": "Cold-war alternate-history RTS built to parity with the 1996 Westwood classic: ore economy, construction-yard base building, two factions with full ground, air and naval rosters, superweapons, fog of war, 28-mission campaign, skirmish AI on 16 maps, saves, replays, and peer-to-peer lockstep multiplayer. Original factions, art, and audio.",
+    "repo": "Brynrg/iron-meridian",
+    "playUrl": "/games/iron-meridian/",
+    "category": "strategy",
+    "status": "live",
+    "framework": "vite-canvas2d",
+    "supportsMobile": false,
+    "version": "1.0.0",
+    "lastUpdated": "2026-09-05T21:22:25.948Z",
+    "emoji": "🪖"
+  },
+  {
     "slug": "ironmarch",
     "title": "Ironmarch",
     "description": "Warcraft-1-style real-time strategy. Command the Human Alliance against an Orc Horde AI: harvest gold and lumber, build a base (Town Hall, Farm, Barracks, Blacksmith, Guard Tower), train Peasants, Footmen, Archers and Knights, scout under fog of war, and destroy the enemy base before their raiders destroy yours.",
