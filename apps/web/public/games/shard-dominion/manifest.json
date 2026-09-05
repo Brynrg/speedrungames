@@ -9,9 +9,11 @@
   "framework": "vite-canvas2d",
   "supportsMobile": false,
   "version": "0.62.0",
-  "sourceCommit": "afaa7663d4f76ea016037611451d0126b160e4f9",
+  "sourceCommit": "b7ba17a1340b68d0968a1034e49b9b64d65fca0c",
   "buildHash": "77f0c6bd4b10c7f5128c05319c1531eb09531c9edc27f1c794a2b3fcedd91ef0",
-  "buildTimestamp": "2026-09-05T20:56:56.933Z",
-  "lastUpdated": "2026-09-05T20:56:56.933Z",
-  "emoji": "🎮"
+  "buildTimestamp": "2026-09-05T21:25:10.703Z",
+  "lastUpdated": "2026-09-05T21:25:10.703Z",
+  "emoji": "🎮",
+  "assetsDocumented": true,
+  "assetLicenseSummary": "All assets project-generated, no third-party files: unit/building sprites via xAI Grok Imagine from the repo's own prompts (project-owned), terrain + cards + portraits code-drawn, audio procedural. See ASSETS.md."
 }
