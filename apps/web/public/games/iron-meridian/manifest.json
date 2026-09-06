@@ -9,10 +9,10 @@
   "framework": "vite-canvas2d",
   "supportsMobile": false,
   "version": "1.1.0",
-  "sourceCommit": "5d725d48f479bf80ffec4a6ad56d06686f43c0e7",
+  "sourceCommit": "e0ed714ba8030bee556485343c2e57cd15d992e1",
   "buildHash": "f6924416bf2bc5c9511b1e0e596896ea4b1bb47c471d21c973c5e8bbbaa9facd",
-  "buildTimestamp": "2026-09-06T04:12:28.612Z",
-  "lastUpdated": "2026-09-06T04:12:28.612Z",
+  "buildTimestamp": "2026-09-06T04:27:14.445Z",
+  "lastUpdated": "2026-09-06T04:27:14.445Z",
   "emoji": "🪖",
   "multiplayer": "p2p",
   "multiplayerProvider": "webrtc"
