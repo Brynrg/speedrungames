@@ -42,8 +42,13 @@ jobs:
       - name: Build registry
         run: pnpm run build:registry
 
-      - name: Validate games
-        run: pnpm run validate:games
+      - name: Validate games and redirect rules
+        run: |
+          pnpm run validate:games
+          node --test apps/web/scripts/redirect-rules.test.mjs apps/web/scripts/verify-publication-redirects.test.mjs
 
       - name: Build portal
         run: pnpm run build
+
+      - name: Verify generated publication redirects
+        run: node apps/web/scripts/verify-publication-redirects.mjs

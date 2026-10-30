@@ -5,7 +5,7 @@
   "repo": "Brynrg/shard-dominion-fable",
   "playUrl": "/games/shard-dominion-fable/",
   "category": "RTS",
-  "status": "live",
+  "status": "archived",
   "framework": "vite",
   "supportsMobile": false,
   "version": "0.1.0",
@@ -13,5 +13,7 @@
   "buildHash": "1b689bffb6652aafa6209fe237c4778ad4bde26ef1761f6f096e3bd60ad74b4e",
   "buildTimestamp": "2026-06-26T13:38:48.975Z",
   "lastUpdated": "2026-06-26T13:38:48.975Z",
-  "emoji": "⚔️"
+  "emoji": "⚔️",
+  "hidden": true,
+  "redirectTo": "/games/shard-dominion/"
 }
