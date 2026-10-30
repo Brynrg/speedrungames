@@ -5,7 +5,7 @@
   "repo": "Brynrg/shard-dominion-v2",
   "playUrl": "/games/shard-dominion-v2/",
   "category": "arcade",
-  "status": "live",
+  "status": "archived",
   "framework": "vite-phaser",
   "supportsMobile": true,
   "version": "0.1.0",
@@ -13,5 +13,7 @@
   "buildHash": "e23895f9719796224c55161339d8d41738c81443ac06c2266c729a91d43707e1",
   "buildTimestamp": "2026-06-22T16:15:40.213Z",
   "lastUpdated": "2026-06-22T16:15:40.213Z",
-  "emoji": "🎮"
+  "emoji": "🎮",
+  "hidden": true,
+  "redirectTo": "/games/shard-dominion/"
 }
