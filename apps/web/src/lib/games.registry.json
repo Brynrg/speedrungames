@@ -70,6 +70,20 @@
     "emoji": "🏰"
   },
   {
+    "slug": "openwar",
+    "title": "OpenWar",
+    "description": "An open reimplementation of the 1994 orcs-versus-humans real-time strategy game. Bring your own DATA.WAR. All 24 campaign missions, editable rules and a map editor.",
+    "repo": "Brynrg/openwar",
+    "playUrl": "/games/openwar/",
+    "category": "strategy",
+    "status": "live",
+    "framework": "vite",
+    "supportsMobile": false,
+    "version": "0.2.0",
+    "lastUpdated": "2026-11-03T05:04:15.920Z",
+    "emoji": "⚔️"
+  },
+  {
     "slug": "pokemonspeedrungen1",
     "title": "Pokémon Speedrun Gen 1",
     "description": "Voice-first (tap fallback) Gen 1 Pokémon speedrun. Name all 151 as fast as you can.",
