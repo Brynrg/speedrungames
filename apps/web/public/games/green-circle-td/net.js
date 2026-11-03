@@ -166,7 +166,11 @@
           };
           this.enemyMap.set(id, en);
         }
+        // A lap jumps the creep from the centre back to its corner; snap instead
+        // of letting the position easing drag it visibly across the whole map.
+        if (Math.hypot(x - en.tx, y - en.ty) > 200) { en.x = x; en.y = y; }
         en.tx = x; en.ty = y; en.hp = h; en.netAng = ang; en.netProg = prog;
+        en.lapped = !!(st & 8);   // drives the "N loose" count on the overrun meter
         en.slowUntil = st & 1 ? g.gameTime + 0.25 : 0;
         if (st & 2) { en.poison = 1; en.poisonUntil = g.gameTime + 0.25; } else en.poison = 0;
         en.revealed = !!(st & 4);

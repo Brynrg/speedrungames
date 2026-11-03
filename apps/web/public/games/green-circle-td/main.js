@@ -29,12 +29,13 @@ const THREAT = { warn: "#d98a33", crit: "#a13a2e" };                   // armore
 const CALLSIGNS = ["HOWL", "GOLD", "IRON", "DUST"];                    // corner houses / co-op zones
 
 // ----------------------------------------------------------------- data (ported)
-// Divine waves take a tenth from everything except chaos; chaos does almost
-// nothing to anything else. 0.10/0.35 rather than the original's 0.05/0.02:
-// in a 30-wave solo run a tower that renders zero damage for four waves reads
-// as broken, and these keep the 10x separation that carries the mechanic while
-// leaving a computable (losing) route for a player who skips the Void line.
-const DIVINE_FLOOR = 0.10, CHAOS_FLOOR = 0.35;
+// Divine waves take 5% from everything except chaos (the original's own value).
+// Measured with a no-cheat bot: at 0.10 a build with no Void won on every
+// difficulty and finished faster, because leaks are recoverable and laps grind
+// divine creeps down. At 0.05 skipping Void costs time on Normal and loses on
+// Intense. CHAOS_FLOOR is softer than the original's 0.02 so a Void still visibly
+// contributes on ordinary waves; the bot was insensitive to it.
+const DIVINE_FLOOR = 0.05, CHAOS_FLOOR = 0.35;
 const ARMOR_MATRIX = {
   // Flattened to the WC3 original's real spread (war3mapMisc.txt, verified
   // byte-for-byte — see WC3-COMPARISON.md). Ordinary cells sit in 0.75-1.30, so
@@ -79,7 +80,7 @@ const TOWERS = {
   damage_aura: T({ name: "Dmg Aura", key: "8", range: 0, damage: 0, cd: 0, cost: 220, color: "#c41e3a",   dtype: null, aura: { type: "dmg", radius: 160, value: 0.20 }, desc: "+20% dmg nearby" }),
   speed_aura:  T({ name: "Spd Aura", key: "9", range: 0, damage: 0, cd: 0, cost: 200, color: "#d4a84b",  dtype: null, aura: { type: "cd", radius: 150, value: 0.15 }, desc: "-15% cooldown nearby" }),
   mint:        T({ name: "Mint",    key: "0", range: 0, damage: 0, cd: 0, cost: 150, color: "#f0d060", dtype: null, income: 8, desc: "+8g per wave cleared" }),
-  void:        T({ name: "Void",    key: "v", range: 155, damage: 32, cd: 50, cost: 380, color: "#8b5cf6", dtype: "chaos", desc: "Chaos — the key to divine waves" }),
+  void:        T({ name: "Void",    key: "v", range: 155, damage: 32, cd: 50, cost: 240, color: "#8b5cf6", dtype: "chaos", desc: "Chaos — the key to divine waves" }),
 };
 
 // ---- tower progression: linear Lv1→2→3, then a 3-way specialization
@@ -171,29 +172,29 @@ const WAVES = [
   { id: 2, name: "Patrol", hint: "Two corners. Spread your defenses.", reward: 60, spawns: [{ e: "Normal", n: 10, iv: 0.7, at: 0 }, { e: "Normal", n: 10, iv: 0.7, at: 2 }] },
   { id: 3, name: "Swift Strike", hint: "Fast enemies. Freeze or pierce them.", reward: 55, spawns: [{ e: "Swift", n: 12, iv: 0.5, at: 0 }] },
   { id: 4, name: "First Mass", hint: "Swarm of small enemies. AoE shines.", reward: 55, spawns: [{ e: "Swarm", n: 18, iv: 0.3, at: 0 }] },
-  { id: 5, name: "Iron Probe", hint: "DIVINE — only Chaos (Void) hurts them. Everything else does 10%.", armor: "divine", reward: 70, spawns: [{ e: "Armored", n: 8, iv: 0.8, at: 0 }] },
+  { id: 5, name: "Iron Probe", hint: "DIVINE — Void does full damage. Everything else does 5%.", armor: "divine", reward: 70, spawns: [{ e: "Armored", n: 8, iv: 0.8, at: 0 }] },
   { id: 6, name: "Choirs", hint: "Mixed speed. Balance your army.", reward: 65, spawns: [{ e: "Normal", n: 10, iv: 0.7, at: 0 }, { e: "Swift", n: 4, iv: 0.4, at: 3 }] },
-  { id: 7, name: "The Steel Tide", hint: "Heavy mass. Pierce is weak here.", reward: 80, spawns: [{ e: "Armored", n: 14, iv: 0.8, at: 0 }, { e: "Armored", n: 3, iv: 1.6, at: 5 }] },
+  { id: 7, name: "The Steel Tide", hint: "Heavy mass. Magic hits hardest.", reward: 80, spawns: [{ e: "Armored", n: 14, iv: 0.8, at: 0 }, { e: "Armored", n: 3, iv: 1.6, at: 5 }] },
   { id: 8, name: "Ghost Patrol", hint: "Invisible enemies. Build a Detector.", reward: 65, spawns: [{ e: "Invisible", n: 6, iv: 0.9, at: 0 }, { e: "Normal", n: 4, iv: 0.7, at: 2 }] },
   { id: 9, name: "Pyre Air", hint: "Flying enemies.", reward: 70, spawns: [{ e: "Air", n: 10, iv: 0.6, at: 0 }] },
   { id: 10, name: "First Sentinel", hint: "BOSS — a single powerful foe with escorts.", boss: true, reward: 250, spawns: [{ e: "Boss", n: 1, iv: 0, at: 0 }, { e: "Normal", n: 6, iv: 0.7, at: 0.5 }] },
   { id: 11, name: "Frost Burn", hint: "Immune to slow. Frost loses its edge.", reward: 75, spawns: [{ e: "Immune", n: 12, iv: 0.7, at: 0 }] },
   { id: 12, name: "Razor Wing", hint: "Fast flyers. Sniper/Frost help.", reward: 80, spawns: [{ e: "Air", n: 14, iv: 0.4, at: 0 }] },
-  { id: 13, name: "Ghost Stampede", hint: "DIVINE — only Chaos (Void) hurts them. Everything else does 10%.", armor: "divine", reward: 85, spawns: [{ e: "Invisible", n: 12, iv: 0.4, at: 0 }, { e: "Swift", n: 8, iv: 0.3, at: 2 }] },
+  { id: 13, name: "Ghost Stampede", hint: "DIVINE — Void does full damage. Everything else does 5%.", armor: "divine", reward: 85, spawns: [{ e: "Invisible", n: 12, iv: 0.4, at: 0 }, { e: "Swift", n: 8, iv: 0.3, at: 2 }] },
   { id: 14, name: "Dread Cavalry", hint: "Heavy + swift. Diversify.", reward: 80, spawns: [{ e: "Armored", n: 8, iv: 0.8, at: 0 }, { e: "Swift", n: 4, iv: 0.4, at: 4 }] },
   { id: 15, name: "Bound Watchers", hint: "Flyer pairs. Anti-air mandatory.", reward: 90, spawns: [{ e: "Air", n: 8, iv: 0.7, at: 0 }, { e: "Air", n: 4, iv: 0.7, at: 0 }] },
   { id: 16, name: "The Pulse", hint: "Immune + invisible. Detector + non-slow.", reward: 85, spawns: [{ e: "Immune", n: 5, iv: 0.9, at: 0 }, { e: "Invisible", n: 3, iv: 0.9, at: 0 }] },
   { id: 17, name: "The Bound Flame", hint: "Hero creeps from many corners.", reward: 250, spawns: [{ e: "Hero", n: 4, iv: 4.0, at: 0 }, { e: "Hero", n: 4, iv: 4.0, at: 1 }] },
   { id: 18, name: "Ash Swarm", hint: "Swarm of flyers. AoE + anti-air.", reward: 90, spawns: [{ e: "Air", n: 24, iv: 0.25, at: 0 }] },
-  { id: 19, name: "Iron Ghosts", hint: "Invisible mass. Detector + Siege/Magic.", reward: 95, spawns: [{ e: "Invisible", n: 10, iv: 0.7, at: 0 }] },
+  { id: 19, name: "Iron Ghosts", hint: "Invisible mass. Detector + Normal damage.", reward: 95, spawns: [{ e: "Invisible", n: 10, iv: 0.7, at: 0 }] },
   { id: 20, name: "The Verdant Maw", hint: "MEGA BOSS.", boss: true, reward: 500, spawns: [{ e: "Armored", n: 6, iv: 0.6, at: 0 }, { e: "Invisible", n: 4, iv: 0.6, at: 0 }, { e: "Boss", n: 1, iv: 0, at: 4 }] },
-  { id: 21, name: "Hollow March", hint: "DIVINE — only Chaos (Void) hurts them. Everything else does 10%.", armor: "divine", reward: 100, spawns: [{ e: "Hero", n: 1, iv: 0, at: 0 }, { e: "Swarm", n: 18, iv: 0.25, at: 1 }] },
+  { id: 21, name: "Hollow March", hint: "DIVINE — Void does full damage. Everything else does 5%.", armor: "divine", reward: 100, spawns: [{ e: "Hero", n: 1, iv: 0, at: 0 }, { e: "Swarm", n: 18, iv: 0.25, at: 1 }] },
   { id: 22, name: "Spectral Wing", hint: "Flyers. Detector + Sniper.", reward: 95, spawns: [{ e: "Air", n: 12, iv: 0.5, at: 0 }] },
-  { id: 23, name: "The Brand", hint: "Immune + heavy. Magic/Siege dominate.", reward: 100, spawns: [{ e: "Immune", n: 10, iv: 0.7, at: 0 }] },
+  { id: 23, name: "The Brand", hint: "Fortified and immune. Siege hits hardest; no slow or poison.", reward: 100, spawns: [{ e: "Immune", n: 10, iv: 0.7, at: 0 }] },
   { id: 24, name: "Storm Tide", hint: "All four corners flooding. Defend everywhere.", reward: 120, spawns: [{ e: "Normal", n: 8, iv: 0.5, at: 0 }, { e: "Swift", n: 8, iv: 0.5, at: 0 }, { e: "Armored", n: 8, iv: 0.5, at: 0 }, { e: "Swarm", n: 8, iv: 0.5, at: 0 }] },
-  { id: 25, name: "The Crucible", hint: "Mixed armor, all corners. Tower diversity mandatory.", reward: 130, spawns: [{ e: "Normal", n: 6, iv: 0.5, at: 0 }, { e: "Swift", n: 6, iv: 0.5, at: 0 }, { e: "Armored", n: 6, iv: 0.5, at: 0 }, { e: "Immune", n: 6, iv: 0.5, at: 0 }] },
+  { id: 25, name: "The Crucible", hint: "Mixed armor, all corners. Raw damage beats matching here.", reward: 130, spawns: [{ e: "Normal", n: 6, iv: 0.5, at: 0 }, { e: "Swift", n: 6, iv: 0.5, at: 0 }, { e: "Armored", n: 6, iv: 0.5, at: 0 }, { e: "Immune", n: 6, iv: 0.5, at: 0 }] },
   { id: 26, name: "Final Sentinels", hint: "Heroes + escorts.", reward: 150, spawns: [{ e: "Hero", n: 4, iv: 3.0, at: 0 }, { e: "Hero", n: 4, iv: 3.0, at: 0 }, { e: "Armored", n: 8, iv: 0.5, at: 2 }] },
-  { id: 27, name: "The Long Dark", hint: "DIVINE — only Chaos (Void) hurts them. Everything else does 10%.", armor: "divine", reward: 120, spawns: [{ e: "Immune", n: 8, iv: 0.5, at: 0 }, { e: "Invisible", n: 8, iv: 0.4, at: 0 }] },
+  { id: 27, name: "The Long Dark", hint: "DIVINE — Void does full damage. Everything else does 5%.", armor: "divine", reward: 120, spawns: [{ e: "Immune", n: 8, iv: 0.5, at: 0 }, { e: "Invisible", n: 8, iv: 0.4, at: 0 }] },
   { id: 28, name: "Sky Plague", hint: "Flyers + fast.", reward: 110, spawns: [{ e: "Air", n: 10, iv: 0.4, at: 0 }, { e: "Swift", n: 4, iv: 0.3, at: 2 }] },
   { id: 29, name: "The Coronation", hint: "Heroes from every corner + swarm.", reward: 200, spawns: [{ e: "Hero", n: 5, iv: 3.0, at: 0 }, { e: "Hero", n: 5, iv: 3.0, at: 0 }, { e: "Swarm", n: 20, iv: 0.2, at: 1 }] },
   { id: 30, name: "The Pale Crown", hint: "FINAL BOSS.", boss: true, reward: 1000, spawns: [{ e: "Boss", n: 1, iv: 0, at: 0 }, { e: "Armored", n: 6, iv: 0.5, at: 3 }, { e: "Invisible", n: 4, iv: 0.5, at: 3 }, { e: "Hero", n: 2, iv: 2.0, at: 5 }] },
@@ -213,7 +214,7 @@ const BASE_SPEED = 145;        // px/s before speed_mult (~70s track after P2 tu
 // Protocol rules version — must equal gctd-server's RULES_VERSION. net.js sends
 // it on create/join; a mismatch is refused with a "reload this page" message
 // rather than letting a stale tab play by the old rules.
-const RULES_VERSION = 3;
+const RULES_VERSION = 4;
 const START_GOLD = 250;
 const SELL_RATE = 0.7;        // refund fraction of `invested` — keep in sync with gctd-server/sim.js
 
@@ -250,7 +251,7 @@ const PRIORITIES = ["furthest", "closest", "strongest", "weakest"];
 const ARMOR_INFO = {
   light:     { color: "#8fd0c9", counter: "Pierce best" },
   medium:    { color: "#a8d98f", counter: "Normal best" },
-  heavy:     { color: "#c9a35c", counter: "Siege / Magic" },
+  heavy:     { color: "#c9a35c", counter: "Magic best" },
   fortified: { color: "#9aa8c4", counter: "Siege best" },
   hero:      { color: "#e8c468", counter: "Normal best" },
   divine:    { color: "#e0a8d8", counter: "CHAOS ONLY" },
@@ -1492,14 +1493,13 @@ class Game {
 
       const wavePanel = document.getElementById("wavePanel");
       if (wavePanel) wavePanel.classList.remove("boss-wave");
-      if (this.waveIndex >= WAVES.length && this.activeWaves.length === 0 && this.enemies.length === 0 && this.overrun < OVERRUN_MAX) { this.autoWaveAt = null; this.setWaveText("All clear", "Final wave done!"); this.setArmorPill([]); this.end(true); return; }
       const nextName = this.waves[this.waveIndex]?.name ?? "";
       // Auto-advance only when the battlefield has no remaining live waves (stacking still works via Space)
       const willAuto = this.activeWaves.length === 0 && this.waveIndex < WAVES.length;
       if (willAuto) this.autoWaveAt = this.gameTime + AUTO_WAVE_DELAY;
       else if (this.activeWaves.length > 0) this.autoWaveAt = null;
       const clearHint = this.waveIndex >= WAVES.length
-        ? `+${reward}g${extStr}. Last waves still in flight.`
+        ? `+${reward}g${extStr}. Clear the board to win.`
         : willAuto
           ? `+${reward}g${extStr}. Next: ${nextName} in ${AUTO_WAVE_DELAY}s · Space early${benchMsg}`
           : `+${reward}g${extStr}. Next: ${nextName} · ${this.activeWaves.length} still live${benchMsg}`;
@@ -1514,6 +1514,11 @@ class Game {
         this.startNextWave();
     }
     if (this.overrun >= OVERRUN_MAX) this.end(false);
+    // Checked every tick, not only when a wave clears: lapped creeps belong to no
+    // wave, so killing the last one clears nothing and the run would never end.
+    else if (this.waveIndex >= WAVES.length && this.activeWaves.length === 0 && this.spawnQueue.length === 0 && this.enemies.length === 0) {
+      this.autoWaveAt = null; this.setWaveText("All clear", "Final wave done!"); this.setArmorPill([]); this.end(true); return;
+    }
     if (this._shake && this._shake.t > 0) { this._shake.t -= dt; if (this._shake.t <= 0) this._shake = null; }
   }
 
