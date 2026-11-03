@@ -12,7 +12,10 @@
       <div class="brand">Green Circle TD</div>
       <div class="stat" id="wave">Wave 0 / 30</div>
       <div class="stat" id="gold">250g</div>
-      <div class="stat" id="lives">Lives 20</div>
+      <div class="stat meter" id="overrun" role="progressbar" aria-valuemin="0" aria-valuemax="100"
+           aria-valuenow="0" aria-label="Overrun" title="Creeps that got past you. Kill them to push it back down.">
+        <span class="meter-fill"></span><span class="meter-label">0%</span>
+      </div>
       <div class="spacer"></div>
       <div class="controls">
         <div class="seg" id="speedSeg" role="group" aria-label="Game speed">
@@ -40,9 +43,17 @@
           <div id="armorPill" class="armor-pill hidden"></div>
           <button id="startWave" class="primary">Start wave ▶</button>
         </div>
+        <div class="panel hidden" id="nextPanel">
+          <h3>Next <span id="nextNum" class="nw-num"></span></h3>
+          <div id="nextBody" class="nextbody"></div>
+        </div>
         <div class="panel">
           <h3>Towers</h3>
           <div id="towerButtons" class="towerlist"></div>
+        </div>
+        <div class="panel help collapsed" id="schedulePanel">
+          <button type="button" class="helptoggle" id="schedToggle" aria-expanded="false">Wave schedule (all 30)</button>
+          <div class="helpbody"><div id="schedBody" class="schedbody"></div></div>
         </div>
         <div class="panel hidden" id="playerPanel">
           <h3>Co-op</h3>
@@ -57,6 +68,8 @@
               <li><b>U</b> upgrade selected · <b>Drag</b> pan map · <b>+/−</b> or wheel zoom · <b>WASD</b> scroll</li>
               <li><b>Right-click</b> sell · <b>Space</b> send wave · <b>P</b> pause · <b>Esc</b> deselect</li>
               <li>Sniper / Rapid / Frost (+ Tempest / Shredder) hit air · <b>v</b> Void (chaos)</li>
+              <li><b>Divine</b> waves (5/13/21/27) take 10% from everything except Void — build one</li>
+              <li>A leak doesn't cost a life: it keeps circling and adds to <b>Overrun</b>. Kill it to take it back off</li>
             </ul>
           </div>
         </div>
