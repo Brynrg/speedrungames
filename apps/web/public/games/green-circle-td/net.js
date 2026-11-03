@@ -9,7 +9,7 @@
  * renderer draws it, and converts player actions into protocol messages.
  *
  * Lobby model (WC3-style): create a room → share the 4-letter code → host
- * starts. Up to 4 players, each owns a build zone, lives are shared.
+ * starts. Up to 4 players, each owns a build zone, the overrun meter is shared.
  */
 
 (() => {
@@ -107,7 +107,7 @@
       g.hideOverlay();
       const pauseBtn = document.getElementById("pauseBtn");
       if (pauseBtn) pauseBtn.style.display = "none"; // no pausing an online game
-      g.setWaveText(`Online co-op · room ${this.code}`, "Build towers, then send the first wave. Lives are shared!");
+      g.setWaveText(`Online co-op · room ${this.code}`, "Build towers, then send the first wave. The overrun meter is shared!");
       g.renderPlayerPanel();
       g.refreshButtons();
     }
@@ -144,10 +144,10 @@
       g.refreshButtons();
     }
 
-    // ---- 15Hz snapshot: enemies, golds, lives, fx events
+    // ---- 15Hz snapshot: enemies, golds, overrun, fx events
     onSnap(m) {
       const g = this.game;
-      g.lives = m.lv;
+      g.overrun = m.ov ?? 0;
       g.runMs = m.ms;
       g.waveIndex = m.wi;
       g.activeWaves.length = m.aw; // only .length is read in online mode
@@ -180,7 +180,10 @@
       // `color` is kept on the bullet record for shape parity but unused.
       for (const [x1, y1, x2, y2, ti] of m.sh) {
         const color = TOWERS[NET_TOWER_KEYS[ti]]?.color || "#fff";
-        if (g.bullets.length < 300) g.bullets.push({ x1, y1, x2, y2, color, t: 0.09 });
+        // Same distance-scaled flight time the offline renderer uses, so online
+        // tracers travel instead of flashing as full-length sticks.
+        const life = Math.min(0.2, Math.max(0.06, Math.hypot(x2 - x1, y2 - y1) / 1500));
+        if (g.bullets.length < 300) g.bullets.push({ x1, y1, x2, y2, color, t: life, max: life });
         g.spawnFx(x1, y1, DECAY.hot, "muzzle", Math.atan2(y2 - y1, x2 - x1));
         g.spawnFx(x2, y2, DECAY.hot, "spark");
       }
@@ -253,7 +256,7 @@
     const menu = () => {
       const o = game.overlay(
         `<h2>Online Multiplayer</h2>` +
-        `<p>Co-op for 2–4 players. Each player builds in their own zone, gold is per player, lives are shared — just like the WC3 original.</p>` +
+        `<p>Co-op for 2–4 players. Each player builds in their own zone, gold is per player, the overrun meter is shared — just like the WC3 original.</p>` +
         `<input id="nName" class="ninput" placeholder="Your name" maxlength="12" value="${esc(loadName())}">` +
         `<div class="prow"><span class="phint">Difficulty:</span><div class="pbtns">` +
         `<button class="psb psel" data-diff="normal">Normal</button>` +
@@ -282,6 +285,9 @@
         return v;
       };
       const opts = () => ({
+        // Must match gctd-server's RULES_VERSION or the server refuses the room
+        // and tells the player to reload — see the rules gate in server.js.
+        rules: RULES_VERSION,
         difficulty,
         fixedPath: !!o.querySelector("#nFixedPath")?.checked,
       });
