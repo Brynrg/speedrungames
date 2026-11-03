@@ -396,10 +396,11 @@ button.primary:disabled { opacity: .45; cursor: not-allowed; }
      Inserting any panel silently reshuffled the phone strip. */
   #sidebar #wavePanel { order: 0; }
   #sidebar #nextPanel { order: 1; }
-  #sidebar #sidebar-towers, #sidebar .panel:not([id]) { order: 2; }
+  #sidebar .panel:not([id]) { order: 2; }
   #sidebar #schedulePanel { order: 3; }
   #sidebar #playerPanel { order: 4; }
   .panel.help { display: none; }
+  #sidebar #schedulePanel { display: block; }  /* it shares .help for its collapse styling, but phones need it */
   .towerlist { flex-direction: row; gap: 6px; }
   .gbtn { flex-direction: column; align-items: flex-start; gap: 2px; min-width: 96px; }
   button.primary { width: auto; white-space: nowrap; padding: 8px 16px; }
@@ -495,3 +496,5 @@ button.primary:disabled { opacity: .45; cursor: not-allowed; }
 .schedn { min-width: 16px; text-align: right; color: #8c8276; font-weight: 700; }
 .schedname { color: #b9b0a0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .schedarm { font-weight: 700; }
+
+#playerPanel.hidden { display: none; }
