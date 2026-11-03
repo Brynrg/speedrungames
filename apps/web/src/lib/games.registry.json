@@ -72,15 +72,15 @@
   {
     "slug": "openwar",
     "title": "OpenWar",
-    "description": "An open reimplementation of the 1994 orcs-versus-humans real-time strategy game. Bring your own DATA.WAR. All 24 campaign missions, editable rules and a map editor.",
+    "description": "An open reimplementation of the 1994 orcs-versus-humans real-time strategy game. Playable straight away; load your own DATA.WAR for the original artwork, sound and all 24 campaign missions.",
     "repo": "Brynrg/openwar",
     "playUrl": "/games/openwar/",
     "category": "strategy",
     "status": "live",
     "framework": "vite",
     "supportsMobile": false,
-    "version": "0.2.0",
-    "lastUpdated": "2026-11-03T05:04:15.920Z",
+    "version": "0.3.0",
+    "lastUpdated": "2026-11-03T15:21:34.153Z",
     "emoji": "⚔️"
   },
   {
