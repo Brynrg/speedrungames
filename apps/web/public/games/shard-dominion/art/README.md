@@ -10,7 +10,11 @@ with the built-in procedural art — so you can add assets one at a time.
 1. Drop the sheet + sidecar into the matching subfolder, named `assetId__team__state.{png,json}`
    (e.g. `units/vehicle__player__move.png` + `units/vehicle__player__move.json`).
 2. Add its path (no extension) to `manifest.json` → `sheets`.
-3. Reload — the engine swaps it in automatically. No code changes needed.
+3. Run `python3 scripts/art-gen/build_webp.py`. The PNG is the editable master; the game
+   only loads the WebP it derives (chroma key baked to real alpha, resampled to at most
+   256px per frame), and `sprites.json` carries the metadata. PNGs are left out of the
+   build. `tests/unit/art_webp.test.ts` fails if a master has no derived file.
+4. Reload — the engine swaps it in automatically. No code changes needed.
 
 `manifest.json` currently registers 199 sprite sheets (141 unit animation sheets and
 58 building sheets), plus 12 presentation images. The renderer also loads 13 terrain
