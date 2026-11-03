@@ -29,12 +29,27 @@ const THREAT = { warn: "#d98a33", crit: "#a13a2e" };                   // armore
 const CALLSIGNS = ["HOWL", "GOLD", "IRON", "DUST"];                    // corner houses / co-op zones
 
 // ----------------------------------------------------------------- data (ported)
+// Divine waves take a tenth from everything except chaos; chaos does almost
+// nothing to anything else. 0.10/0.35 rather than the original's 0.05/0.02:
+// in a 30-wave solo run a tower that renders zero damage for four waves reads
+// as broken, and these keep the 10x separation that carries the mechanic while
+// leaving a computable (losing) route for a player who skips the Void line.
+const DIVINE_FLOOR = 0.10, CHAOS_FLOOR = 0.35;
 const ARMOR_MATRIX = {
-  pierce: { light: 2.0, medium: 0.75, heavy: 1.0, fortified: 0.35, hero: 0.5 },
-  siege:  { light: 1.0, medium: 0.5,  heavy: 1.0, fortified: 1.5,  hero: 0.5 },
-  magic:  { light: 1.25,medium: 0.75, heavy: 2.0, fortified: 0.35, hero: 0.5 },
-  normal: { light: 1.0, medium: 1.5,  heavy: 1.0, fortified: 0.7,  hero: 1.0 },
-  chaos:  { light: 1.0, medium: 1.0, heavy: 1.0, fortified: 1.0, hero: 1.0 }, // WC3 Chaos — ignores all armor
+  // Flattened to the WC3 original's real spread (war3mapMisc.txt, verified
+  // byte-for-byte — see WC3-COMPARISON.md). Ordinary cells sit in 0.75-1.30, so
+  // picking the wrong tower costs ~25%, not the 65% our old 0.35-2.00 table did.
+  //
+  // The two extremes carry the design. `divine` takes DIVINE_FLOOR from
+  // everything, and `chaos` is the one key that opens it: full damage on divine,
+  // CHAOS_FLOOR on everything else. Void stops being a generically strong late
+  // tower and becomes a situational must-have on known waves.
+  //            light  medium  heavy  fortified  hero   divine
+  pierce: { light: 1.30, medium: 0.90, heavy: 1.00, fortified: 0.80, hero: 0.80, divine: DIVINE_FLOOR },
+  siege:  { light: 0.95, medium: 0.90, heavy: 1.00, fortified: 1.25, hero: 0.90, divine: DIVINE_FLOOR },
+  magic:  { light: 1.10, medium: 0.85, heavy: 1.30, fortified: 0.75, hero: 0.85, divine: DIVINE_FLOOR },
+  normal: { light: 1.00, medium: 1.15, heavy: 0.95, fortified: 0.85, hero: 1.00, divine: DIVINE_FLOOR },
+  chaos:  { light: CHAOS_FLOOR, medium: CHAOS_FLOOR, heavy: CHAOS_FLOOR, fortified: CHAOS_FLOOR, hero: CHAOS_FLOOR, divine: 1.00 },
 };
 
 // Enemy `color` = Color caste (render-only). Archetypes stay legible via shapes
@@ -64,7 +79,7 @@ const TOWERS = {
   damage_aura: T({ name: "Dmg Aura", key: "8", range: 0, damage: 0, cd: 0, cost: 220, color: "#c41e3a",   dtype: null, aura: { type: "dmg", radius: 160, value: 0.20 }, desc: "+20% dmg nearby" }),
   speed_aura:  T({ name: "Spd Aura", key: "9", range: 0, damage: 0, cd: 0, cost: 200, color: "#d4a84b",  dtype: null, aura: { type: "cd", radius: 150, value: 0.15 }, desc: "-15% cooldown nearby" }),
   mint:        T({ name: "Mint",    key: "0", range: 0, damage: 0, cd: 0, cost: 150, color: "#f0d060", dtype: null, income: 8, desc: "+8g per wave cleared" }),
-  void:        T({ name: "Void",    key: "v", range: 155, damage: 32, cd: 50, cost: 380, color: "#8b5cf6", dtype: "chaos", desc: "Chaos dmg · ignores armor" }),
+  void:        T({ name: "Void",    key: "v", range: 155, damage: 32, cd: 50, cost: 380, color: "#8b5cf6", dtype: "chaos", desc: "Chaos — the key to divine waves" }),
 };
 
 // ---- tower progression: linear Lv1→2→3, then a 3-way specialization
@@ -156,7 +171,7 @@ const WAVES = [
   { id: 2, name: "Patrol", hint: "Two corners. Spread your defenses.", reward: 60, spawns: [{ e: "Normal", n: 10, iv: 0.7, at: 0 }, { e: "Normal", n: 10, iv: 0.7, at: 2 }] },
   { id: 3, name: "Swift Strike", hint: "Fast enemies. Freeze or pierce them.", reward: 55, spawns: [{ e: "Swift", n: 12, iv: 0.5, at: 0 }] },
   { id: 4, name: "First Mass", hint: "Swarm of small enemies. AoE shines.", reward: 55, spawns: [{ e: "Swarm", n: 18, iv: 0.3, at: 0 }] },
-  { id: 5, name: "Iron Probe", hint: "Heavy armor — Pierce penalty. Try Siege/Magic.", reward: 70, spawns: [{ e: "Armored", n: 8, iv: 0.8, at: 0 }] },
+  { id: 5, name: "Iron Probe", hint: "DIVINE — only Chaos (Void) hurts them. Everything else does 10%.", armor: "divine", reward: 70, spawns: [{ e: "Armored", n: 8, iv: 0.8, at: 0 }] },
   { id: 6, name: "Choirs", hint: "Mixed speed. Balance your army.", reward: 65, spawns: [{ e: "Normal", n: 10, iv: 0.7, at: 0 }, { e: "Swift", n: 4, iv: 0.4, at: 3 }] },
   { id: 7, name: "The Steel Tide", hint: "Heavy mass. Pierce is weak here.", reward: 80, spawns: [{ e: "Armored", n: 14, iv: 0.8, at: 0 }, { e: "Armored", n: 3, iv: 1.6, at: 5 }] },
   { id: 8, name: "Ghost Patrol", hint: "Invisible enemies. Build a Detector.", reward: 65, spawns: [{ e: "Invisible", n: 6, iv: 0.9, at: 0 }, { e: "Normal", n: 4, iv: 0.7, at: 2 }] },
@@ -164,7 +179,7 @@ const WAVES = [
   { id: 10, name: "First Sentinel", hint: "BOSS — a single powerful foe with escorts.", boss: true, reward: 250, spawns: [{ e: "Boss", n: 1, iv: 0, at: 0 }, { e: "Normal", n: 6, iv: 0.7, at: 0.5 }] },
   { id: 11, name: "Frost Burn", hint: "Immune to slow. Frost loses its edge.", reward: 75, spawns: [{ e: "Immune", n: 12, iv: 0.7, at: 0 }] },
   { id: 12, name: "Razor Wing", hint: "Fast flyers. Sniper/Frost help.", reward: 80, spawns: [{ e: "Air", n: 14, iv: 0.4, at: 0 }] },
-  { id: 13, name: "Ghost Stampede", hint: "Invisible + fast. Detector + AoE.", reward: 85, spawns: [{ e: "Invisible", n: 12, iv: 0.4, at: 0 }, { e: "Swift", n: 8, iv: 0.3, at: 2 }] },
+  { id: 13, name: "Ghost Stampede", hint: "DIVINE — only Chaos (Void) hurts them. Everything else does 10%.", armor: "divine", reward: 85, spawns: [{ e: "Invisible", n: 12, iv: 0.4, at: 0 }, { e: "Swift", n: 8, iv: 0.3, at: 2 }] },
   { id: 14, name: "Dread Cavalry", hint: "Heavy + swift. Diversify.", reward: 80, spawns: [{ e: "Armored", n: 8, iv: 0.8, at: 0 }, { e: "Swift", n: 4, iv: 0.4, at: 4 }] },
   { id: 15, name: "Bound Watchers", hint: "Flyer pairs. Anti-air mandatory.", reward: 90, spawns: [{ e: "Air", n: 8, iv: 0.7, at: 0 }, { e: "Air", n: 4, iv: 0.7, at: 0 }] },
   { id: 16, name: "The Pulse", hint: "Immune + invisible. Detector + non-slow.", reward: 85, spawns: [{ e: "Immune", n: 5, iv: 0.9, at: 0 }, { e: "Invisible", n: 3, iv: 0.9, at: 0 }] },
@@ -172,22 +187,18 @@ const WAVES = [
   { id: 18, name: "Ash Swarm", hint: "Swarm of flyers. AoE + anti-air.", reward: 90, spawns: [{ e: "Air", n: 24, iv: 0.25, at: 0 }] },
   { id: 19, name: "Iron Ghosts", hint: "Invisible mass. Detector + Siege/Magic.", reward: 95, spawns: [{ e: "Invisible", n: 10, iv: 0.7, at: 0 }] },
   { id: 20, name: "The Verdant Maw", hint: "MEGA BOSS.", boss: true, reward: 500, spawns: [{ e: "Armored", n: 6, iv: 0.6, at: 0 }, { e: "Invisible", n: 4, iv: 0.6, at: 0 }, { e: "Boss", n: 1, iv: 0, at: 4 }] },
-  { id: 21, name: "Hollow March", hint: "Hero + swarm.", reward: 100, spawns: [{ e: "Hero", n: 1, iv: 0, at: 0 }, { e: "Swarm", n: 18, iv: 0.25, at: 1 }] },
+  { id: 21, name: "Hollow March", hint: "DIVINE — only Chaos (Void) hurts them. Everything else does 10%.", armor: "divine", reward: 100, spawns: [{ e: "Hero", n: 1, iv: 0, at: 0 }, { e: "Swarm", n: 18, iv: 0.25, at: 1 }] },
   { id: 22, name: "Spectral Wing", hint: "Flyers. Detector + Sniper.", reward: 95, spawns: [{ e: "Air", n: 12, iv: 0.5, at: 0 }] },
   { id: 23, name: "The Brand", hint: "Immune + heavy. Magic/Siege dominate.", reward: 100, spawns: [{ e: "Immune", n: 10, iv: 0.7, at: 0 }] },
   { id: 24, name: "Storm Tide", hint: "All four corners flooding. Defend everywhere.", reward: 120, spawns: [{ e: "Normal", n: 8, iv: 0.5, at: 0 }, { e: "Swift", n: 8, iv: 0.5, at: 0 }, { e: "Armored", n: 8, iv: 0.5, at: 0 }, { e: "Swarm", n: 8, iv: 0.5, at: 0 }] },
   { id: 25, name: "The Crucible", hint: "Mixed armor, all corners. Tower diversity mandatory.", reward: 130, spawns: [{ e: "Normal", n: 6, iv: 0.5, at: 0 }, { e: "Swift", n: 6, iv: 0.5, at: 0 }, { e: "Armored", n: 6, iv: 0.5, at: 0 }, { e: "Immune", n: 6, iv: 0.5, at: 0 }] },
   { id: 26, name: "Final Sentinels", hint: "Heroes + escorts.", reward: 150, spawns: [{ e: "Hero", n: 4, iv: 3.0, at: 0 }, { e: "Hero", n: 4, iv: 3.0, at: 0 }, { e: "Armored", n: 8, iv: 0.5, at: 2 }] },
-  { id: 27, name: "The Long Dark", hint: "Immune + invisible puzzle.", reward: 120, spawns: [{ e: "Immune", n: 8, iv: 0.5, at: 0 }, { e: "Invisible", n: 8, iv: 0.4, at: 0 }] },
+  { id: 27, name: "The Long Dark", hint: "DIVINE — only Chaos (Void) hurts them. Everything else does 10%.", armor: "divine", reward: 120, spawns: [{ e: "Immune", n: 8, iv: 0.5, at: 0 }, { e: "Invisible", n: 8, iv: 0.4, at: 0 }] },
   { id: 28, name: "Sky Plague", hint: "Flyers + fast.", reward: 110, spawns: [{ e: "Air", n: 10, iv: 0.4, at: 0 }, { e: "Swift", n: 4, iv: 0.3, at: 2 }] },
   { id: 29, name: "The Coronation", hint: "Heroes from every corner + swarm.", reward: 200, spawns: [{ e: "Hero", n: 5, iv: 3.0, at: 0 }, { e: "Hero", n: 5, iv: 3.0, at: 0 }, { e: "Swarm", n: 20, iv: 0.2, at: 1 }] },
   { id: 30, name: "The Pale Crown", hint: "FINAL BOSS.", boss: true, reward: 1000, spawns: [{ e: "Boss", n: 1, iv: 0, at: 0 }, { e: "Armored", n: 6, iv: 0.5, at: 3 }, { e: "Invisible", n: 4, iv: 0.5, at: 3 }, { e: "Hero", n: 2, iv: 2.0, at: 5 }] },
 ];
 
-function shuffleWaveOrder() {
-  const fisher = (arr) => { for (let i = arr.length - 1; i > 0; i--) { const j = 0 | (Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; };
-  return [...fisher(WAVES.slice(0, 9)), WAVES[9], ...fisher(WAVES.slice(10, 19)), WAVES[19], ...fisher(WAVES.slice(20, 29)), WAVES[29]];
-}
 
 // ----------------------------------------------------------------- world geometry
 // TABLES: keep in sync with gctd-server/sim.js (path + economy + difficulty).
@@ -195,11 +206,36 @@ const WORLD = 1600;            // square world (px), larger than the viewport
 const CENTER = { x: WORLD / 2, y: WORLD / 2 };
 const CELL = 40, GRID = WORLD / CELL;
 const PATH_W = 34;             // visual path width
+const TOWER_PAD = 36;          // drawn pad size (CELL is 40 — leaves a 2px gutter)
 const PATH_CLEAR = 28;         // min distance from any path to build
 const BASE_SPEED = 145;        // px/s before speed_mult (~70s track after P2 tune)
 
-const START_GOLD = 250, START_LIVES = 20;
-const PB_KEY = "speedrungames:green-circle-td:pb";
+// Protocol rules version — must equal gctd-server's RULES_VERSION. net.js sends
+// it on create/join; a mismatch is refused with a "reload this page" message
+// rather than letting a stale tab play by the old rules.
+const RULES_VERSION = 3;
+const START_GOLD = 250;
+const SELL_RATE = 0.7;        // refund fraction of `invested` — keep in sync with gctd-server/sim.js
+
+// ---- Overrun (replaces the old one-way lives counter) -----------------------
+// Ported from the WC3 original, which has no lives at all: a creep that gets
+// past you joins a shared pool and keeps circling, and KILLING it takes its
+// weight back off the meter. A leak is a debt you can pay, not permanent damage.
+// See WC3-COMPARISON.md. Keep every constant here in sync with gctd-server/sim.js.
+const OVERRUN_MAX = 60;       // weights are the old leak costs, so this is ~4 waves of standing leaks
+const LEAK_WEIGHT = { boss: 10, hero: 4, other: 1 };
+const LAP_RAMP = 1.6;         // a creep you never kill gets heavier each lap...
+const LAP_RAMP_CAP = OVERRUN_MAX; // ...uncapped in effect: ONE un-killable creep must be
+                                  // able to end the run on its own, or a lone air leaker
+                                  // with no AA hangs the game (never lost, never won).
+                                  // Normal creep tops out on lap 10, boss on lap 5.
+const LAP_DESPAWN = 12;       // pure array bound — the ramp ends the run before this
+const leakWeight = (en) =>
+  (en.flags.includes("boss") ? LEAK_WEIGHT.boss : en.flags.includes("hero") ? LEAK_WEIGHT.hero : LEAK_WEIGHT.other)
+  // `laps` counts completed laps, so the FIRST leak is base weight and the
+  // ramp only starts biting on the second time round.
+  * Math.min(LAP_RAMP_CAP, Math.pow(LAP_RAMP, Math.max(0, (en.laps || 0) - 1)));
+const PB_KEY = "speedrungames:green-circle-td:pb:v3";  // v3 rules — not comparable to v2 times
 const MIN_ZOOM = 0.35, MAX_ZOOM = 2.2;
 
 const DIFFICULTY = {
@@ -208,6 +244,25 @@ const DIFFICULTY = {
   intense: { hp: 1.55, gold: 0.8, bounty: 0.9 },
 };
 const PRIORITIES = ["furthest", "closest", "strongest", "weakest"];
+// Armour legend, shared by the live wave pill and the next-wave preview.
+// Distinct from PLAYER_COLORS and THREAT (never reuse those two families for an
+// unrelated legend) — same tactical-instrument tonal family though.
+const ARMOR_INFO = {
+  light:     { color: "#8fd0c9", counter: "Pierce best" },
+  medium:    { color: "#a8d98f", counter: "Normal best" },
+  heavy:     { color: "#c9a35c", counter: "Siege / Magic" },
+  fortified: { color: "#9aa8c4", counter: "Siege best" },
+  hero:      { color: "#e8c468", counter: "Normal best" },
+  divine:    { color: "#e0a8d8", counter: "CHAOS ONLY" },
+};
+// Flag badges used wherever an enemy's special rules need to be glanceable.
+const FLAG_BADGE = {
+  air:       { icon: "✈", label: "Air — only Sniper / Rapid / Frost reach it" },
+  invisible: { icon: "◌", label: "Invisible — needs a Detector in range" },
+  immune:    { icon: "⊘", label: "Immune — ignores slow and poison" },
+  hero:      { icon: "★", label: "Hero — adds 4 overrun if it gets past you" },
+  boss:      { icon: "☠", label: "Boss — adds 10 overrun if it gets past you" },
+};
 function mulberry32(a) {
   return function () {
     a |= 0; a = a + 0x6D2B79F5 | 0;
@@ -261,6 +316,9 @@ function loopPath(k, fork = 0) {
   return pts;
 }
 const PATH_VARIANTS = [0, 1, 2, 3].map((k) => [loopPath(k, 0), loopPath(k, 1)]);
+// A full run's worth of the server's raw `prog` units (it sends
+// `wp * 10000 - distToNext`), used to turn netProg back into a 0..1 fraction.
+const NET_PROG_FULL = Math.max(...PATH_VARIANTS.flat().map((p) => (p.length - 1) * 10000));
 const PATHS = PATH_VARIANTS.map((v) => v[0]);
 const ENTRIES = cornersAt(MAZE_IN);
 
@@ -377,6 +435,8 @@ const SFX = (() => {
     boss() { blip(170, 38, 0.5, "sawtooth", 0.3); blip(85, 30, 0.62, "triangle", 0.24, 0.05); },
     leak() { blip(460, 115, 0.26, "sawtooth", 0.24); blip(340, 85, 0.3, "sawtooth", 0.2, 0.12); },
     place() { blip(215, 340, 0.07, "triangle", 0.2); },
+    deny() { blip(190, 120, 0.1, "square", 0.12); },
+    upgrade() { blip(392, 659, 0.1, "triangle", 0.2); blip(523, 784, 0.12, "triangle", 0.14, 0.06); },
     wave() { blip(330, 494, 0.12, "square", 0.14); },
     win() { [523, 659, 784, 1047].forEach((f, i) => blip(f, f, 0.16, "triangle", 0.18, i * 0.12)); },
     lose() { [392, 330, 262, 196].forEach((f, i) => blip(f, f * 0.94, 0.2, "sawtooth", 0.18, i * 0.14)); },
@@ -437,7 +497,7 @@ class Game {
     const gold0 = Math.round(START_GOLD * diff.gold);
     this.players = Array.from({ length: n }, (_, i) => ({ gold: gold0, color: PLAYER_COLORS[i], name: `P${i + 1}` }));
     this.activePlayer = 0;
-    this.lives = START_LIVES;
+    this.overrun = 0;
     this.towers = [];
     this.selectedTower = null;
     this.occupied = new Set();
@@ -450,7 +510,7 @@ class Game {
     this.waveIndex = 0;
     this.seed = (Date.now() >>> 0) ^ (n * 0x9E3779B9);
     this.rng = mulberry32(this.seed);
-    this.waves = shuffleWaveOrder();
+    this.waves = WAVES.slice();   // fixed, published order — see renderSchedule()
     this.spawnQueue = [];
     this.activeWaves = [];
     this.autoWaveAt = null; // gameTime when auto-start fires (null = none pending)
@@ -518,11 +578,16 @@ class Game {
   cellOf(wx, wy) { return { c: Math.floor(wx / CELL), r: Math.floor(wy / CELL) }; }
   cellCenter(c, r) { return { x: c * CELL + CELL / 2, y: r * CELL + CELL / 2 }; }
   cellBuildable(c, r) {
-    if (c < 0 || c >= GRID || r < 0 || r >= GRID) return false;
-    if (this.occupied.has(c + "," + r)) return false;
-    if (this.players.length > 1 && cellOwner(c, r, this.players.length) !== this.activePlayer) return false;
+    return this.buildBlocker(c, r) === null;
+  }
+  /** Why a cell can't be built on, or null when it can. Drives the refusal toast. */
+  buildBlocker(c, r) {
+    if (c < 0 || c >= GRID || r < 0 || r >= GRID) return "Off the arena";
+    if (this.occupied.has(c + "," + r)) return "Pad occupied";
+    if (this.players.length > 1 && cellOwner(c, r, this.players.length) !== this.activePlayer) return "Not your zone";
     const ctr = this.cellCenter(c, r);
-    return distToPaths(ctr.x, ctr.y) > PATH_CLEAR;
+    if (distToPaths(ctr.x, ctr.y) <= PATH_CLEAR) return "On the lane";
+    return null;
   }
 
   // ---- UI
@@ -570,8 +635,45 @@ class Game {
         helpToggle.setAttribute("aria-expanded", open ? "true" : "false");
       };
     }
+    const schedToggle = document.getElementById("schedToggle");
+    if (schedToggle) {
+      schedToggle.onclick = () => {
+        const p = document.getElementById("schedulePanel");
+        if (!p) return;
+        const open = p.classList.toggle("collapsed") === false;
+        schedToggle.setAttribute("aria-expanded", open ? "true" : "false");
+        if (open) this.renderSchedule();
+      };
+    }
     this.refreshButtons();
   }
+
+  /**
+   * The whole 30-wave armour schedule, up front. The surviving WC3 forks print
+   * exactly this on request (`-air`, `-divine`, `-heavy`…), and planning a
+   * build against it is the original's actual skill expression — which is why
+   * v3 drops the randomised wave order rather than keeping both.
+   * Built once; the order no longer changes between runs.
+   */
+  renderSchedule() {
+    const body = document.getElementById("schedBody");
+    if (!body || body.dataset.built === "1") return;
+    body.dataset.built = "1";
+    body.innerHTML = WAVES.map((w) => {
+      const classes = [...new Set(w.spawns.map((sp) => w.armor || ENEMIES[sp.e].armor))];
+      const flags = [...new Set(w.spawns.flatMap((sp) => ENEMIES[sp.e].flags))]
+        .filter((f) => FLAG_BADGE[f])
+        .map((f) => `<span class="nwflag" title="${FLAG_BADGE[f].label}">${FLAG_BADGE[f].icon}</span>`).join("");
+      const pills = classes.map((a) => {
+        const info = ARMOR_INFO[a] || { color: "#e8f3ea" };
+        return `<span class="schedarm" style="color:${info.color}">${a}</span>`;
+      }).join(" ");
+      return `<div class="schedrow${w.armor === "divine" ? " divine" : ""}${w.boss ? " boss" : ""}">
+        <span class="schedn">${w.id}</span><span class="schedname">${w.name}</span>${flags}${pills}
+      </div>`;
+    }).join("");
+  }
+
   syncSpeedSeg() {
     document.querySelectorAll("#speedSeg .seg-btn").forEach((b) => {
       const on = +b.dataset.speed === this.speed;
@@ -595,12 +697,35 @@ class Game {
     document.getElementById("gold").textContent = this.players.length > 1
       ? `${this.players[this.activePlayer].name} ${Math.floor(this.gold)}g`
       : `${Math.floor(this.gold)}g`;
-    const livesEl = document.getElementById("lives");
-    livesEl.textContent = `Lives ${Math.max(0, this.lives)}`;
-    livesEl.classList.toggle("low", this.lives <= 5 && this.state !== "won");
+    this.renderOverrun();
     if (this.selectedTower) this.renderInspector();
     if (this.renderPlayerPanel) this.renderPlayerPanel();
+    this.renderNextWave();
   }
+  /** True once the overrun pool is close enough to kill you. One definition,
+   *  used by both the HUD tint and the centre beacon (they used to drift). */
+  inDanger() { return this.overrun >= OVERRUN_MAX * 0.7 && this.state !== "won"; }
+
+  /** The overrun meter. Unlike the lives counter it replaced, this moves in
+   *  both directions, so it is a bar rather than a number — and it is the
+   *  first HUD element with a real accessible description. */
+  renderOverrun() {
+    const el = document.getElementById("overrun");
+    if (!el) return;
+    const frac = clamp(this.overrun / OVERRUN_MAX, 0, 1);
+    const pct = Math.round(frac * 100);
+    const loose = this.enemies.reduce((s, e) => s + (e.lapped && e.hp > 0 ? 1 : 0), 0);
+    el.style.setProperty("--fill", `${pct}%`);
+    el.classList.toggle("warn", frac >= 0.4 && frac < 0.7);
+    el.classList.toggle("crit", this.inDanger());
+    el.setAttribute("aria-valuenow", String(pct));
+    el.setAttribute("aria-valuetext", loose
+      ? `Overrun ${pct} percent, ${loose} creep${loose === 1 ? "" : "s"} loose`
+      : `Overrun ${pct} percent`);
+    const label = el.querySelector(".meter-label");
+    if (label) label.textContent = loose ? `${pct}% · ${loose} loose` : `${pct}%`;
+  }
+
   renderPB() { document.getElementById("pb").textContent = this.pb == null ? "PB —" : "PB " + fmt(this.pb); }
   setWaveText(name, hint) {
     document.getElementById("waveName").textContent = name;
@@ -610,15 +735,6 @@ class Game {
     const el = document.getElementById("armorPill");
     if (!el) return;
     if (!types || !types.length) { el.classList.add("hidden"); return; }
-    // Distinct from PLAYER_COLORS and THREAT (never reuse those two families
-    // for an unrelated legend) — same tactical-instrument tonal family though.
-    const ARMOR_INFO = {
-      light:     { color: "#8fd0c9", counter: "Pierce best" },
-      medium:    { color: "#a8d98f", counter: "Normal best" },
-      heavy:     { color: "#c9a35c", counter: "Siege / Magic" },
-      fortified: { color: "#9aa8c4", counter: "Siege best" },
-      hero:      { color: "#e8c468", counter: "Normal best" },
-    };
     const unique = [...new Set(types)];
     el.innerHTML = unique.map((a) => {
       const info = ARMOR_INFO[a] || { color: "#e8f3ea", counter: "?" };
@@ -626,6 +742,55 @@ class Game {
     }).join("");
     if (hasAir) el.innerHTML += `<span class="apill" style="border-color:#8fd0c977;color:#8fd0c9;background:#8fd0c918">✈ Air · anti-air only</span>`;
     el.classList.remove("hidden");
+  }
+
+  /**
+   * Scouting report for the wave you have NOT sent yet: composition, armour and
+   * the flags that decide whether your current board can even touch it. The WC3
+   * original made you learn this by leaking; here you can plan the buy.
+   * Cheap to call — the body is only rebuilt when the described wave changes.
+   */
+  renderNextWave() {
+    const panel = document.getElementById("nextPanel");
+    if (!panel) return;
+    const w = this.waves?.[this.waveIndex];
+    // Shown in "ready" too — the pre-wave-1 buy is exactly when scouting pays.
+    const playing = this.state === "ready" || this.state === "running" || this.state === "paused";
+    if (!w || !playing) { panel.classList.add("hidden"); this._nextKey = null; return; }
+    panel.classList.remove("hidden");
+    if (this._nextKey === w.id) return;
+    this._nextKey = w.id;
+
+    document.getElementById("nextNum").textContent = `${w.id} · ${w.name}`;
+    const diff = DIFFICULTY[this.difficulty] || DIFFICULTY.normal;
+    const hpBase = Math.round(40 * Math.pow(1.1, this.waveIndex) * diff.hp);
+
+    // Merge spawn groups of the same enemy so "8 + 8 Air" reads as "16 Air".
+    const merged = new Map();
+    for (const sp of w.spawns) {
+      const e = ENEMIES[sp.e];
+      const n = Math.max(1, sp.n + e.count_bonus);
+      merged.set(sp.e, (merged.get(sp.e) || 0) + n);
+    }
+    const rows = [...merged].map(([name, n]) => {
+      const e = ENEMIES[name];
+      const badges = e.flags.map((f) => FLAG_BADGE[f]
+        ? `<span class="nwflag" title="${FLAG_BADGE[f].label}">${FLAG_BADGE[f].icon}</span>` : "").join("");
+      const info = ARMOR_INFO[e.armor] || { color: "#e8f3ea" };
+      return `<div class="nwrow">
+        <span class="nwdot" style="background:${e.color}"></span>
+        <span class="nwn">${n}×</span>
+        <span class="nwname">${name}</span>
+        ${badges}
+        <span class="nwarm" style="color:${info.color}">${e.armor}</span>
+        <span class="nwhp">${Math.round(hpBase * e.health_mult)}hp</span>
+      </div>`;
+    }).join("");
+
+    const armors = [...new Set(w.spawns.map((sp) => w.armor || ENEMIES[sp.e].armor))];
+    const counters = [...new Set(armors.map((a) => (ARMOR_INFO[a] || {}).counter).filter(Boolean))];
+    document.getElementById("nextBody").innerHTML =
+      rows + `<div class="nwfoot">${counters.join(" · ")} · bounty pool ${w.reward}g</div>`;
   }
 
   hideOverlay() { const o = document.getElementById("overlay"); o.className = "overlay hidden"; o.innerHTML = ""; }
@@ -933,7 +1098,15 @@ class Game {
 
   build(c, r, type) {
     const def = TOWERS[type];
-    if (this.gold < def.cost || !this.cellBuildable(c, r)) return false;
+    const blocked = this.buildBlocker(c, r);
+    if (blocked || this.gold < def.cost) {
+      // Silent refusals used to look like a dead click — say why, at the cursor.
+      const ctr = this.cellCenter(clamp(c, 0, GRID - 1), clamp(r, 0, GRID - 1));
+      const why = blocked || `Need ${def.cost - this.gold}g more`;
+      this.spawnFx(ctr.x, ctr.y - 14, THREAT.crit, "text", 0, { txt: why });
+      SFX.deny();
+      return false;
+    }
     if (this.net) { this.net.send({ t: "build", c, r, tower: type }); return true; } // server confirms via towers sync
     const ctr = this.cellCenter(c, r);
     this.towers.push({ c, r, x: ctr.x, y: ctr.y, type, def, level: 1, spec: null, invested: def.cost, s: statsFor(type, 1, null), lastFire: -999, dmgMult: 1, cdMult: 1, angle: -Math.PI / 2, player: this.activePlayer, priority: "furthest", recoil: 0, pop: 0.25 });
@@ -950,16 +1123,44 @@ class Game {
     if (!tw || this.state !== "running") return;
     if (this.net) { this.net.send({ t: "upgrade", c: tw.c, r: tw.r, choice }); return; }
     if (this.players.length > 1 && tw.player !== this.activePlayer) return;
+    const deny = (cost) => {
+      this.spawnFx(tw.x, tw.y - 18, THREAT.crit, "text", 0, { txt: `Need ${cost - this.gold}g more` });
+      SFX.deny();
+    };
     if (choice === "level" && tw.level < MAX_LEVEL) {
       const cost = upgradeCost(tw.type, tw.level);
-      if (this.gold < cost) return;
+      if (this.gold < cost) return deny(cost);
       this.players[this.activePlayer].gold -= cost; tw.invested += cost; tw.level++;
     } else if (tw.level >= MAX_LEVEL && !tw.spec && hasSpec(tw.type) && SPECS[tw.type].some((x) => x.id === choice)) {
       const cost = specCost(tw.type);
-      if (this.gold < cost) return;
+      if (this.gold < cost) return deny(cost);
       this.players[this.activePlayer].gold -= cost; tw.invested += cost; tw.spec = choice;
     } else return;
+    SFX.upgrade();
+    tw.pop = 0.25;
+    this.spawnFx(tw.x, tw.y, DECAY.hot, "build");
     tw.s = statsFor(tw.type, tw.level, tw.spec);
+    this.recomputeAuras();
+    this.refreshButtons();
+    this.renderInspector();
+  }
+  /** Step a tower back one rung (spec first, then a level), refunding at
+   *  SELL_RATE — the same rate as selling, so downgrade-then-sell can never
+   *  beat selling outright. Mirrors gctd-server/sim.js downgrade(). */
+  downgradeTower(tw) {
+    if (!tw || this.state !== "running" || !this.towers.includes(tw)) return;
+    if (this.net) { this.net.send({ t: "downgrade", c: tw.c, r: tw.r }); return; }
+    if (this.players.length > 1 && tw.player !== this.activePlayer) return;
+    let cost;
+    if (tw.spec) { cost = specCost(tw.type); tw.spec = null; }
+    else if (tw.level > 1) { cost = upgradeCost(tw.type, tw.level - 1); tw.level--; }
+    else return;
+    tw.invested = Math.max(0, tw.invested - cost);
+    const refund = Math.floor(cost * SELL_RATE);
+    this.players[tw.player ?? 0].gold += refund;
+    tw.s = statsFor(tw.type, tw.level, tw.spec);
+    this.spawnFx(tw.x, tw.y - 18, BRASS, "text", 0, { txt: `+${refund}g` });
+    SFX.deny();
     this.recomputeAuras();
     this.refreshButtons();
     this.renderInspector();
@@ -970,7 +1171,7 @@ class Game {
     if (this.net) { this.net.send({ t: "sell", c, r }); return; }
     const tw = this.towers[idx];
     if (this.players.length > 1 && tw.player !== this.activePlayer) return;
-    this.players[tw.player ?? 0].gold += Math.floor(tw.invested * 0.7);
+    this.players[tw.player ?? 0].gold += Math.floor(tw.invested * SELL_RATE);
     this.occupied.delete(c + "," + r);
     if (this.selectedTower === tw) this.deselectTower();
     this.towers.splice(idx, 1);
@@ -1019,7 +1220,22 @@ class Game {
     if (s.poison) rows.push(["Poison", `${s.poison}/t`]);
     if (s.multishot) rows.push(["Targets", s.multishot]);
     if (s.canAir) rows.push(["Anti-Air", "✓"]);
-    document.getElementById("inspStats").innerHTML = rows.map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join("");
+    // Live effectiveness: the armour matrix is the heart of the game, but until
+    // now you had to hold it in your head. Show what this tower's damage type is
+    // actually worth against the creeps currently on the field.
+    if (s.dtype) {
+      const live = [...new Set(this.enemies.filter((e) => e.hp > 0).map((e) => e.armor))];
+      if (live.length) {
+        const mults = live.map((a) => ARMOR_MATRIX[s.dtype][a] ?? 1);
+        const lo = Math.min(...mults), hi = Math.max(...mults);
+        const tone = hi < 1 ? "bad" : lo >= 1.25 ? "good" : "";
+        rows.push(["Vs field", lo === hi ? `×${lo}` : `×${lo}–${hi}`, tone]);
+      }
+    }
+    if (tw.dealt > 0) rows.push(["Damage dealt", Math.round(tw.dealt).toLocaleString()]);
+    rows.push(["Sell value", `${Math.floor(tw.invested * SELL_RATE)}g`]);
+    document.getElementById("inspStats").innerHTML = rows
+      .map(([k, v, tone]) => `<div><span>${k}</span><b${tone ? ` class="v-${tone}"` : ""}>${v}</b></div>`).join("");
     const actions = document.getElementById("inspActions");
     actions.innerHTML = "";
     const mkBtn = (label, cost, fn, sub, primary) => {
@@ -1065,9 +1281,23 @@ class Game {
       }
       actions.appendChild(row);
     }
+    // Downgrade sits OUTSIDE the upgrade/specialise/max branch above — those
+    // three are mutually exclusive, and a tower can be rolled back from any of
+    // them. Built from the Sell template rather than mkBtn, which hard-wires
+    // `disabled = gold < cost` and cannot express a refund.
+    if (tw.level > 1 || tw.spec) {
+      const back = tw.spec ? specCost(tw.type) : upgradeCost(tw.type, tw.level - 1);
+      const dn = document.createElement("button");
+      dn.className = "ibtn sell";
+      dn.innerHTML = `<span>Downgrade<span class="isub">${tw.spec ? "drop spec" : `to Lv ${tw.level - 1}`}</span></span>` +
+                     `<span class="icost">+${Math.floor(back * SELL_RATE)}g</span>`;
+      dn.disabled = this.state !== "running";
+      dn.onclick = () => this.downgradeTower(tw);
+      actions.appendChild(dn);
+    }
     const sell = document.createElement("button");
     sell.className = "ibtn sell";
-    sell.innerHTML = `<span>Sell</span><span class="icost">+${Math.floor(tw.invested * 0.7)}g</span>`;
+    sell.innerHTML = `<span>Sell</span><span class="icost">+${Math.floor(tw.invested * SELL_RATE)}g</span>`;
     sell.onclick = () => this.sellAt(tw.c, tw.r);
     actions.appendChild(sell);
   }
@@ -1132,7 +1362,7 @@ class Game {
       for (let i = 0; i < count; i++) {
         this.spawnQueue.push({
           time: this.gameTime + sp.at + i * sp.iv,
-          enemy: sp.e, def: e, corner,
+          enemy: sp.e, def: e, corner, armor: w.armor || e.armor,
           hp: hpBase * e.health_mult,
           speed: BASE_SPEED * e.speed_mult,
           bounty: Math.max(1, Math.round((3 + Math.floor(this.waveIndex / 3) + e.bounty_bonus) * diff.bounty)),
@@ -1145,7 +1375,7 @@ class Game {
     this.spawnQueue.sort((a, b) => a.time - b.time);
     const waveTitle = stackBonus ? `Wave ${w.id}: ${w.name}  +${stackBonus}g` : `Wave ${w.id}: ${w.name}`;
     this.setWaveText(waveTitle, w.hint);
-    const armorTypes = [...new Set(w.spawns.map((sp) => ENEMIES[sp.e].armor))];
+    const armorTypes = [...new Set(w.spawns.map((sp) => w.armor || ENEMIES[sp.e].armor))];
     const hasAir = w.spawns.some(sp => ENEMIES[sp.e].flags?.includes("air"));
     this.setArmorPill(armorTypes, hasAir);
     const wavePanel = document.getElementById("wavePanel");
@@ -1163,8 +1393,9 @@ class Game {
       x: path[0][0], y: path[0][1], wp: 0, path, fork, corner: s.corner,
       hp: s.hp, maxHp: s.hp, speed: s.speed, baseSpeed: s.speed,
       def: s.def, enemy: s.enemy, bounty: s.bounty, rec: s.rec,
-      flags: s.def.flags, armor: s.def.armor, color: s.def.color,
+      flags: s.def.flags, armor: s.armor || s.def.armor, color: s.def.color,
       slowUntil: 0, slowFactor: 0, poison: 0, poisonUntil: 0, revealed: false,
+      laps: 0, lapped: false, weight: 0,
       phase: s.def.flags.includes("boss") ? 1 : 0,
       revealFlash: 0,
     };
@@ -1221,7 +1452,7 @@ class Game {
       if (en.hp <= 0) this.onKill(en);
     }
     this.enemies = this.enemies.filter((e) => {
-      const keep = e.hp > 0 && !e.leaked;
+      const keep = e.hp > 0 && !e.leaked;   // `leaked` is now set only at LAP_DESPAWN
       if (!keep && e.rec) e.rec.alive--;   // released from its wave's live count
       return keep;
     });
@@ -1261,7 +1492,7 @@ class Game {
 
       const wavePanel = document.getElementById("wavePanel");
       if (wavePanel) wavePanel.classList.remove("boss-wave");
-      if (this.waveIndex >= WAVES.length && this.activeWaves.length === 0 && this.lives > 0) { this.autoWaveAt = null; this.setWaveText("All clear", "Final wave done!"); this.setArmorPill([]); this.end(true); return; }
+      if (this.waveIndex >= WAVES.length && this.activeWaves.length === 0 && this.enemies.length === 0 && this.overrun < OVERRUN_MAX) { this.autoWaveAt = null; this.setWaveText("All clear", "Final wave done!"); this.setArmorPill([]); this.end(true); return; }
       const nextName = this.waves[this.waveIndex]?.name ?? "";
       // Auto-advance only when the battlefield has no remaining live waves (stacking still works via Space)
       const willAuto = this.activeWaves.length === 0 && this.waveIndex < WAVES.length;
@@ -1282,7 +1513,7 @@ class Game {
       if (this.state === "running" && this.activeWaves.length === 0 && this.waveIndex < WAVES.length)
         this.startNextWave();
     }
-    if (this.lives <= 0) this.end(false);
+    if (this.overrun >= OVERRUN_MAX) this.end(false);
     if (this._shake && this._shake.t > 0) { this._shake.t -= dt; if (this._shake.t <= 0) this._shake = null; }
   }
 
@@ -1298,7 +1529,7 @@ class Game {
         if (d <= remaining) { en.x = tx; en.y = ty; en.wp++; remaining -= d; }
         else { en.x += (dx / d) * remaining; en.y += (dy / d) * remaining; remaining = 0; }
       }
-      if (en.wp >= last) { en.leaked = true; this.onLeak(en); }
+      if (en.wp >= last) this.onLeak(en);   // re-paths onto a fresh lap rather than dying
     }
   }
 
@@ -1316,23 +1547,34 @@ class Game {
       if (d.dtype) this.spawnFx(tw.x, tw.y, DECAY.hot, "muzzle", Math.atan2(targets[0].y - tw.y, targets[0].x - tw.x), { dtype: d.dtype });
       tw.recoil = 1;
       for (const target of targets) {
-        this.bullets.push({ x1: tw.x, y1: tw.y, x2: target.x, y2: target.y, color: tw.def.color, t: 0.09, dtype: d.dtype });
+        // Visual-only flight time: damage already resolved above, so this never
+        // changes the sim (and so never diverges from the authoritative server).
+        // It exists because an instant full-length beam reads as a static stick.
+        const life = clamp(Math.hypot(target.x - tw.x, target.y - tw.y) / 1500, 0.06, 0.2);
+        this.bullets.push({ x1: tw.x, y1: tw.y, x2: target.x, y2: target.y, color: tw.def.color, t: life, max: life, dtype: d.dtype });
         if (d.splash) {
           this.spawnFx(target.x, target.y, tw.def.color, "splash", 0, { r: d.splash });
           for (const en of this.enemies) {
-            if (en.hp <= 0) continue;
+            // Splash obeys the same targeting rules as a direct shot: a ground-only
+            // tower never clips flyers, and un-revealed invisibles are untouchable.
+            if (!this.canHit(tw, en)) continue;
             if (Math.hypot(en.x - target.x, en.y - target.y) <= d.splash) this.hit(en, base, d, tw);
           }
         } else this.hit(target, base, d, tw);
       }
     }
   }
+  /** Single source of truth for "may this tower damage this enemy at all". */
+  canHit(tw, en) {
+    if (en.hp <= 0) return false;
+    if (en.flags.includes("invisible") && !en.revealed) return false;
+    if (en.flags.includes("air") && !tw.s.canAir) return false;
+    return true;
+  }
   pickTargets(tw, n) {
     const inRange = [];
     for (const en of this.enemies) {
-      if (en.hp <= 0) continue;
-      if (en.flags.includes("invisible") && !en.revealed) continue;
-      if (en.flags.includes("air") && !tw.s.canAir) continue;
+      if (!this.canHit(tw, en)) continue;
       if (Math.hypot(en.x - tw.x, en.y - tw.y) > tw.s.range) continue;
       if (en.path) {
         const last = en.path.length - 1;
@@ -1379,7 +1621,7 @@ class Game {
           x: path[0][0], y: path[0][1], wp: 0, path, fork: en.fork || 0, corner: en.corner || 0,
           hp, maxHp: hp, speed: BASE_SPEED * e.speed_mult, baseSpeed: BASE_SPEED * e.speed_mult,
           def: e, enemy: "Armored", bounty: Math.round((3 + Math.floor(this.waveIndex / 3) + e.bounty_bonus) * diff.bounty),
-          rec: en.rec, flags: e.flags, armor: e.armor, color: e.color,
+          rec: en.rec, flags: e.flags, armor: en.armor, color: e.color,
           slowUntil: 0, slowFactor: 0, poison: 0, poisonUntil: 0, revealed: true, phase: 0, revealFlash: 0,
         });
         if (en.rec) en.rec.alive++;
@@ -1389,7 +1631,12 @@ class Game {
   hit(en, base, d, tw) {
     if (en.hp <= 0) return;
     const mult = d.dtype ? (ARMOR_MATRIX[d.dtype][en.armor] ?? 1) : 1;
-    if (tw) en.lastHitPlayer = tw.player ?? 0;
+    if (tw) {
+      en.lastHitPlayer = tw.player ?? 0;
+      // Effective damage, overkill excluded — this is the number the inspector
+      // reports, so it has to mean "HP actually removed", not "HP swung at".
+      tw.dealt = (tw.dealt || 0) + Math.min(en.hp, base * mult);
+    }
     en.hp -= base * mult;
     const immune = en.flags.includes("immune");
     if (d.slow && !immune) {
@@ -1412,6 +1659,11 @@ class Game {
   }
   onKill(en) {
     if (en._dead) return; en._dead = true;
+    // Clearing the backlog pays twice: the bounty, and the weight comes off.
+    if (en.lapped && en.weight) {
+      this.overrun = Math.max(0, this.overrun - en.weight);
+      this.spawnFx(en.x, en.y - 18, "#a8d98f", "text", 0, { txt: `-${Math.round(en.weight)} overrun` });
+    }
     this.players[en.lastHitPlayer ?? 0].gold += en.bounty;
     if (en.flags.includes("boss")) { this.spawnFx(en.x, en.y, en.color, "bossburst"); this.shakeCamera(0.38, 7); SFX.boss(); }
     else {
@@ -1427,12 +1679,26 @@ class Game {
     if (this._shake && this._shake.t > 0 && intensity < this._shake.intensity) return;
     this._shake = { t: duration, dur: duration, intensity };
   }
+  /**
+   * A creep reached the green circle. It does not die and you do not lose a
+   * life: it joins the overrun pool and starts another lap, carrying a weight
+   * you can take back off the meter by killing it. Each lap it survives makes
+   * it heavier, so a leaker nobody can reach still ends the game eventually
+   * rather than parking there forever.
+   */
   onLeak(en) {
-    const cost = en.flags.includes("boss") ? 10 : en.flags.includes("hero") ? 4 : 1;
-    this.lives -= cost;
+    if (en.rec) { en.rec.alive--; en.rec = null; }  // release it: its wave can still clear
+    en.laps = (en.laps || 0) + 1;
+    en.lapped = true;
+    if (en.laps > LAP_DESPAWN) { en.leaked = true; return; }  // culled below; weight stays
+    const prev = en.weight || 0;
+    en.weight = leakWeight(en);
+    this.overrun = Math.min(OVERRUN_MAX, this.overrun + (en.weight - prev));
+    en.wp = 0; en.x = en.path[0][0]; en.y = en.path[0][1];
     this.shellEvent("leak");
     this.spawnFx(CENTER.x, CENTER.y, THREAT.crit, "ring", 0, { r: 60 });
-    this.spawnFx(CENTER.x, CENTER.y - 28, THREAT.crit, "text", 0, { txt: cost === 1 ? "-1 life" : `-${cost} lives` });
+    this.spawnFx(CENTER.x, CENTER.y - 28, THREAT.crit, "text", 0,
+      { txt: en.laps === 1 ? `+${Math.round(en.weight)} overrun` : `lap ${en.laps} · +${Math.round(en.weight - prev)}` });
     SFX.leak();
     this.refreshButtons();
   }
@@ -1450,12 +1716,18 @@ class Game {
     let threat = 0;
     for (const en of this.enemies) {
       if (en.hp <= 0) continue;
-      const prog = en.path ? en.wp / Math.max(1, en.path.length - 1) : (en.netProg || 0);
-      threat = Math.max(threat, prog);
+      // netProg is the server's RAW progress (`wp * 10000 - distToNext`), not a
+      // fraction — feeding it in directly made `threat` tens of thousands, which
+      // blew the centre beacon's radius up past the viewport and flooded the
+      // whole field with THREAT.crit. Online-only, and broken since v2.0.0.
+      const prog = en.path
+        ? en.wp / Math.max(1, en.path.length - 1)
+        : (en.netProg || 0) / (NET_PROG_FULL || 1);
+      threat = Math.max(threat, clamp(prog, 0, 1));
       if (en.flags.includes("boss")) threat = Math.max(threat, 0.55 + (en.phase || 1) * 0.12);
     }
-    this._centerThreat = threat;
-    if (this.lives <= 5) this._centerThreat = Math.max(this._centerThreat, 0.7);
+    this._centerThreat = clamp(threat, 0, 1);
+    if (this.inDanger()) this._centerThreat = Math.max(this._centerThreat, 0.7);
     // 2×/3× = run the fixed-step sim multiple times per frame (keeps physics stable)
     const steps = this.net ? 1 : this.state === "running" ? this.speed : 1;
     for (let i = 0; i < steps; i++) this.update(dt);
@@ -1472,9 +1744,11 @@ class Game {
     const g = cv.getContext("2d");
     g.clearRect(0, 0, WORLD, WORLD);
 
-    // Martian night — warm void radial
+    // Martian night — warm void radial. Values sit higher than the v2.3 field so
+    // the lane trenches below can read as *darker* than the ground they cut through;
+    // before this the lane and the ground were within a few points of luminance.
     const vg = g.createRadialGradient(CENTER.x, CENTER.y, 0, CENTER.x, CENTER.y, WORLD * 0.85);
-    vg.addColorStop(0, "#1c0e0a"); vg.addColorStop(0.45, VOID_INNER); vg.addColorStop(1, VOID_OUTER);
+    vg.addColorStop(0, "#241309"); vg.addColorStop(0.45, "#190d09"); vg.addColorStop(1, "#100706");
     g.fillStyle = vg; g.fillRect(0, 0, WORLD, WORLD);
 
     // Dust / regolith speckles (seeded, stable)
@@ -1540,37 +1814,67 @@ class Game {
       g.restore();
     }
 
+    // Build plates — the single biggest readability fix. Before this, buildable
+    // ground was indistinguishable from dead space, so players clicked blind.
+    // Every legal pad gets a raised regolith plate; pads inside tower-range of a
+    // lane are tinted warmer, so prime real estate is visible before you commit.
+    this.buildableCells = [];
+    for (let c = 0; c < GRID; c++) {
+      for (let r = 0; r < GRID; r++) {
+        const x = c * CELL + CELL / 2, y = r * CELL + CELL / 2;
+        const d = distToPaths(x, y);
+        if (d <= PATH_CLEAR) continue;
+        this.buildableCells.push([c, r]);
+        const prime = d < PATH_CLEAR + 60;              // inside most towers' first ring
+        const px = c * CELL + 4, py = r * CELL + 4, pw = CELL - 8;
+        g.fillStyle = prime ? "rgba(78,56,42,.34)" : "rgba(52,40,33,.26)";
+        this.round(px, py, pw, pw, 4, g); g.fill();
+        // top-left bevel so the plate reads as raised hardware, not a flat swatch
+        g.strokeStyle = prime ? "rgba(201,163,92,.18)" : "rgba(170,140,100,.07)";
+        g.lineWidth = 1;
+        g.beginPath(); g.moveTo(px + 0.5, py + pw - 2); g.lineTo(px + 0.5, py + 0.5); g.lineTo(px + pw - 2, py + 0.5); g.stroke();
+        g.strokeStyle = "rgba(8,4,3,.4)";
+        g.beginPath(); g.moveTo(px + pw - 0.5, py + 2); g.lineTo(px + pw - 0.5, py + pw - 0.5); g.lineTo(px + 2, py + pw - 0.5); g.stroke();
+      }
+    }
+
     // Path trenches — mined shafts / Iron Rain approach lanes (rust floor + gold core)
     g.lineCap = "round"; g.lineJoin = "round";
     for (let k = 0; k < 4; k++) {
       for (let f = 0; f < 2; f++) {
         const path = PATH_VARIANTS[k][f];
         const alt = f === 1;
-        g.strokeStyle = alt ? "rgba(60,28,22,.3)" : "rgba(55,24,18,.72)";
-        g.lineWidth = PATH_W;
-        if (alt) g.setLineDash([8, 10]);
-        g.beginPath(); g.moveTo(path[0][0], path[0][1]);
-        for (let i = 1; i < path.length; i++) g.lineTo(path[i][0], path[i][1]);
-        g.stroke();
-        if (!alt) {
+        const trace = () => {
+          g.beginPath(); g.moveTo(path[0][0], path[0][1]);
+          for (let i = 1; i < path.length; i++) g.lineTo(path[i][0], path[i][1]);
+          g.stroke();
+        };
+        if (alt) {
+          // Fork lane (seeded CCW variant) — dashed ghost so it never competes
+          // with the primary lane for attention, but is still plainly a lane.
+          g.setLineDash([9, 11]);
+          g.strokeStyle = "rgba(14,7,5,.62)"; g.lineWidth = PATH_W; trace();
+          g.strokeStyle = "rgba(139,58,47,.55)"; g.lineWidth = 1.6; trace();
           g.setLineDash([]);
-          g.strokeStyle = "rgba(20,8,6,.7)"; g.lineWidth = PATH_W - 10; g.stroke();
-          g.strokeStyle = RUST; g.globalAlpha = 0.85; g.lineWidth = 2.4; g.stroke();
-          g.strokeStyle = DECAY.after; g.globalAlpha = 0.55; g.lineWidth = 1.2; g.stroke();
-          g.globalAlpha = 1;
-          g.strokeStyle = "rgba(74,58,50,.4)"; g.lineWidth = 1;
-          for (let i = 0; i < path.length - 1; i++) {
-            const ax = path[i][0], ay = path[i][1], bx = path[i + 1][0], by = path[i + 1][1];
-            const len = Math.hypot(bx - ax, by - ay) || 1;
-            const nx = -(by - ay) / len, ny = (bx - ax) / len;
-            for (let d = 20; d < len; d += 40) {
-              const x = ax + (bx - ax) * (d / len), y = ay + (by - ay) * (d / len);
-              g.beginPath(); g.moveTo(x + nx * 6, y + ny * 6); g.lineTo(x - nx * 6, y - ny * 6); g.stroke();
-            }
+          continue;
+        }
+        // Primary lane: bright kerb rail, then a much darker trench floor cut
+        // into it. The kerb/floor value gap is what makes the lane legible.
+        g.strokeStyle = "rgba(146,80,52,.80)"; g.lineWidth = PATH_W; trace();          // kerb
+        g.strokeStyle = "rgba(10,5,4,.96)";   g.lineWidth = PATH_W - 7; trace();       // trench floor
+        g.strokeStyle = "rgba(44,22,16,.9)";  g.lineWidth = PATH_W - 13; trace();      // worn centre
+        g.strokeStyle = DECAY.after; g.globalAlpha = 0.5; g.lineWidth = 1.4; trace();  // hot core line
+        g.globalAlpha = 1;
+        // Sleepers across the trench — give the lane texture and a sense of travel
+        g.strokeStyle = "rgba(201,163,92,.22)"; g.lineWidth = 1;
+        for (let i = 0; i < path.length - 1; i++) {
+          const ax = path[i][0], ay = path[i][1], bx = path[i + 1][0], by = path[i + 1][1];
+          const len = Math.hypot(bx - ax, by - ay) || 1;
+          const nx = -(by - ay) / len, ny = (bx - ax) / len;
+          for (let d = 20; d < len; d += 36) {
+            const x = ax + (bx - ax) * (d / len), y = ay + (by - ay) * (d / len);
+            g.beginPath(); g.moveTo(x + nx * 9, y + ny * 9); g.lineTo(x - nx * 9, y - ny * 9); g.stroke();
           }
-        } else {
-          g.strokeStyle = RUST; g.globalAlpha = 0.3; g.lineWidth = 1.5; g.stroke();
-          g.globalAlpha = 1; g.setLineDash([]);
         }
       }
     }
@@ -1669,7 +1973,14 @@ class Game {
 
     tctx.globalAlpha = 0.4; tctx.strokeStyle = DECAY.hot; tctx.lineWidth = 3;
     for (const b of this.bullets) {
-      tctx.beginPath(); tctx.moveTo(b.x1, b.y1); tctx.lineTo(b.x2, b.y2); tctx.stroke();
+      // Burn only the stretch the bolt has actually flown, so the ember trail
+      // grows behind it instead of flashing the whole line at once.
+      const p = 1 - clamp(b.t / (b.max || 0.09), 0, 1);
+      const tail = Math.max(0, p - 0.42);
+      tctx.beginPath();
+      tctx.moveTo(b.x1 + (b.x2 - b.x1) * tail, b.y1 + (b.y2 - b.y1) * tail);
+      tctx.lineTo(b.x1 + (b.x2 - b.x1) * p, b.y1 + (b.y2 - b.y1) * p);
+      tctx.stroke();
     }
 
     tctx.globalAlpha = 1;
@@ -1700,8 +2011,10 @@ class Game {
 
     // cached static world layer (void gradient + range rings + bezel + paths + ticks)
     ctx.drawImage(this.staticLayer, 0, 0, WORLD, WORLD);
+    this.drawLaneFlow(ctx);
+    this.drawSpawnGates(ctx);
 
-    // Gold Society pit beacon — intensity tracks leak threat / boss / low lives
+    // Gold Society pit beacon — intensity tracks leak threat / boss / overrun
     const threat = this._centerThreat || 0;
     const cpulse = this.reducedMotion ? 0.5 : (0.5 + 0.5 * Math.sin(this.gameTime * (2.4 + threat * 2)));
     const cr = 8 + cpulse * 3 + threat * 6;
@@ -1775,11 +2088,16 @@ class Game {
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
     for (const b of this.bullets) {
-      const a = clamp(b.t / 0.09, 0, 1);
-      ctx.strokeStyle = DECAY.core; ctx.lineWidth = 5; ctx.globalAlpha = a * 0.4;
-      ctx.beginPath(); ctx.moveTo(b.x1, b.y1); ctx.lineTo(b.x2, b.y2); ctx.stroke();
-      ctx.strokeStyle = DECAY.hot; ctx.lineWidth = 2; ctx.globalAlpha = a;
-      ctx.beginPath(); ctx.moveTo(b.x1, b.y1); ctx.lineTo(b.x2, b.y2); ctx.stroke();
+      const p = 1 - clamp(b.t / (b.max || 0.09), 0, 1);          // 0 → 1 along the shot
+      const tail = Math.max(0, p - 0.42);
+      const hx = b.x1 + (b.x2 - b.x1) * p,    hy = b.y1 + (b.y2 - b.y1) * p;
+      const sx = b.x1 + (b.x2 - b.x1) * tail, sy = b.y1 + (b.y2 - b.y1) * tail;
+      ctx.strokeStyle = b.color || DECAY.core; ctx.lineWidth = 4.5; ctx.globalAlpha = 0.34;
+      ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(hx, hy); ctx.stroke();
+      ctx.strokeStyle = DECAY.hot; ctx.lineWidth = 1.8; ctx.globalAlpha = 0.95;
+      ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(hx, hy); ctx.stroke();
+      ctx.fillStyle = DECAY.hot; ctx.globalAlpha = 1;
+      ctx.beginPath(); ctx.arc(hx, hy, 2.4, 0, 7); ctx.fill();
     }
     ctx.globalAlpha = 1;
     ctx.restore();
@@ -1798,6 +2116,73 @@ class Game {
     this.drawVignette(); // screen-space radial gradient — darkens edges, focuses center
     this.drawMinimap();  // minimap draws over vignette
     ctx.lineWidth = 1;
+  }
+
+  /**
+   * Chevrons drifting along each primary lane toward the centre. The static
+   * trench says "this is a road"; this says which way the road runs — which the
+   * four-corner spiral badly needs, because a lane doubles back on itself.
+   * Segments outside the camera are skipped, so cost tracks what you can see.
+   */
+  drawLaneFlow(ctx) {
+    const SPACING = 130, SPEED = 42;
+    const phase = this.reducedMotion ? 0 : (this.gameTime * SPEED) % SPACING;
+    const vx0 = this.cam.x - 40, vy0 = this.cam.y - 40;
+    const vx1 = this.cam.x + this.cssW / this.cam.zoom + 40, vy1 = this.cam.y + this.cssH / this.cam.zoom + 40;
+    ctx.save();
+    ctx.globalAlpha = 0.3;
+    ctx.strokeStyle = DECAY.mid;
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    for (let k = 0; k < 4; k++) {
+      const path = PATH_VARIANTS[k][0];
+      let carried = 0;
+      for (let i = 0; i < path.length - 1; i++) {
+        const ax = path[i][0], ay = path[i][1], bx = path[i + 1][0], by = path[i + 1][1];
+        const len = Math.hypot(bx - ax, by - ay) || 1;
+        const visible = Math.max(ax, bx) >= vx0 && Math.min(ax, bx) <= vx1 &&
+                        Math.max(ay, by) >= vy0 && Math.min(ay, by) <= vy1;
+        if (visible) {
+          const ux = (bx - ax) / len, uy = (by - ay) / len, nx = -uy, ny = ux;
+          for (let d = ((SPACING - ((carried + phase) % SPACING)) % SPACING); d < len; d += SPACING) {
+            const x = ax + ux * d, y = ay + uy * d;
+            ctx.beginPath();
+            ctx.moveTo(x - ux * 5 + nx * 5, y - uy * 5 + ny * 5);
+            ctx.lineTo(x + ux * 5, y + uy * 5);
+            ctx.lineTo(x - ux * 5 - nx * 5, y - uy * 5 - ny * 5);
+            ctx.stroke();
+          }
+        }
+        carried += len;
+      }
+    }
+    ctx.restore();
+  }
+
+  /**
+   * Corner gates light up while their lane is feeding creeps. In a four-corner
+   * map the player otherwise has to scan the whole arena to find the pressure.
+   */
+  drawSpawnGates(ctx) {
+    const hot = [false, false, false, false];
+    for (const s of this.spawnQueue) if (s.corner != null) hot[s.corner] = true;
+    for (const en of this.enemies) if (en.hp > 0 && en.corner != null && en.wp < 3) hot[en.corner] = true;
+    const t = this.gameTime;
+    ENTRIES.forEach(([sx, sy], i) => {
+      const live = hot[i];
+      const pulse = this.reducedMotion ? 0.6 : 0.5 + 0.5 * Math.sin(t * 4 - i);
+      ctx.save();
+      ctx.globalAlpha = live ? 0.5 + pulse * 0.45 : 0.22;
+      ctx.strokeStyle = live ? SCARLET : BEZEL;
+      ctx.lineWidth = live ? 2.6 : 1.4;
+      ctx.beginPath(); ctx.arc(sx, sy, 20 + (live ? pulse * 5 : 0), 0, 7); ctx.stroke();
+      if (live) {
+        ctx.globalAlpha = 0.3 * pulse;
+        ctx.fillStyle = SCARLET;
+        ctx.beginPath(); ctx.arc(sx, sy, 16, 0, 7); ctx.fill();
+      }
+      ctx.restore();
+    });
   }
 
   // ---- procedural sprites (Iron Rain / Society castes)
@@ -1819,29 +2204,44 @@ class Game {
   getDecayGradient(ctx, rad) { return this.getCasteGradient(ctx, rad, DECAY.core); }
 
   // PulseArmor housing — iron plate + gold studs (cached per tower instance)
-  buildTowerBezel() {
-    const S = 32, R = S / 2;
-    const cv = document.createElement("canvas"); cv.width = S; cv.height = S;
+  buildTowerBezel(col) {
+    // Authored at 2× and drawn at PAD world px, so the pad stays crisp when the
+    // player zooms in (the old 1:1 bitmap went soft past 1× zoom).
+    // `col` is the tower's type hue, baked into the core: at the default zoom a
+    // pad is ~15 screen px, far too small to identify from a thin accent rim, so
+    // the type colour has to be the loudest thing on the pad.
+    const SS = 2, S = TOWER_PAD, R = S / 2, k = S / 32;
+    const cv = document.createElement("canvas"); cv.width = S * SS; cv.height = S * SS;
     const g = cv.getContext("2d");
-    g.fillStyle = "#1a100c";
-    this.round(1, 1, S - 2, S - 2, 5, g); g.fill();
+    g.scale(SS, SS);
+    // Grounding shadow so the pad sits on the plate instead of floating on it
+    const sh = g.createRadialGradient(R, R + 1.5 * k, 6 * k, R, R + 1.5 * k, 17 * k);
+    sh.addColorStop(0, "rgba(0,0,0,.65)"); sh.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = sh; g.fillRect(0, 0, S, S);
+    g.fillStyle = "#0d0705";                               // darker than any build plate
+    this.round(1, 1, S - 2, S - 2, 5 * k, g); g.fill();
     // Hex pad silhouette
-    g.fillStyle = "#2a1a14";
+    g.fillStyle = "#241611";
     g.beginPath();
     for (let i = 0; i < 6; i++) {
       const a = (i / 6) * Math.PI * 2 - Math.PI / 6;
-      const px = R + Math.cos(a) * 13, py = R + Math.sin(a) * 13;
+      const px = R + Math.cos(a) * 13 * k, py = R + Math.sin(a) * 13 * k;
       i ? g.lineTo(px, py) : g.moveTo(px, py);
     }
     g.closePath(); g.fill();
-    g.strokeStyle = BEZEL; g.lineWidth = 1.5; g.stroke();
-    g.fillStyle = "#3a241c"; g.beginPath(); g.arc(R, R, 9, 0, Math.PI * 2); g.fill();
-    g.strokeStyle = BRASS; g.lineWidth = 1.2; g.globalAlpha = 0.85;
-    g.beginPath(); g.arc(R, R, 11, 0, Math.PI * 2); g.stroke();
+    g.strokeStyle = BEZEL; g.lineWidth = 1.5 * k; g.stroke();
+    // Type-coloured core — the glanceable identity of the tower
+    const core = g.createRadialGradient(R - 2.5 * k, R - 2.5 * k, 1, R, R, 9.5 * k);
+    core.addColorStop(0, "#ffffff"); core.addColorStop(0.28, col); core.addColorStop(1, "#1b0f0b");
+    g.fillStyle = core; g.beginPath(); g.arc(R, R, 9.5 * k, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = "rgba(0,0,0,.55)"; g.lineWidth = 1.2 * k;
+    g.beginPath(); g.arc(R, R, 9.5 * k, 0, Math.PI * 2); g.stroke();
+    g.strokeStyle = BRASS; g.lineWidth = 1.4 * k; g.globalAlpha = 0.9;
+    g.beginPath(); g.arc(R, R, 12 * k, 0, Math.PI * 2); g.stroke();
     g.globalAlpha = 1; g.fillStyle = BRASS;
     for (let i = 0; i < 6; i++) {
       const a = (i / 6) * Math.PI * 2 - Math.PI / 6;
-      g.beginPath(); g.arc(R + Math.cos(a) * 13, R + Math.sin(a) * 13, 1.6, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.arc(R + Math.cos(a) * 13 * k, R + Math.sin(a) * 13 * k, 1.7 * k, 0, Math.PI * 2); g.fill();
     }
     return cv;
   }
@@ -1863,9 +2263,10 @@ class Game {
     // `pop` may be absent on server-mirrored towers (net.js) — guard with ??.
     if ((tw.pop ?? 0) > 0) tw.pop = Math.max(0, tw.pop - dt);
 
-    if (!tw._bezel) tw._bezel = this.buildTowerBezel();
+    if (!tw._bezel) tw._bezel = this.buildTowerBezel(col);
     const popSc = this.reducedMotion || !(tw.pop > 0) ? 1 : 1 + 0.22 * Math.sin((tw.pop / 0.25) * Math.PI);
-    ctx.drawImage(tw._bezel, x - 16 * popSc, y - 16 * popSc, 32 * popSc, 32 * popSc);
+    const half = (TOWER_PAD / 2) * popSc;
+    ctx.drawImage(tw._bezel, x - half, y - half, TOWER_PAD * popSc, TOWER_PAD * popSc);
 
     const hover = this.hoverWorld && Math.hypot(this.hoverWorld.x - x, this.hoverWorld.y - y) < CELL;
     if (s.range > 0 && (selected || hover)) {
@@ -1995,7 +2396,9 @@ class Game {
 
   drawCreep(ctx, en) {
     const t = this.gameTime, boss = en.flags.includes("boss"), hero = en.flags.includes("hero"), air = en.flags.includes("air");
-    const rad = boss ? 17 : hero ? 12 : en.enemy === "Swarm" ? 6 : 9;
+    // Radii up ~20% over v2.3: at default zoom the old sizes rendered as specks
+    // once the ground stopped being pure black.
+    const rad = boss ? 21 : hero ? 15 : en.enemy === "Swarm" ? 7.5 : 11;
     const inv = en.flags.includes("invisible") && !en.revealed;
     const ang = en.path
       ? Math.atan2(en.path[Math.min(en.wp + 1, en.path.length - 1)][1] - en.y, en.path[Math.min(en.wp + 1, en.path.length - 1)][0] - en.x)
@@ -2004,7 +2407,18 @@ class Game {
     const lift = air ? 7 + bob * 2 : 0;
     const tier = boss || hero ? "crit" : (en.flags.includes("immune") || en.enemy === "Armored") ? "warn" : "base";
     const rim = tier === "crit" ? (hero ? DECAY.core : THREAT.crit) : tier === "warn" ? THREAT.warn : en.color;
-    if (air) { ctx.fillStyle = "rgba(0,0,0,.28)"; ctx.beginPath(); ctx.ellipse(en.x, en.y + rad + 4, rad * 0.9, rad * 0.4, 0, 0, 7); ctx.fill(); }
+    if (air) { ctx.fillStyle = "rgba(0,0,0,.34)"; ctx.beginPath(); ctx.ellipse(en.x, en.y + rad + 4, rad * 0.9, rad * 0.4, 0, 0, 7); ctx.fill(); }
+    // Contact shadow under every unit. The lit regolith plates mean a unit can no
+    // longer rely on a black field for its silhouette — this is what separates it.
+    if (!inv) {
+      ctx.save();
+      ctx.globalAlpha = air ? 0.3 : 0.5;
+      const sh = ctx.createRadialGradient(en.x, en.y - lift, rad * 0.4, en.x, en.y - lift, rad * 1.5);
+      sh.addColorStop(0, "rgba(0,0,0,.75)"); sh.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = sh;
+      ctx.beginPath(); ctx.arc(en.x, en.y - lift, rad * 1.5, 0, 7); ctx.fill();
+      ctx.restore();
+    }
     ctx.save(); ctx.globalAlpha = inv ? 0.22 : 1; ctx.translate(en.x, en.y - lift);
     ctx.fillStyle = this.getCasteGradient(ctx, rad, en.color);
     if (en.enemy === "Swift") {
@@ -2056,8 +2470,8 @@ class Game {
     }
     {
       const ga = ctx.globalAlpha, ringR = rad + (boss ? 3 : hero ? 2.5 : 1.8);
-      ctx.strokeStyle = rim; ctx.lineWidth = tier === "base" ? 1.3 : 1.9;
-      ctx.globalAlpha = ga * (tier === "base" ? 0.65 : 0.92);
+      ctx.strokeStyle = rim; ctx.lineWidth = tier === "base" ? 1.8 : 2.4;
+      ctx.globalAlpha = ga * (tier === "base" ? 0.9 : 1);
       ctx.beginPath(); ctx.arc(0, 0, ringR, 0, 7); ctx.stroke();
       ctx.lineWidth = 1;
       for (const da of [-0.55, 0.55]) {

@@ -16,15 +16,15 @@
   {
     "slug": "green-circle-td",
     "title": "Green Circle TD",
-    "description": "Maze tower defense: creeps circle in from four corners to the center, passing every position. TRUE ONLINE MULTIPLAYER (2–4 players): WC3-style lobby with 4-letter room codes, authoritative server, per-player build zones, shared lives. Plus procedural turret + creep graphics, Lv1-3 upgrades and 3-way specializations, auto-advancing waves (Space to stack early), armor-vs-damage matrix including WC3 chaos damage, air-targeting restriction, randomized wave order, distinct creep archetypes, local hot-seat co-op, aura towers, Mint economy tower, interest economy, stackable waves, 1×/2×/3× speed, and 30 escalating waves to a multi-phase boss.",
+    "description": "Maze tower defense: creeps circle in from four corners to the center, passing every position. TRUE ONLINE MULTIPLAYER (2-4 players): WC3-style lobby with 4-letter room codes, authoritative server, per-player build zones, a shared overrun meter. v3 ports the real WC3 map's mechanics, decompiled from the original: leaks are RECOVERABLE — a creep that gets past you keeps circling and killing it takes its weight back off the meter; a flattened armour matrix with DIVINE walls on waves 5/13/21/27 that only Chaos (Void) can open; tower DOWNGRADE to recover misallocated gold; and the full 30-wave armour schedule published up front so you can plan the build. Plus procedural turret + creep graphics, Lv1-3 upgrades and 3-way specializations, auto-advancing waves (Space to stack early), air-targeting restriction, distinct creep archetypes, local hot-seat co-op, aura towers, Mint economy tower, interest economy, 1x/2x/3x speed, and 30 waves to a multi-phase boss.",
     "repo": "Brynrg/green-circle-td",
     "playUrl": "/games/green-circle-td/",
     "category": "tower-defense",
     "status": "live",
     "framework": "vanilla",
     "supportsMobile": true,
-    "version": "2.3.0",
-    "lastUpdated": "2026-08-14T04:49:09.754Z",
+    "version": "3.0.0",
+    "lastUpdated": "2026-11-03T04:36:54.139Z",
     "emoji": "🟢"
   },
   {

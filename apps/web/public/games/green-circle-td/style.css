@@ -88,6 +88,23 @@ body {
   border: 1px solid var(--bezel-soft); line-height: 1.4;
 }
 #topbar #gold { color: var(--brass-bright); }
+/* Overrun meter — replaces the lives pill. Bidirectional, so it is a bar.
+   --fill is written by renderOverrun(); the track keeps the .stat pill chrome. */
+#topbar #overrun {
+  position: relative; overflow: hidden; min-width: 104px;
+  color: #cfc6b4; transition: color .15s, border-color .15s;
+}
+#topbar #overrun .meter-fill {
+  position: absolute; inset: 0 auto 0 0; width: var(--fill, 0%);
+  background: linear-gradient(90deg, rgba(166,124,42,.30), rgba(201,163,92,.42));
+  transition: width .18s ease-out, background .2s;
+}
+#topbar #overrun .meter-label { position: relative; }
+#topbar #overrun.warn { color: #e8c468; border-color: #6b4e1c; }
+#topbar #overrun.warn .meter-fill { background: linear-gradient(90deg, rgba(217,138,51,.34), rgba(232,196,104,.48)); }
+#topbar #overrun.crit { color: #f0b7ae; border-color: var(--threat-crit); animation: lifepulse 1.1s ease-in-out infinite; }
+#topbar #overrun.crit .meter-fill { background: linear-gradient(90deg, rgba(161,58,46,.48), rgba(196,30,58,.62)); }
+
 #topbar #lives { color: #d99a92; transition: color .15s, background .15s, border-color .15s; }
 #topbar #lives.low {
   color: #f0b7ae; background: #2a0f12; border-color: var(--threat-crit);
@@ -250,6 +267,27 @@ button.primary:focus-visible, .overlay button:focus-visible, .ibtn:focus-visible
 .armor-pill.hidden { display: none; }
 .apill { padding: 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 700; font-family: var(--mono); border: 1px solid; line-height: 1.5; }
 
+/* Next-wave scouting report — read before you spend, not after you leak */
+#nextPanel.hidden { display: none; }
+.nw-num { font-weight: 700; color: var(--brass); font-size: 11px; letter-spacing: .02em; }
+.nextbody { display: flex; flex-direction: column; gap: 3px; margin-top: 5px; }
+.nwrow {
+  display: flex; align-items: center; gap: 5px;
+  font-family: var(--mono); font-size: 10px; line-height: 1.6;
+  padding: 2px 5px; border-radius: 3px; background: rgba(255,255,255,.035);
+}
+.nwdot { width: 7px; height: 7px; border-radius: 50%; flex: none; box-shadow: 0 0 0 1px rgba(0,0,0,.55); }
+.nwn { font-weight: 800; color: #e8e3d3; }
+.nwname { color: #b9b0a0; }
+.nwflag { color: var(--threat-warn, #d98a33); font-weight: 700; cursor: help; }
+.nwarm { margin-left: auto; font-weight: 700; }
+.nwhp { color: #8c8276; min-width: 42px; text-align: right; }
+.nwfoot { margin-top: 3px; font-family: var(--mono); font-size: 10px; color: #8c8276; line-height: 1.5; }
+
+/* Inspector value tones — armour-matrix verdict against the live field */
+.inspstats b.v-good { color: #a8d98f; }
+.inspstats b.v-bad { color: var(--threat-crit, #a13a2e); }
+
 /* Boss wave — the wave panel signals danger with the exclusive crit-threat hue */
 @keyframes bosswarn {
   0%, 100% { border-color: #6b241c; }
@@ -294,7 +332,10 @@ button.primary:disabled { opacity: .45; cursor: not-allowed; }
 .overlay {
   position: absolute; inset: 0; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 14px; text-align: center;
-  background: rgba(6,10,6,.78); backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
+  /* Heavier scrim than v2.3: the arena floor is lit now, so the old .78 veil
+     let the maze read straight through the menu copy. */
+  background: radial-gradient(ellipse at center, rgba(12,6,5,.93), rgba(5,3,2,.97));
+  backdrop-filter: blur(9px); -webkit-backdrop-filter: blur(9px);
   padding: 24px; animation: overlayIn .2s ease-out;
 }
 @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
@@ -349,8 +390,15 @@ button.primary:disabled { opacity: .45; cursor: not-allowed; }
     touch-action: pan-x;
   }
   #sidebar .panel { flex: 0 0 auto; padding: 8px; }
-  #sidebar .panel:nth-child(1) { order: 0; } /* wave first */
-  #sidebar .panel:nth-child(2) { order: 1; } /* towers after */
+  /* Explicit per-id order. These were nth-child(1|2) with comments claiming
+     "wave first / towers after", but nth-child(2) was #nextPanel, not Towers —
+     the intended order only held because unstyled panels default to order 0.
+     Inserting any panel silently reshuffled the phone strip. */
+  #sidebar #wavePanel { order: 0; }
+  #sidebar #nextPanel { order: 1; }
+  #sidebar #sidebar-towers, #sidebar .panel:not([id]) { order: 2; }
+  #sidebar #schedulePanel { order: 3; }
+  #sidebar #playerPanel { order: 4; }
   .panel.help { display: none; }
   .towerlist { flex-direction: row; gap: 6px; }
   .gbtn { flex-direction: column; align-items: flex-start; gap: 2px; min-width: 96px; }
@@ -433,3 +481,17 @@ button.primary:disabled { opacity: .45; cursor: not-allowed; }
     animation: none; opacity: .8;
   }
 }
+
+/* Wave schedule — the full 30-wave armour list, the way the WC3 forks print it */
+#schedulePanel.hidden { display: none; }
+.schedbody { display: flex; flex-direction: column; gap: 2px; max-height: 42vh; overflow-y: auto; }
+.schedrow {
+  display: flex; align-items: center; gap: 5px;
+  font-family: var(--mono); font-size: 10px; line-height: 1.55;
+  padding: 2px 5px; border-radius: 3px; background: rgba(255,255,255,.03);
+}
+.schedrow.divine { background: rgba(224,168,216,.10); box-shadow: inset 2px 0 0 #e0a8d8; }
+.schedrow.boss { box-shadow: inset 2px 0 0 var(--threat-crit); }
+.schedn { min-width: 16px; text-align: right; color: #8c8276; font-weight: 700; }
+.schedname { color: #b9b0a0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.schedarm { font-weight: 700; }
