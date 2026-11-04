@@ -7,11 +7,11 @@
   "category": "strategy",
   "status": "live",
   "framework": "vite",
-  "supportsMobile": false,
-  "version": "0.4.0",
-  "sourceCommit": "71551a84a8cb26096e7f280f406ff22cab233372",
-  "buildHash": "93803d357515e54ecbe73a4ac44dde5de65688d4ab61500d1df1984e88077186",
-  "buildTimestamp": "2026-11-03T16:06:42.002Z",
-  "lastUpdated": "2026-11-03T16:06:42.002Z",
+  "supportsMobile": true,
+  "version": "0.5.0",
+  "sourceCommit": "161957577cf866976d01fcaafd4161bdd170f595",
+  "buildHash": "ad355294a5e2392c8690639365d63960d2e9fb5dd2d6cfaf32968b4e9e21bffd",
+  "buildTimestamp": "2026-11-04T18:16:06.584Z",
+  "lastUpdated": "2026-11-04T18:16:06.584Z",
   "emoji": "⚔️"
 }
