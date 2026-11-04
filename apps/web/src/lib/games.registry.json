@@ -78,9 +78,9 @@
     "category": "strategy",
     "status": "live",
     "framework": "vite",
-    "supportsMobile": false,
-    "version": "0.4.0",
-    "lastUpdated": "2026-11-03T16:06:42.002Z",
+    "supportsMobile": true,
+    "version": "0.5.0",
+    "lastUpdated": "2026-11-04T18:16:06.584Z",
     "emoji": "⚔️"
   },
   {
