@@ -9,9 +9,9 @@
   "framework": "vite",
   "supportsMobile": true,
   "version": "0.5.0",
-  "sourceCommit": "0168eee4c7748ea5a8cfc2d6e9d194531679e23d",
-  "buildHash": "6568b3cdf0d471c4f8440cc32759608d4b1f5e5026700dc99a2751ed098f6ec7",
-  "buildTimestamp": "2026-11-11T18:10:16.016Z",
-  "lastUpdated": "2026-11-11T18:10:16.016Z",
+  "sourceCommit": "93c8ba4d19f14014e34784d2bbf9ced4349ac405",
+  "buildHash": "9d47c689e2860b1ef7bc226fa8b80c100f1bf0082ce22873daf0da9783369420",
+  "buildTimestamp": "2026-11-12T01:05:22.583Z",
+  "lastUpdated": "2026-11-12T01:05:22.583Z",
   "emoji": "⚔️"
 }
