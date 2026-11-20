@@ -1,4 +1,8 @@
 import { audio, game } from "./state.js";
+const AUDIO_STORAGE_KEY = "speedrungames:tower-wars:audio_v1"; const NOMINAL_MASTER_GAIN = 0.045; let audioMuted = false; let audioVolume = 100;
+function clampVolume(percent) { const n = Number(percent); if (!Number.isFinite(n)) return audioVolume; return Math.max(0, Math.min(100, Math.round(n))); } function loadAudioPrefs() { try { if (typeof localStorage === "undefined") return; const raw = localStorage.getItem(AUDIO_STORAGE_KEY); if (!raw) return; const parsed = JSON.parse(raw); if (parsed && typeof parsed.muted === "boolean") audioMuted = parsed.muted; if (parsed && typeof parsed.volume === "number" && Number.isFinite(parsed.volume)) audioVolume = clampVolume(parsed.volume); } catch {} } function saveAudioPrefs() { try { if (typeof localStorage === "undefined") return; localStorage.setItem(AUDIO_STORAGE_KEY, JSON.stringify({ muted: audioMuted, volume: audioVolume })); } catch {} } function applyMasterGain() { if (!audio.master) return; audio.master.gain.value = audioMuted ? 0 : NOMINAL_MASTER_GAIN * (audioVolume / 100); } loadAudioPrefs();
+export function isAudioMuted() { return audioMuted; } export function getAudioVolume() { return audioVolume; } export function setAudioMuted(muted) { audioMuted = Boolean(muted); saveAudioPrefs(); applyMasterGain(); if (audioMuted) { stopMusicLoop(); } else { if (audio.ctx && audio.ctx.state === "suspended" && typeof audio.ctx.resume === "function") { try { audio.ctx.resume(); } catch {} } if (audio.ctx && audioVolume > 0 && !audio.musicTimer && !game.gameOver) { startMusicLoop(); } } return audioMuted; } export function toggleAudioMute() { return setAudioMuted(!audioMuted); } export function setAudioVolume(percent) { audioVolume = clampVolume(percent); saveAudioPrefs(); applyMasterGain(); if (audioVolume <= 0) { stopMusicLoop(); } else if (!audioMuted && audio.ctx && !audio.musicTimer && !game.gameOver) { startMusicLoop(); } return audioVolume; }
+if (typeof document !== "undefined" && typeof document.addEventListener === "function") { document.addEventListener("visibilitychange", () => { if (!audio.ctx) return; if (document.hidden) { if (audio.ctx.state === "running" && typeof audio.ctx.suspend === "function") { try { audio.ctx.suspend(); } catch {} } } else if (!audioMuted && audio.ctx.state === "suspended" && typeof audio.ctx.resume === "function") { try { audio.ctx.resume(); } catch {} } }); }
 
 export function initAudio() {
   if (audio.ctx) {
@@ -12,7 +16,7 @@ export function initAudio() {
 
     audio.ctx = new AudioCtx();
     audio.master = audio.ctx.createGain();
-    audio.master.gain.value = 0.045;
+    applyMasterGain();
     audio.master.connect(audio.ctx.destination);
 
     startMusicLoop();
@@ -25,7 +29,7 @@ export function ensureAudioActive() {
   if (!audio.ctx) {
     initAudio();
   }
-  if (audio.ctx && audio.ctx.state === "suspended") {
+  if (!audioMuted && audio.ctx && audio.ctx.state === "suspended") {
     audio.ctx.resume();
   }
   // The loop is torn down for good on defeat (stopMusicLoop); once a fresh
@@ -43,7 +47,7 @@ export function stopMusicLoop() {
 }
 
 export function playTone(freq, duration, type, gain) {
-  if (!audio.ctx || !audio.master) {
+  if (!audio.ctx || !audio.master || audioMuted || audioVolume <= 0) {
     return;
   }
 
