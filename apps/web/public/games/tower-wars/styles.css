@@ -427,7 +427,7 @@ canvas {
 .panel button[data-icon] {
   position: relative;
   min-height: 2.3rem;
-  padding-left: 2.05rem;
+  padding-left: 2.1rem !important;
 }
 
 .panel button[data-icon]::before {
@@ -827,3 +827,9 @@ code {
     grid-template-columns: 1fr;
   }
 }
+/* Audio HUD & Menu Overlay Controls */
+#muteBtn { background: var(--cream); color: var(--ink); border: 1px solid var(--panel-edge); border-radius: 5px; padding: 0.25rem 0.55rem; font-size: 0.72rem; font-weight: 700; cursor: pointer; }
+
+#muteBtn:hover, #muteBtn:focus-visible { background: var(--cream-deep); border-color: var(--gold); } #muteBtn[aria-pressed="true"], #muteBtn.muted { background: var(--bg-mid); color: var(--cream); border-color: var(--gold); }
+#menuOverlay .audio-controls, #menuOverlay .menu-audio-row { display: flex; align-items: center; justify-content: space-between; gap: 0.65rem; margin-top: 0.65rem; padding: 0.45rem 0.65rem; background: var(--cream-deep); border: 1px solid rgba(36, 24, 17, 0.35); border-radius: 6px; color: var(--ink); } #menuMuteBtn { background: var(--bg-deep); color: var(--cream); border: 1px solid var(--gold); border-radius: 5px; padding: 0.32rem 0.65rem; font-size: 0.74rem; font-weight: 700; cursor: pointer; white-space: nowrap; } #menuMuteBtn:hover, #menuMuteBtn:focus-visible { background: var(--bg-mid); } #menuMuteBtn[aria-pressed="true"], #menuMuteBtn.muted { background: var(--crimson); color: var(--cream); border-color: var(--panel-edge); } #menuVolume { flex: 1; min-width: 90px; accent-color: var(--bg-mid); cursor: pointer; }
+#menuOverlay .field-guide { margin-top: 0.65rem; padding: 0.55rem 0.7rem; background: rgba(16, 26, 48, 0.08); border: 1px solid rgba(36, 24, 17, 0.35); border-left: 3px solid var(--bg-mid); border-radius: 6px; color: var(--ink); font-size: 0.72rem; line-height: 1.38; text-align: left; } #menuOverlay .field-guide h3, #menuOverlay .field-guide h4 { margin: 0 0 0.25rem; font-size: 0.78rem; color: var(--bg-deep); letter-spacing: 0.02em; } #menuOverlay .field-guide p, #menuOverlay .field-guide ul { margin: 0.2rem 0 0; padding-left: 1rem; color: var(--subtle); }
