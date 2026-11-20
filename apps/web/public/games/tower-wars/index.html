@@ -28,7 +28,8 @@
           <button id="menuBtn" class="card stat-btn" title="Pause and open menu." type="button">
             <span>Menu</span>
             <strong>Open</strong>
-          </button>
+          </button<button id="muteBtn" class="card stat-btn" title="Toggle audio mute (X)." type="button" aria-pressed="false"><span>Audio</span><strong>On</strong></button>
+          >
         </div>
         <div id="duelStats" class="duel-stats hidden">
           <div class="duel-row"><strong>P1</strong> <span id="duelP1">G0 | L0 | I0 | S0</span></div>
@@ -98,7 +99,7 @@
 
         <section class="help section-card">
           <h2>Hotkeys</h2>
-          <p class="hotkeys"><code>1/2/3/4/5/0/-</code> Build, <code>U</code> Upgrade, <code>F</code> Ability, <code>P</code> Pause, <code>T</code> Speed, <code>A</code> Auto Wave, <code>M</code> Toggle Mode, <code>Tab</code> Switch Duel Player, <code>Space</code> Wave, <code>Arrows</code> Pan, <code>Scroll</code> Pan, <code>Ctrl/Cmd + Wheel</code> Zoom, <code>Right Drag / Alt+Drag</code> Pan</p>
+          <p class="hotkeys"><code>1–7</code> Build, <code>U</code> Upgrade, <code>F</code> Ability, <code>P</code> Pause, <code>T</code> Speed, <code>A</code> Auto Wave, <code>M</code> Toggle Mode, <code>X</code> Mute, <code>Tab</code> Switch Duel Player, <code>Space</code> Wave, <code>Arrows</code> Pan, <code>Wheel</code> Zoom, <code>Shift+Wheel</code> H-Pan, <code>Right Drag / Alt+Drag</code> Pan</p>
         </section>
       </aside>
 
@@ -176,7 +177,7 @@
                 data-icon="MT"
                 data-tip="Fire Mortar: Siege splash with Burn. Branches into Shrapnel or Incendiary fire patch."
               >
-                <strong>Mortar (0)</strong>
+                <strong>Mortar (6)</strong>
                 <small>Fire AoE + Burn</small>
                 <em>155g</em>
               </button>
@@ -186,7 +187,7 @@
                 data-icon="OB"
                 data-tip="Frost Obelisk: Control magic with strong slow branches."
               >
-                <strong>Obelisk (-)</strong>
+                <strong>Obelisk (7)</strong>
                 <small>Frost Control</small>
                 <em>150g</em>
               </button>
@@ -270,7 +271,8 @@
 
     <div id="menuOverlay" class="overlay hidden" aria-hidden="true">
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
-        <h2 id="menuTitle">Menu</h2>
+        <h2 id="menuTitle">Menu</h2><div class="audio-controls"><div class="menu-audio-row"><label for="menuVolume">Audio</label><button id="menuMuteBtn" type="button" aria-pressed="false">On</button><input id="menuVolume" type="range" min="0" max="100" value="100" aria-label="Master volume" /></div></div><div class="field-guide"><h3>Field Guide</h3><p><strong>War Bonds:</strong> Queuing Send troops increases your per-wave income.</p><p><strong>Tower Branches &amp; Abilities:</strong> Press U to upgrade/branch and F to cast abilities.</p><p><strong>Maze Mode:</strong> Keep a valid path open for creeps.</p><p><strong>Duel Mode:</strong> Press Tab to switch between players.</p></div>
+        
         <div class="modal-actions">
           <button id="menuResume" type="button">Resume</button>
           <button id="menuRestart" type="button">Restart</button>
