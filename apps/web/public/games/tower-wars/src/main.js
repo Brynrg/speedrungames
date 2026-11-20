@@ -1,4 +1,4 @@
-import { ensureAudioActive } from "./audio.js";
+import { ensureAudioActive, getAudioVolume, isAudioMuted, setAudioVolume, toggleAudioMute } from "./audio.js";
 import { castSelectedAbility, chooseBranch, cycleSelectedPriority, sellSelectedTower, setSelectedType, tryUpgradeSelectedTower } from "./build.js";
 import { clampCamera, keyState, resizeCanvasToViewport } from "./camera.js";
 import { HOME_URL } from "./constants.js";
@@ -257,7 +257,8 @@ export function bindEvents() {
       setTooltip(defaultTooltip());
     });
   }
-
+const muteBtn = document.getElementById("muteBtn"); const menuMuteBtn = document.getElementById("menuMuteBtn"); const menuVolume = document.getElementById("menuVolume"); function syncAudioUi() { const muted = isAudioMuted(); const volume = getAudioVolume(); if (muteBtn) { muteBtn.setAttribute("aria-pressed", String(muted)); muteBtn.classList.toggle("muted", muted); const label = muteBtn.querySelector("strong"); if (label) { label.textContent = muted ? "Muted" : "On"; } else { muteBtn.textContent = muted ? "Muted" : "On"; } } if (menuMuteBtn) { menuMuteBtn.setAttribute("aria-pressed", String(muted)); menuMuteBtn.classList.toggle("muted", muted); menuMuteBtn.textContent = muted ? "Muted" : "On"; } if (menuVolume) { menuVolume.value = String(volume); } } if (muteBtn) { muteBtn.addEventListener("click", () => { ensureAudioActive(); toggleAudioMute(); syncAudioUi(); }); } if (menuMuteBtn) { menuMuteBtn.addEventListener("click", () => { ensureAudioActive(); toggleAudioMute(); syncAudioUi(); }); } if (menuVolume) { menuVolume.addEventListener("input", () => { ensureAudioActive(); setAudioVolume(Number(menuVolume.value)); syncAudioUi(); }); } syncAudioUi();
+  
   window.addEventListener("keydown", (event) => {
     const key = event.key.toLowerCase();
     if (game.menuOpen) {
@@ -304,14 +305,15 @@ export function bindEvents() {
       setCommandTab("build");
       setSelectedType("venom");
     }
-    if (key === "0") {
+    if (key === "6" || key === "0") {
       setCommandTab("build");
       setSelectedType("mortar");
     }
-    if (key === "-") {
+    if (key === "7" || key === "-") {
       setCommandTab("build");
       setSelectedType("obelisk");
-    }
+    }if (key === "x") { event.preventDefault(); ensureAudioActive(); toggleAudioMute(); syncAudioUi(); }
+    
     if (key === "u") {
       event.preventDefault();
       tryUpgradeSelectedTower();
