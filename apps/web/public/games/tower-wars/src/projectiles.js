@@ -117,7 +117,8 @@ export class Projectile {
 
     this.x += (dx / dist) * travel;
     this.y += (dy / dist) * travel;
-  }    const totalDist = Math.hypot(this.trackX - this.startX, this.trackY - this.startY); this.progress = totalDist > 0.001 ? Math.max(0, Math.min(1, Math.hypot(this.x - this.startX, this.y - this.startY) / totalDist)) : 1;
+    const totalDist = Math.hypot(this.trackX - this.startX, this.trackY - this.startY); this.progress = totalDist > 0.001 ? Math.max(0, Math.min(1, Math.hypot(this.x - this.startX, this.y - this.startY) / totalDist)) : 1;
+  }
 }
 
 export class Effect {
