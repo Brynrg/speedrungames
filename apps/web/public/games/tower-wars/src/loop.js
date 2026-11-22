@@ -176,7 +176,10 @@ export function update(dt) {
   game.autoSaveTimer += dt;
   if (game.autoSaveTimer >= 5) {
     game.autoSaveTimer = 0;
-    saveRun(false);
+    const hasQueuedSends = game.duelMode ? game.players.some((p) => p.sendQueue.length > 0) : game.sendQueue.length > 0;
+    if (game.wave > 0 || game.waveActive || towers.length > 0 || hasQueuedSends) {
+      saveRun(false);
+    }
   }
 }
 
