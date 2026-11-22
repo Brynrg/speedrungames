@@ -1,5 +1,5 @@
 import { ensureAudioActive, getAudioVolume, isAudioMuted, setAudioVolume, toggleAudioMute } from "./audio.js";
-import { castSelectedAbility, chooseBranch, cycleSelectedPriority, sellSelectedTower, setSelectedType, tryUpgradeSelectedTower } from "./build.js";
+import { castSelectedAbility, chooseBranch, cycleSelectedPriority, sellSelectedTower, setSelectedType, tryBuildTower, tryUpgradeSelectedTower } from "./build.js";
 import { clampCamera, keyState, resizeCanvasToViewport } from "./camera.js";
 import { HOME_URL } from "./constants.js";
 import { targetPriorityBtn, autoWaveBtn, branchAButton, branchBButton, canvas, castAbilityBtn, clearSendsBtn, commandTabButtons, duelP1Btn, duelP2Btn, loadRunBtn, menuBtn, menuHomeBtn, menuOverlayEl, menuRestartBtn, menuResumeBtn, miniMapEl, modeClassicBtn, modeDuelBtn, modeMazeBtn, newRunBtn, nextWaveBtn, pauseGameBtn, saveRunBtn, sendAirBtn, sendArmorBtn, sendBreakerBtn, sendMiniBossBtn, sendRunnerBtn, sendSplitterBtn, speedBtn, speedGameBtn, startWaveBtn, towerButtons, upgradeTowerBtn, sellTowerBtn, defeatNewRunBtn, defeatLoadRunBtn, defeatHomeBtn, collapseLeftBtn, collapseRightBtn } from "./dom.js";
@@ -17,8 +17,11 @@ import { defaultTooltip, getButtonTooltip, setCommandTab, setTooltip } from "./t
 import { bindTouchInput } from "./touch.js";
 import { TOWER_DATA } from "./towers.js";
 import { syncUi } from "./ui-sync.js";
+import { isOnlineDuel, isGuestClient, sendGuestAction } from "./net.js";
+import { initNetUi } from "./net-ui.js";
 
 export function bindEvents() {
+  initNetUi({ closeMenu, setGameMode, tryBuildTower, tryUpgradeSelectedTower, chooseBranch, sellSelectedTower, castSelectedAbility, cycleSelectedPriority, queueSend, clearSendQueue, startWave, cycleSpeed, togglePause });
   canvas.addEventListener("mousemove", handleCanvasMove);
   canvas.addEventListener("mousedown", handleCanvasMouseDown);
   canvas.addEventListener("mouseup", handleCanvasMouseUp);
@@ -47,12 +50,14 @@ export function bindEvents() {
     nextWaveBtn.addEventListener("click", () => {
       ensureAudioActive();
       setCommandTab("wave");
+      if (isGuestClient()) { sendGuestAction("startWave"); return; }
       startWave();
     });
   }
   if (speedBtn) {
     speedBtn.addEventListener("click", () => {
       ensureAudioActive();
+      if (isGuestClient()) { sendGuestAction("speed"); return; }
       cycleSpeed();
     });
   }
@@ -66,14 +71,17 @@ export function bindEvents() {
   startWaveBtn.addEventListener("click", () => {
     ensureAudioActive();
     setCommandTab("wave");
+    if (isGuestClient()) { sendGuestAction("startWave"); return; }
     startWave();
   });
   pauseGameBtn.addEventListener("click", () => {
     ensureAudioActive();
+    if (isGuestClient()) { sendGuestAction("pause"); return; }
     togglePause();
   });
   speedGameBtn.addEventListener("click", () => {
     ensureAudioActive();
+    if (isGuestClient()) { sendGuestAction("speed"); return; }
     cycleSpeed();
   });
   autoWaveBtn.addEventListener("click", () => {
@@ -94,74 +102,89 @@ export function bindEvents() {
   });
   duelP1Btn.addEventListener("click", () => {
     ensureAudioActive();
+    if (isOnlineDuel()) return;
     setActivePlayer(0);
   });
   duelP2Btn.addEventListener("click", () => {
     ensureAudioActive();
+    if (isOnlineDuel()) return;
     setActivePlayer(1);
   });
 
   sendRunnerBtn.addEventListener("click", () => {
     ensureAudioActive();
     setCommandTab("send");
+    if (isGuestClient()) { sendGuestAction("send", { key: "runner" }); return; }
     queueSend("runner");
   });
   sendArmorBtn.addEventListener("click", () => {
     ensureAudioActive();
     setCommandTab("send");
+    if (isGuestClient()) { sendGuestAction("send", { key: "armor" }); return; }
     queueSend("armor");
   });
   sendAirBtn.addEventListener("click", () => {
     ensureAudioActive();
     setCommandTab("send");
+    if (isGuestClient()) { sendGuestAction("send", { key: "air" }); return; }
     queueSend("air");
   });
   sendBreakerBtn.addEventListener("click", () => {
     ensureAudioActive();
     setCommandTab("send");
+    if (isGuestClient()) { sendGuestAction("send", { key: "breaker" }); return; }
     queueSend("breaker");
   });
   sendSplitterBtn.addEventListener("click", () => {
     ensureAudioActive();
     setCommandTab("send");
+    if (isGuestClient()) { sendGuestAction("send", { key: "splitter" }); return; }
     queueSend("splitter");
   });
   sendMiniBossBtn.addEventListener("click", () => {
     ensureAudioActive();
     setCommandTab("send");
+    if (isGuestClient()) { sendGuestAction("send", { key: "miniboss" }); return; }
     queueSend("miniboss");
   });
   clearSendsBtn.addEventListener("click", () => {
     ensureAudioActive();
+    if (isGuestClient()) { sendGuestAction("clearSends"); return; }
     clearSendQueue();
   });
 
   upgradeTowerBtn.addEventListener("click", () => {
     ensureAudioActive();
+    if (isGuestClient()) { if (game.selectedTower) sendGuestAction("upgrade", { x: game.selectedTower.x, y: game.selectedTower.y }); return; }
     tryUpgradeSelectedTower();
   });
   castAbilityBtn.addEventListener("click", () => {
     ensureAudioActive();
+    if (isGuestClient()) { if (game.selectedTower) sendGuestAction("ability", { x: game.selectedTower.x, y: game.selectedTower.y }); return; }
     castSelectedAbility();
   });
   if (targetPriorityBtn) {
     targetPriorityBtn.addEventListener("click", () => {
       ensureAudioActive();
+      if (isGuestClient()) { if (game.selectedTower) sendGuestAction("priority", { x: game.selectedTower.x, y: game.selectedTower.y }); return; }
       cycleSelectedPriority();
     });
   }
   if (sellTowerBtn) {
     sellTowerBtn.addEventListener("click", () => {
       ensureAudioActive();
+      if (isGuestClient()) { if (game.selectedTower) sendGuestAction("sell", { x: game.selectedTower.x, y: game.selectedTower.y }); return; }
       sellSelectedTower();
     });
   }
   branchAButton.addEventListener("click", () => {
     ensureAudioActive();
+    if (isGuestClient()) { if (game.selectedTower) sendGuestAction("branch", { x: game.selectedTower.x, y: game.selectedTower.y, branch: "a" }); return; }
     chooseBranch("a");
   });
   branchBButton.addEventListener("click", () => {
     ensureAudioActive();
+    if (isGuestClient()) { if (game.selectedTower) sendGuestAction("branch", { x: game.selectedTower.x, y: game.selectedTower.y, branch: "b" }); return; }
     chooseBranch("b");
   });
 
@@ -316,26 +339,32 @@ const muteBtn = document.getElementById("muteBtn"); const menuMuteBtn = document
     
     if (key === "u") {
       event.preventDefault();
+      if (isGuestClient()) { if (game.selectedTower) sendGuestAction("upgrade", { x: game.selectedTower.x, y: game.selectedTower.y }); return; }
       tryUpgradeSelectedTower();
     }
     if (key === "s") {
       event.preventDefault();
+      if (isGuestClient()) { if (game.selectedTower) sendGuestAction("sell", { x: game.selectedTower.x, y: game.selectedTower.y }); return; }
       sellSelectedTower();
     }
     if (key === "f") {
       event.preventDefault();
+      if (isGuestClient()) { if (game.selectedTower) sendGuestAction("ability", { x: game.selectedTower.x, y: game.selectedTower.y }); return; }
       castSelectedAbility();
     }
     if (key === "g") {
       event.preventDefault();
+      if (isGuestClient()) { if (game.selectedTower) sendGuestAction("priority", { x: game.selectedTower.x, y: game.selectedTower.y }); return; }
       cycleSelectedPriority();
     }
     if (key === "p") {
       event.preventDefault();
+      if (isGuestClient()) { sendGuestAction("pause"); return; }
       togglePause();
     }
     if (key === "t") {
       event.preventDefault();
+      if (isGuestClient()) { sendGuestAction("speed"); return; }
       cycleSpeed();
     }
     if (key === "a") {
@@ -354,10 +383,12 @@ const muteBtn = document.getElementById("muteBtn"); const menuMuteBtn = document
     }
     if (event.code === "Tab" && game.duelMode) {
       event.preventDefault();
+      if (isOnlineDuel()) return;
       setActivePlayer(game.activePlayer === 0 ? 1 : 0);
     }
     if (event.code === "Space") {
       event.preventDefault();
+      if (isGuestClient()) { sendGuestAction("startWave"); return; }
       setCommandTab("wave");
       startWave();
     }
