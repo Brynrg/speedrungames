@@ -206,7 +206,6 @@ export function closeMenu(options = {}) {
 
 export function restartRun() {
   resetRun();
-  saveRun(false);
   status("New run started.");
 }
 
