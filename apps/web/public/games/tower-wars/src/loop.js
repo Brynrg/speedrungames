@@ -15,9 +15,11 @@ import { getIncomePayout } from "./sends.js";
 import { areaEffects, effects, enemies, game, getEnemyDefenderState, getEnemyLane, projectiles, syncActiveToLegacyIfDuel, towers } from "./state.js";
 import { status } from "./status.js";
 import { syncUi } from "./ui-sync.js";
+import { updateVfx } from "./vfx.js";
 import { spawnEnemyFromQueue } from "./waves.js";
 
 export function update(dt) {
+  updateVfx(dt);
   updateStatusBanners(dt);
     updateCameraFromKeys(dt);
   if (isGuestClient()) {
@@ -135,7 +137,10 @@ export function update(dt) {
   for (let i = enemies.length - 1; i >= 0; i -= 1) {
     const enemy = enemies[i];
     enemy.update(dt);
-
+    if (enemy.hitFlash > 0) enemy.hitFlash = Math.max(0, enemy.hitFlash - dt);
+    if (enemy._trailHp == null) enemy._trailHp = enemy.hp;
+    else if (enemy._trailHp > enemy.hp) enemy._trailHp = Math.max(enemy.hp, enemy._trailHp - (enemy.maxHp || 100) * dt * 1.4);
+    else enemy._trailHp = enemy.hp;
     if (enemy.leaked) {
       enemies.splice(i, 1);
       const defender = getEnemyDefenderState(enemy);
