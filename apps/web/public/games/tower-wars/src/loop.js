@@ -15,7 +15,7 @@ import { getIncomePayout } from "./sends.js";
 import { areaEffects, effects, enemies, game, getEnemyDefenderState, getEnemyLane, projectiles, syncActiveToLegacyIfDuel, towers } from "./state.js";
 import { status } from "./status.js";
 import { syncUi } from "./ui-sync.js";
-import { updateVfx } from "./vfx.js";
+import { updateVfx, drawVfxOverlay } from "./vfx.js";
 import { spawnEnemyFromQueue } from "./waves.js";
 
 export function update(dt) {
@@ -229,7 +229,7 @@ export function render() {
   for (const effect of effects) {
     drawEffect(effect);
   }
-
+  drawVfxOverlay(ctx);
   ctx.restore();
 
   drawOverlay();
