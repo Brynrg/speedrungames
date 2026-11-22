@@ -6,6 +6,7 @@ import { SPEED_LEVELS } from "./constants.js";
 import { canvas, ctx } from "./dom.js";
 import { updateCameraFromKeys } from "./input.js";
 import { startWave } from "./lifecycle.js";
+import { isGuestClient, isHostClient, tickHostBroadcast } from "./net.js";
 import { BOARD_BOTTOM } from "./palette.js";
 import { drawAreaEffect, drawBoard, drawEffect, drawEnemy, drawOverlay, drawProjectile, drawTower, updateStatusBanners } from "./render.js";
 import { saveRun } from "./save.js";
@@ -18,8 +19,11 @@ import { spawnEnemyFromQueue } from "./waves.js";
 
 export function update(dt) {
   updateStatusBanners(dt);
-  updateCameraFromKeys(dt);
-
+    updateCameraFromKeys(dt);
+  if (isGuestClient()) {
+    return;
+  }
+  
   if (game.gameOver || game.paused) {
     return;
   }
@@ -181,7 +185,10 @@ export function update(dt) {
       saveRun(false);
     }
   }
-}
+  if (isHostClient()) {
+    tickHostBroadcast(dt, false);
+    }    
+  }
 
 export function render() {
   // Full clear: at contain zoom the board letterboxes, so the canvas edges
