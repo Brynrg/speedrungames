@@ -9,9 +9,9 @@
   "framework": "vanilla",
   "supportsMobile": true,
   "version": "1.4.0",
-  "sourceCommit": "7dfa25b446dd01bc8cf0b1ec6284bb287d01e0a2",
-  "buildHash": "22a1b895b0875fa111038b1d4221637c935d5ba482eea8bd32a868f5e40603ab",
-  "buildTimestamp": "2026-11-22T15:22:21.402Z",
-  "lastUpdated": "2026-11-22T15:22:21.402Z",
+  "sourceCommit": "1364216d2554c39d217f4b58c6f1839168b88ff2",
+  "buildHash": "ea39b6044b196de44915328b07b00bb14e4893d036fa18ec9df6aa2f38aa1649",
+  "buildTimestamp": "2026-11-22T16:08:34.176Z",
+  "lastUpdated": "2026-11-22T16:08:34.176Z",
   "emoji": "🛡️"
 }
