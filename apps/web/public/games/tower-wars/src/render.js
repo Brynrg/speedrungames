@@ -31,8 +31,10 @@ import {
   STROKE_WEIGHT,
   TOWER_DETAIL_ZOOM,
 } from "./palette.js";
-import { game, getActivePlayerState, statusBanners } from "./state.js";
+import { game, getActivePlayerState, statusBanners, towers } from "./state.js";
 import { TOWER_DATA } from "./towers.js";
+import { drawGroundScars } from "./vfx.js";
+import { drawCartographicBackdrop, drawMazeBastionWalls, drawGhostTowerPreview, getSmoothedTowerMotion, drawTowerVisualExtras, drawEnemyVisualExtras, drawSmartHealthBar, drawEnhancedProjectile, drawPulsingSelectionReticle, drawOutlinedFloatingText } from "./art.js";
 
 // Animated spawn/exit portal: pulsing core + rotating dashed ring. Purely
 // visual — phase comes from wall-clock, never the sim. Recolored to the
@@ -152,7 +154,9 @@ export function drawBoard() {
     ctx.lineTo(WIDTH, py);
     ctx.stroke();
   }
-
+  drawCartographicBackdrop(ctx, WIDTH, HEIGHT, COLS, ROWS, TILE);
+  drawGroundScars(ctx);
+  
   // Friendly-territory teal wash near spawn/portal safe zones, painted under
   // the front line so it reads as ambient ground tint.
   if (game.mode === "duel") {
@@ -202,22 +206,16 @@ export function drawBoard() {
     drawPortal(exitPoint.x, exitPoint.y, PORTAL_EXIT, 13);
   }
 
-  if (game.hoverCell) {
+  if (game.hoverCell && !game.gameOver) {
     const { cx, cy } = game.hoverCell;
     if (inBounds(cx, cy)) {
       const center = worldFromCell(cx, cy);
       const canBuild = canBuildOnCell(cx, cy);
       const affordable = getActivePlayerState().gold >= TOWER_DATA[game.selectedType].cost;
 
-      ctx.beginPath();
-      ctx.arc(center.x, center.y, 17, 0, Math.PI * 2);
-      ctx.fillStyle = canBuild ? (affordable ? "rgba(63, 201, 180, 0.38)" : "rgba(225, 165, 33, 0.4)") : "rgba(226, 64, 42, 0.32)";
-      ctx.fill();
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = canBuild ? "rgba(214, 244, 236, 0.85)" : "rgba(240, 140, 120, 0.88)";
-      ctx.stroke();
+     drawGhostTowerPreview(ctx, cx, cy, TILE, game.selectedType, canBuild);
     }
-  }
+  } if (game.mode === "maze") { drawMazeBastionWalls(ctx, towers, TILE); }
 }
 
 export function drawPolygon(cx, cy, radius, sides, rotation = 0) {
@@ -678,9 +676,10 @@ export function drawTower(tower, zoom = TOWER_DETAIL_ZOOM) {
 
   drawTowerBasePad(tower);
 
+    const nowSec = performance.now() * 0.001; const aimAngle = getTowerAimAngle(tower); const { angle, recoilPx } = getSmoothedTowerMotion(tower, aimAngle, nowSec); ctx.save(); if (recoilPx) { ctx.translate(-Math.cos(angle) * recoilPx, -Math.sin(angle) * recoilPx); }
   const drawModel = TOWER_MODEL_DRAWERS[tower.type] || drawArrowTowerModel;
   drawModel(tower, detail);
-
+  ctx.restore(); drawTowerVisualExtras(ctx, tower, nowSec);
   if (detail) {
     drawTypeCode(tower);
   }
@@ -704,7 +703,7 @@ export function drawTower(tower, zoom = TOWER_DETAIL_ZOOM) {
     ctx.stroke();
   }
 
-  if (game.selectedTower === tower) {
+  if (game.selectedTower === tower) { drawPulsingSelectionReticle(ctx, tower, nowSec);
     ctx.beginPath();
     ctx.arc(tower.x, tower.y, tower.effectiveRange, 0, Math.PI * 2);
     ctx.fillStyle = "rgba(225, 197, 110, 0.08)";
@@ -848,7 +847,7 @@ export function drawEnemy(enemy, zoom = 0) {
   ctx.globalAlpha = 1;
 
   drawEnemyFamilyAccent(enemy);
-
+  drawEnemyVisualExtras(ctx, enemy, performance.now() * 0.001);
   if (enemy.isBoss) {
     ctx.beginPath();
     ctx.arc(enemy.x, enemy.y, r + 6, 0, Math.PI * 2);
@@ -874,12 +873,7 @@ export function drawEnemy(enemy, zoom = 0) {
   }
 
   const barW = enemy.isBoss ? 46 : 30;
-  const hpRatio = Math.max(0, enemy.hp / enemy.maxHp);
-  ctx.fillStyle = "rgba(24, 17, 12, 0.88)";
-  ctx.fillRect(enemy.x - barW / 2, enemy.y - enemy.radius - 14, barW, 5.2);
-
-  ctx.fillStyle = enemy.isBoss ? GOLD : enemy.flying ? "#5fd0da" : "#8fc31f";
-  ctx.fillRect(enemy.x - barW / 2 + 0.8, enemy.y - enemy.radius - 13.1, (barW - 1.6) * hpRatio, 3.4);
+    drawSmartHealthBar(ctx, enemy);
 
   const statusBadges = [];
   if (enemy.slowTimer > 0 || enemy.auraSlowFactor < 0.999) {
@@ -919,14 +913,7 @@ export function drawEnemy(enemy, zoom = 0) {
 }
 
 export function drawProjectile(projectile) {
-  ctx.fillStyle = PROJECTILE_COLORS[projectile.damageType] || PROJECTILE_COLORS.siege;
-
-  ctx.beginPath();
-  ctx.arc(projectile.x, projectile.y, projectile.radius, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = INK;
-  ctx.lineWidth = 0.9;
-  ctx.stroke();
+  drawEnhancedProjectile(ctx, projectile);
 }
 
 export function drawAreaEffect(effect) {
@@ -962,10 +949,7 @@ export function drawEffect(effect) {
   }
 
   if (effect.kind === "text") {
-    ctx.fillStyle = effect.meta.color || GOLD_BRIGHT;
-    ctx.font = "700 13px Rajdhani, sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText(effect.meta.text || "", effect.x, effect.y);
+    drawOutlinedFloatingText(ctx, effect.meta.text || "", effect.x, effect.y, effect.meta.color || GOLD_BRIGHT, Math.max(0, 1 - t), t);
     return;
   }
 
