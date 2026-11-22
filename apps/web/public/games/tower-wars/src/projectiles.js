@@ -1,6 +1,7 @@
 import { dealDamageToEnemy } from "./combat.js";
 import { update } from "./loop.js";
 import { areaEffects, effects, enemies, game } from "./state.js";
+import { spawnBurst, spawnShockwave, spawnGroundScar, triggerShake } from "./vfx.js";
 
 export class Projectile {
   constructor(config) {
@@ -19,6 +20,9 @@ export class Projectile {
     this.burnDps = config.burnDps || 0;
     this.burnDuration = config.burnDuration || 0;
     this.spawnFirePatch = !!config.spawnFirePatch;
+     this.startX = this.x;
+     this.startY = this.y;
+     this.angle = 0; this.trail = []; this.progress = 0; this.arcHeight = (this.damageType === "siege" ? 26 : 0);
     this.freezeOnHit = config.freezeOnHit || null;
 
     this.trackX = config.target.x;
@@ -28,15 +32,16 @@ export class Projectile {
 
   impact(enemy, amount) {
     const result = dealDamageToEnemy(enemy, amount, this.damageType, this.sourceTower, { allowZero: true });
-
+    enemy.hitFlash = 0.085; spawnBurst(enemy.x, enemy.y, this.damageType === "magic" ? "#7fe0ea" : this.damageType === "spell" ? "#c478ff" : "#ffe9a0", 4, 52, 2.0, 0.22);
+    
     if (this.canSlow && result.damageDealt > 0 && this.slowFactor) {
-      enemy.applySlow(this.slowFactor, this.slowDuration);
+      enemy.applySlow(this.slowFactor, this.slowDuration); if (Math.random() < 0.35) spawnGroundScar(enemy.x, enemy.y, 13, "frost", 3.5);
     }
     if (this.burnDps > 0 && this.burnDuration > 0) {
       enemy.applyBurn(this.burnDps, this.burnDuration);
     }
     if (this.freezeOnHit && result.damageDealt > 0) {
-      enemy.applySlow(this.freezeOnHit.factor, this.freezeOnHit.duration);
+      enemy.applySlow(this.freezeOnHit.factor, this.freezeOnHit.duration); if (Math.random() < 0.35) spawnGroundScar(enemy.x, enemy.y, 13, "frost", 3.5);
       effects.push(new Effect(enemy.x, enemy.y, "ring", { radius: enemy.radius + 7, color: "rgba(182, 230, 255, 0.48)" }));
     }
 
@@ -47,7 +52,8 @@ export class Projectile {
     const splash = this.splashRadius;
     effects.push(new Effect(this.x, this.y, "explosion", { radius: splash }));
     game.shake = Math.max(game.shake, 2.6);
-
+    spawnShockwave(this.x, this.y, this.splashRadius || 42, "#e2402a", 0.34); spawnBurst(this.x, this.y, "#ff9f43", 12, 95, 2.8, 0.42); spawnGroundScar(this.x, this.y, Math.min(24, (this.splashRadius || 36) * 0.45), "scorch", 6.5); triggerShake(2.6);
+    
     for (const enemy of [...enemies]) {
       const d = Math.hypot(enemy.x - this.x, enemy.y - this.y);
       if (d > splash) {
@@ -93,12 +99,12 @@ export class Projectile {
       this.dead = true;
       return;
     }
-
+    this.trail.push({ x: this.x, y: this.y }); if (this.trail.length > 5) this.trail.shift(); this.angle = Math.atan2(dy, dx);
     const travel = this.speed * dt;
     if (travel >= dist) {
       this.x = this.trackX;
       this.y = this.trackY;
-
+      this.progress = 1;
       if (this.splashRadius > 0) {
         this.explode();
       } else if (this.target && enemies.includes(this.target)) {
@@ -111,7 +117,7 @@ export class Projectile {
 
     this.x += (dx / dist) * travel;
     this.y += (dy / dist) * travel;
-  }
+  }    const totalDist = Math.hypot(this.trackX - this.startX, this.trackY - this.startY); this.progress = totalDist > 0.001 ? Math.max(0, Math.min(1, Math.hypot(this.x - this.startX, this.y - this.startY) / totalDist)) : 1;
 }
 
 export class Effect {
