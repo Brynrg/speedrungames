@@ -688,8 +688,8 @@ export function drawTower(tower, zoom = TOWER_DETAIL_ZOOM) {
   drawTowerRankAndBranch(tower);
 
   if (game.duelMode) {
-    ctx.strokeStyle = tower.owner === 0 ? "rgba(63, 201, 180, 0.6)" : "rgba(124, 168, 220, 0.6)";
-    ctx.lineWidth = 1.4;
+    ctx.strokeStyle = tower.owner === 0 ? "rgba(244, 198, 72, 0.92)" : "rgba(196, 120, 255, 0.92)";
+    ctx.lineWidth = 2.6;
     ctx.beginPath();
     ctx.arc(tower.x, tower.y, 19, 0, Math.PI * 2);
     ctx.stroke();
@@ -1024,13 +1024,14 @@ export function drawOverlay() {
       const banner = statusBanners[i];
       const alpha = clamp(banner.life / 3.2, 0, 1);
       const y = 44 + i * 22;
+      const boxW = clamp(ctx.measureText(banner.text).width + 28, 320, viewW - 24);
       ctx.fillStyle = `rgba(232, 220, 184, ${0.92 * alpha})`;
-      ctx.fillRect(viewW / 2 - 220, y - 13, 440, 18);
+      ctx.fillRect(viewW / 2 - boxW / 2, y - 13, boxW, 18);
       ctx.strokeStyle = `rgba(36, 24, 17, ${0.7 * alpha})`;
       ctx.lineWidth = 1;
-      ctx.strokeRect(viewW / 2 - 220, y - 13, 440, 18);
+      ctx.strokeRect(viewW / 2 - boxW / 2, y - 13, boxW, 18);
       ctx.fillStyle = `rgba(36, 24, 17, ${0.96 * alpha})`;
-      ctx.fillText(banner.text, viewW / 2, y);
+      ctx.fillText(banner.text, viewW / 2, y, boxW - 20);
     }
   }
 
