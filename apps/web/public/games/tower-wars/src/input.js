@@ -5,6 +5,7 @@ import { CAMERA_KEY_PAN_SPEED } from "./constants.js";
 import { describeEnemy, describeTower } from "./describe.js";
 import { canvas } from "./dom.js";
 import { clamp, getCellAt, inBounds } from "./grid.js";
+import { isGuestClient, sendGuestAction } from "./net.js";
 import { getEnemyAtPoint, getTowerAtPoint } from "./picking.js";
 import { game } from "./state.js";
 import { status } from "./status.js";
@@ -46,7 +47,11 @@ export function handleBoardClick(event) {
   if (!inBounds(cx, cy)) {
     return;
   }
-
+  if (isGuestClient()) {
+    sendGuestAction("build", { cx, cy, type: game.selectedType });
+    return;
+  }
+  
   tryBuildTower(cx, cy);
 }
 
