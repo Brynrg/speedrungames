@@ -205,6 +205,7 @@
               <button id="modeClassic" data-icon="CL">Mode: Classic</button>
               <button id="modeMaze" data-icon="MZ">Mode: Maze</button>
               <button id="modeDuel" data-icon="DU">Mode: Duel</button>
+              <button id="onlineDuelBtn" data-icon="P2" type="button" title="Play 2-machine Online Duel via zero-dependency WebRTC P2P.">Online Duel (P2P)</button>
             </div>
             <p id="wavePreview">Next: -</p>
             <p id="waveStatus" aria-live="polite">Build towers and send wave 1.</p>
@@ -276,9 +277,36 @@
           <button id="menuResume" type="button">Resume</button>
           <button id="menuRestart" type="button">Restart</button>
           <button id="menuHome" type="button">Return Home</button>
+          <button id="menuOnlineDuel" type="button">Online Duel (P2P)</button>
         </div>
       </div>
     </div>
+    <div id="netOverlay" class="overlay hidden" aria-hidden="true">
+      <div class="modal net-modal" role="dialog" aria-modal="true" aria-labelledby="netTitle">
+<h2 id="netTitle">Online Duel (P2P)</h2>
+<p class="net-subtitle">Zero-cost direct browser-to-browser match. Host runs P1 (top lane); Guest runs P2 (bottom lane).</p>
+<div class="net-status-bar"><span id="netStatusText">Offline</span><span id="netPingText"></span><button id="netDisconnectBtn" type="button" class="hidden">Disconnect</button></div>
+<div class="net-cols">
+<div class="net-box">
+<h3>Host Match (P1)</h3>
+<button id="netHostBtn" type="button">1. Create Invite Code</button>
+<textarea id="netOfferOut" class="net-textarea" readonly placeholder="Invite code will appear here..."></textarea>
+<button id="netCopyOffer" type="button">Copy Invite Code</button>
+<textarea id="netAnswerIn" class="net-textarea" placeholder="Paste guest answer code here..."></textarea>
+<button id="netAcceptAnswerBtn" type="button">3. Connect Match</button>
+</div>
+<div class="net-box">
+<h3>Join Match (P2)</h3>
+<textarea id="netOfferIn" class="net-textarea" placeholder="Paste host invite code here..."></textarea>
+<button id="netJoinBtn" type="button">2. Generate Answer Code</button>
+<textarea id="netAnswerOut" class="net-textarea" readonly placeholder="Answer code will appear here..."></textarea>
+<button id="netCopyAnswer" type="button">Copy Answer Code</button>
+</div>
+</div>
+<div class="modal-actions"><button id="netCloseBtn" type="button">Close</button></div>
+</div>
+    </div>
+    
 
     <div id="defeatOverlay" class="overlay hidden" aria-hidden="true">
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="defeatTitle">
