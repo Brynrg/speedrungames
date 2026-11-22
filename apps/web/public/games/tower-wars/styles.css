@@ -131,6 +131,7 @@ canvas {
 .utility-panel {
   left: 0.65rem;
   width: min(286px, 24vw);
+  padding-bottom: 1rem;
 }
 
 .panel {
@@ -168,7 +169,7 @@ canvas {
 }
 
 .hud-bar .stats {
-  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-template-columns: repeat(9, minmax(0, 1fr));
 }
 
 .duel-stats {
@@ -422,6 +423,13 @@ canvas {
   appearance: none;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+}
+
+#modeClassic,
+#modeMaze,
+#modeDuel {
+  white-space: nowrap;
+  font-size: 0.68rem;
 }
 
 .panel button[data-icon] {
@@ -750,7 +758,7 @@ code {
 
 @media (max-width: 1320px) {
   .hud-bar .stats {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
   .utility-panel,
