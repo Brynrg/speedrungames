@@ -1,16 +1,16 @@
 [
   {
     "slug": "cinderborn",
-    "title": "Cinderborn: The Conclave Trials",
-    "description": "Turn-based hex strategy: a lowcaste imposter fights through a rigged trial of noble houses",
+    "title": "Cinderborn: The Ashen Causeway",
+    "description": "A compact hex tactics trial: bargain for a seal, rescue two prisoners, or burn your cover and fight through the causeway.",
     "repo": "Brynrg/cinderborn",
     "playUrl": "/games/cinderborn/",
     "category": "strategy",
     "status": "live",
     "framework": "vite",
     "supportsMobile": false,
-    "version": "0.3.0",
-    "lastUpdated": "2026-07-19T03:10:29.500Z",
+    "version": "0.4.0-trial.1",
+    "lastUpdated": "2026-11-26T22:46:26.026Z",
     "emoji": "🔥"
   },
   {
