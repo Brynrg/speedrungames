@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#1c3434">
 <title>Cinderborn · The Ashen Causeway</title>
-  <script type="module" crossorigin src="./assets/trial-Bi4lOXYD.js"></script>
+  <script type="module" crossorigin src="./assets/trial-BKQDvmre.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/modulepreload-polyfill-B5Qt9EMX.js">
-  <link rel="stylesheet" crossorigin href="./assets/trial-D0AfDEKj.css">
+  <link rel="stylesheet" crossorigin href="./assets/trial-BVFKEVPC.css">
 </head>
 <body>
 <div id="game-shell">
@@ -20,19 +20,20 @@
     <div class="round"><span>ROUND</span><b id="round-number">01</b><small id="round-limit">/ 12</small></div>
     <div class="objective"><span class="objective-icon">◇</span><span id="seal-status">Secure the trial seal</span></div>
     <div class="objective"><span class="objective-icon">⛓</span><span id="rescue-status">0 / 2 prisoners free</span></div>
-    <div class="inspection"><span class="pulse-dot"></span><span id="inspection-status">Inspection in 5 rounds</span></div>
+    <div class="inspection"><span class="pulse-dot"></span><span id="inspection-status">Inspection · round 4</span></div>
   </section>
   <main class="game-main">
     <section class="battlefield" aria-label="Tactical battlefield">
-      <div class="board-toolbar"><span id="tile-hint">Read the field.</span><div><button id="undo" disabled>Undo move · Z</button><button id="enemy-toggle" aria-pressed="true">Intentions on</button></div></div>
-      <div id="map-frame"><canvas id="board" aria-hidden="true"></canvas><div id="hex-controls" role="group" aria-label="Hex battlefield. Arrow keys move focus; Enter selects a hex."></div></div>
-      <div class="band-heading"><span>YOUR BAND</span><span id="ready-count">4 ready</span><span class="keyboard-hint">1–6 select · E end round · F fullscreen</span></div>
+      <section id="mission" aria-label="Next objective"></section>
+      <div class="board-toolbar"><span id="tile-hint">Read the field.</span><div><button class="narrow-link" data-action="commands">Commands ↓</button><button id="undo" disabled>Undo move · Z</button><button id="enemy-toggle" aria-pressed="true">Intentions on</button></div></div>
+      <div id="map-frame"><canvas id="board" aria-hidden="true"></canvas><div id="combat-feedback" aria-hidden="true"></div><div id="hex-controls" role="group" aria-label="Hex battlefield. Arrow keys move focus; Enter selects a hex."></div></div>
+      <div class="band-heading"><span>YOUR BAND</span><span id="ready-count">4 ready</span><button id="next-ready" data-action="next">Next ready · N</button><span class="keyboard-hint">1–6 select · E end round · F fullscreen</span></div>
       <div id="roster" aria-label="Your band"></div>
     </section>
     <aside class="command-panel">
       <section id="cover-meter"><div><span id="cover-label">COVER INTACT</span><b id="cover-value">0 / 50</b></div><div class="cover-track"><i id="cover-fill"></i></div><p>At 50, the disguise breaks.<span>Embers <b id="embers">4</b></span></p></section>
-      <div class="command-scroll"><section id="inspector" aria-label="Unit inspector"></section><div id="actions" aria-label="Available actions"></div><details id="history"><summary>Field journal</summary><div id="turn-log"></div></details></div>
-      <div class="round-actions"><p id="notice" role="status" aria-live="polite"></p><button id="end-round" class="primary">End round <kbd>E</kbd></button><span id="save-status">Saved locally</span></div>
+      <div class="command-scroll"><button class="narrow-link" data-action="map">↑ Back to map</button><section id="inspector" aria-label="Unit inspector"></section><div id="actions" aria-label="Available actions"></div><details id="history"><summary>Field journal</summary><div id="turn-log"></div></details></div>
+      <div class="round-actions"><p id="notice" role="status" aria-live="polite"></p><span id="remaining-actions"></span><button id="end-round" class="primary">End round <kbd>E</kbd></button><span id="save-status">Saved locally</span></div>
     </aside>
   </main>
 </div>
