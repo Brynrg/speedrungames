@@ -1,17 +1,17 @@
 {
   "slug": "cinderborn",
   "title": "Cinderborn: A Borrowed Name",
-  "description": "Explore the Ashen March as Ash in a solo action RPG. Fight in real time, complete quests, find equipment, and grow your forbidden flame.",
+  "description": "A four-chapter solo action RPG. Explore four regions, uncover the five houses’ stolen history, forge alliances and choose the fate of the Conclave.",
   "repo": "Brynrg/cinderborn",
   "playUrl": "/games/cinderborn/",
   "category": "rpg",
   "status": "live",
   "framework": "vite",
   "supportsMobile": false,
-  "version": "0.5.1-rpg.2",
-  "sourceCommit": "2f750b237441409e1299a05fcd75f750c6fcdab8",
-  "buildHash": "d7983b965e1f18c73d60a893f01769d32f484daa2370753cfc153265dba7ccac",
-  "buildTimestamp": "2026-11-27T03:28:45.044Z",
-  "lastUpdated": "2026-11-27T03:28:45.044Z",
+  "version": "0.6.0-campaign.1",
+  "sourceCommit": "95741495ca01b010d59669e3dcb251a031890460",
+  "buildHash": "0e9a9fe1e4559e1ab128f60e445e0cecb1a160513ff723e26b756ec640a78559",
+  "buildTimestamp": "2026-11-27T03:53:16.546Z",
+  "lastUpdated": "2026-11-27T03:53:16.546Z",
   "emoji": "🔥"
 }
