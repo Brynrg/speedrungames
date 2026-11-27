@@ -1,42 +1,15 @@
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#1c3434">
-<title>Cinderborn · The Ashen Causeway</title>
-  <script type="module" crossorigin src="./assets/trial-CzpyOSF7.js"></script>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#152e2d"><title>Cinderborn · A Borrowed Name</title>  <script type="module" crossorigin src="./assets/rpg-jDIJkvWQ.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/modulepreload-polyfill-B5Qt9EMX.js">
-  <link rel="stylesheet" crossorigin href="./assets/trial-DI6iOwPB.css">
+  <link rel="stylesheet" crossorigin href="./assets/rpg-B2FNUTat.css">
 </head>
-<body>
-<div id="game-shell">
-  <header class="topbar">
-    <a class="brand" href="./"><span class="brand-mark">✦</span><span>CINDERBORN<small>THE CONCLAVE TRIALS</small></span></a>
-    <div class="chapter"><span>TRIAL I</span><h1>The Ashen Causeway</h1></div>
-    <nav aria-label="Game controls"><button id="help-button">How to play</button><button id="sound" aria-pressed="false">Sound off</button><button id="menu-button" aria-label="Open trial menu">Menu</button></nav>
-  </header>
-  <section class="objective-bar" aria-label="Trial objectives">
-    <div class="round"><span>ROUND</span><b id="round-number">01</b><small id="round-limit">/ 12</small></div>
-    <div class="objective"><span class="objective-icon">◇</span><span id="seal-status">Secure the trial seal</span></div>
-    <div class="objective"><span class="objective-icon">⛓</span><span id="rescue-status">0 / 2 prisoners free</span></div>
-    <div class="inspection"><span class="pulse-dot"></span><span id="inspection-status">Inspection · round 4</span></div>
-  </section>
-  <main class="game-main">
-    <section class="battlefield" aria-label="Tactical battlefield">
-      <section id="mission" aria-label="Next objective"></section>
-      <div class="board-toolbar"><span id="tile-hint">Read the field.</span><div><button class="narrow-link" data-action="commands">Commands ↓</button><button id="undo" disabled>Undo move · Z</button><button id="enemy-toggle" aria-pressed="true">Intentions on</button></div></div>
-      <div id="map-frame"><aside id="enemy-queue" aria-label="Enemy action order"></aside><canvas id="board" aria-hidden="true"></canvas><div id="combat-feedback" aria-hidden="true"></div><div id="hex-controls" role="group" aria-label="Hex battlefield. Arrow keys move focus; Enter selects a hex."></div></div>
-      <div class="band-heading"><span>YOUR BAND</span><span id="ready-count">4 ready</span><button id="next-ready" data-action="next">Next ready · N</button><span class="keyboard-hint">1–6 select · E end round · F fullscreen</span></div>
-      <div id="roster" aria-label="Your band"></div>
-    </section>
-    <aside class="command-panel">
-      <section id="cover-meter"><div><span id="cover-label">COVER INTACT</span><b id="cover-value">0 / 50</b></div><div class="cover-track"><i id="cover-fill"></i></div><p>At 50, the disguise breaks.<span>Embers <b id="embers">4</b></span></p></section>
-      <div class="command-scroll"><button class="narrow-link" data-action="map">↑ Back to map</button><section id="inspector" aria-label="Unit inspector"></section><div id="actions" aria-label="Available actions"></div><details id="history"><summary>Field journal</summary><div id="turn-log"></div></details></div>
-      <div class="round-actions"><p id="notice" role="status" aria-live="polite"></p><span id="remaining-actions"></span><button id="end-round" class="primary">End round <kbd>E</kbd></button><span id="save-status">Saved locally</span></div>
-    </aside>
-  </main>
-</div>
-<div id="modal" class="modal" hidden><div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-heading"><div id="modal-content"></div></div></div>
-</body>
-</html>
+<body><main id="rpg" data-game-root>
+<canvas id="world" tabindex="0" aria-label="Cinderborn world. Move with WASD or arrow keys. Click ground to move, enemies to engage. E interacts."></canvas>
+<header id="top"><div class="brand">✦ <span>CINDERBORN<small>A BORROWED NAME</small></span></div><nav aria-label="Game menus"><button data-ui="journal">Journal <kbd>J</kbd></button><button data-ui="character">Character <kbd>C</kbd><i id="point-dot" hidden>!</i></button><button data-ui="map">World <kbd>M</kbd></button><button data-ui="pause" aria-label="Pause game">Ⅱ</button></nav></header>
+<section id="hero" class="glass" aria-label="Ash status"><div class="hero-line"><div class="hero-sigil">✦</div><div><b>Ash <span id="level">1</span></b><small id="class-name">Cinder · exile</small></div><span id="coins">0 crowns</span></div><div class="meter health"><i id="hp-fill"></i><span id="hp-text"></span></div><div class="meter focus"><i id="focus-fill"></i><span id="focus-text"></span></div><div class="xp-meter"><i id="xp-fill"></i></div></section>
+<div id="target" class="glass" hidden></div>
+<aside id="quest-panel"><div class="location"><span>THE ASHEN MARCH</span><b id="region">Emberrest Camp</b><button data-ui="map" aria-label="Open world map">⌖</button></div><section class="glass quest"><span class="eyebrow">STORY QUEST</span><h2 id="quest-title"></h2><p id="quest-text"></p><button id="track" data-ui="track">Track on ground <span>◇</span></button><div id="side-quests"></div></section><div id="heat" hidden></div></aside>
+<div id="notifications" role="status" aria-live="polite"></div>
+<footer><div id="interaction"><button data-ui="interact" id="interact-button" hidden></button><span id="travel-hint">WASD to move · click an enemy to engage · E to talk</span></div><div id="hotbar" class="glass" aria-label="Abilities"></div><div class="bottom-line"><span>Space: steel · Tab: target · 4: dodge · F: fullscreen</span><span id="save-status">Saved locally</span></div></footer>
+<div id="overlay" hidden><section id="panel" role="dialog" aria-modal="true" aria-labelledby="panel-title"></section></div>
+</main></body></html>
