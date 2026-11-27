@@ -1,14 +1,15 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#152e2d"><title>Cinderborn · A Borrowed Name</title>  <script type="module" crossorigin src="./assets/rpg-BPsmZGKZ.js"></script>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#152e2d"><title>Cinderborn · A Borrowed Name</title>  <script type="module" crossorigin src="./assets/rpg-Bf2lgV1h.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/modulepreload-polyfill-B5Qt9EMX.js">
-  <link rel="stylesheet" crossorigin href="./assets/rpg-B2FNUTat.css">
+  <link rel="stylesheet" crossorigin href="./assets/rpg-BQ1fiABG.css">
 </head>
 <body><main id="rpg" data-game-root>
 <canvas id="world" tabindex="0" aria-label="Cinderborn world. Move with WASD or arrow keys. Click ground to move, enemies to engage. E interacts."></canvas>
 <header id="top"><div class="brand">✦ <span>CINDERBORN<small>A BORROWED NAME</small></span></div><nav aria-label="Game menus"><button data-ui="journal">Journal <kbd>J</kbd></button><button data-ui="character">Character <kbd>C</kbd><i id="point-dot" hidden>!</i></button><button data-ui="map">World <kbd>M</kbd></button><button data-ui="pause" aria-label="Pause game">Ⅱ</button></nav></header>
 <section id="hero" class="glass" aria-label="Ash status"><div class="hero-line"><div class="hero-sigil">✦</div><div><b>Ash <span id="level">1</span></b><small id="class-name">Cinder · exile</small></div><span id="coins">0 crowns</span></div><div class="meter health"><i id="hp-fill"></i><span id="hp-text"></span></div><div class="meter focus"><i id="focus-fill"></i><span id="focus-text"></span></div><div class="xp-meter"><i id="xp-fill"></i></div></section>
 <div id="target" class="glass" hidden></div>
-<aside id="quest-panel"><div class="location"><span>THE ASHEN MARCH</span><b id="region">Emberrest Camp</b><button data-ui="map" aria-label="Open world map">⌖</button></div><section class="glass quest"><span class="eyebrow">STORY QUEST</span><h2 id="quest-title"></h2><p id="quest-text"></p><button id="track" data-ui="track">Track on ground <span>◇</span></button><div id="side-quests"></div></section><div id="heat" hidden></div></aside>
+<aside id="quest-panel"><div class="location"><span>THE ASHEN MARCH</span><b id="region">Emberrest Camp</b><button data-ui="map" aria-label="Open world map">⌖</button></div><section class="glass quest"><span class="eyebrow">TRACKED QUEST</span><h2 id="quest-title"></h2><p id="quest-text"></p><button id="track" data-ui="track">Track on ground <span>◇</span></button><div id="side-quests"></div></section><div id="heat" hidden></div></aside>
+<div id="combat-cue" class="glass" hidden></div>
 <div id="notifications" role="status" aria-live="polite"></div>
 <footer><div id="interaction"><button data-ui="interact" id="interact-button" hidden></button><span id="travel-hint">WASD to move · click an enemy to engage · E to talk</span></div><div id="hotbar" class="glass" aria-label="Abilities"></div><div class="bottom-line"><span>Space: steel · Tab: target · 4: dodge · F: fullscreen</span><span id="save-status">Saved locally</span></div></footer>
 <div id="overlay" hidden><section id="panel" role="dialog" aria-modal="true" aria-labelledby="panel-title"></section></div>
