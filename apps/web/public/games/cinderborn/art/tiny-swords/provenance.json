@@ -1,0 +1,389 @@
+{
+  "pack": "Tiny Swords (Update 010), TS_old version_CC0 Licensed",
+  "creator": "Pixel Frog",
+  "source": "https://pixelfrog-assets.itch.io/tiny-swords",
+  "uploadId": "9428013",
+  "license": "CC0-1.0",
+  "licenseEvidence": "Official download page explicitly labels this upload TS_old version_CC0 Licensed. Current Free Pack and Enemy Pack are separate downloads and were not used.",
+  "archiveSha256": "e4d79bd4514bad153cfa1cc8f4c8d8bf10ed39bf69bd98b83bdc46c03d14bb9c",
+  "files": [
+    {
+      "file": "warrior-blue.png",
+      "original": "Factions/Knights/Troops/Warrior/Blue/Warrior_Blue.png",
+      "width": 1152,
+      "height": 1536,
+      "sha256": "593a40da14b136374d55044fd3ba3ac11e621d645be9c75a2a6032741ab24c80"
+    },
+    {
+      "file": "warrior-red.png",
+      "original": "Factions/Knights/Troops/Warrior/Red/Warrior_Red.png",
+      "width": 1152,
+      "height": 1536,
+      "sha256": "a1f67ed61134a20df6211e1e9fff1c33e9964512fddf4ccdb3c1673752b9bc14"
+    },
+    {
+      "file": "warrior-purple.png",
+      "original": "Factions/Knights/Troops/Warrior/Purple/Warrior_Purple.png",
+      "width": 1152,
+      "height": 1536,
+      "sha256": "779f5fa986fe15736d5b1deec5958a07340644a163ab208714f5a43792fd662d"
+    },
+    {
+      "file": "warrior-yellow.png",
+      "original": "Factions/Knights/Troops/Warrior/Yellow/Warrior_Yellow.png",
+      "width": 1152,
+      "height": 1536,
+      "sha256": "85902914cb921cc7c6eb728eb9c1d34a710ce8e4a66ae8d537e5fcc64ca54e64"
+    },
+    {
+      "file": "pawn-blue.png",
+      "original": "Factions/Knights/Troops/Pawn/Blue/Pawn_Blue.png",
+      "width": 1152,
+      "height": 1152,
+      "sha256": "38c47fc4766fa1fad73c188e5c6a1f2d2257aebc9dfdd5b37f1c8dad913e8cfe"
+    },
+    {
+      "file": "pawn-red.png",
+      "original": "Factions/Knights/Troops/Pawn/Red/Pawn_Red.png",
+      "width": 1152,
+      "height": 1152,
+      "sha256": "0d207ad590425917b71d3dc538b88d6765e76c90aa24ed5ff80c0ad842738705"
+    },
+    {
+      "file": "pawn-purple.png",
+      "original": "Factions/Knights/Troops/Pawn/Purple/Pawn_Purple.png",
+      "width": 1152,
+      "height": 1152,
+      "sha256": "c88b5db861d94d342b0420b8cefacb4865e49ae104af4fb934f46556d9274c12"
+    },
+    {
+      "file": "pawn-yellow.png",
+      "original": "Factions/Knights/Troops/Pawn/Yellow/Pawn_Yellow.png",
+      "width": 1152,
+      "height": 1152,
+      "sha256": "22cbf2126c68f61a3a359d0d19d45f8fdaa24700d2b9492c9b17f03977405d1f"
+    },
+    {
+      "file": "archer-blue.png",
+      "original": "Factions/Knights/Troops/Archer/Blue/Archer_Blue.png",
+      "width": 1536,
+      "height": 1344,
+      "sha256": "0a2e1efff6d653d32777b99ca01f9018fbf27080f2aff645f0fafde175e8b7ec"
+    },
+    {
+      "file": "archer-red.png",
+      "original": "Factions/Knights/Troops/Archer/Red/Archer_Red.png",
+      "width": 1536,
+      "height": 1344,
+      "sha256": "daa79d0f957dea7355b6ff5c6210e833779bd7ef40c32c1943f03b9aaa12a26d"
+    },
+    {
+      "file": "archer-purple.png",
+      "original": "Factions/Knights/Troops/Archer/Purple/Archer_Purlple.png",
+      "width": 1536,
+      "height": 1344,
+      "sha256": "f956a4c6d834b21a74e04a9f0a8d0e432f6e64441836f97cfca498f10854c3f7"
+    },
+    {
+      "file": "archer-yellow.png",
+      "original": "Factions/Knights/Troops/Archer/Yellow/Archer_Yellow.png",
+      "width": 1536,
+      "height": 1344,
+      "sha256": "104159e53f3ee28903b3b0b91ea31229f101fbe6842a28a0fdd6eaa2e5afcc4f"
+    },
+    {
+      "file": "house-blue.png",
+      "original": "Factions/Knights/Buildings/House/House_Blue.png",
+      "width": 128,
+      "height": 192,
+      "sha256": "9020e35116ffde6d22a8c854d7117d94e99e19bd582c3c3855ece449d7d2af6d"
+    },
+    {
+      "file": "house-red.png",
+      "original": "Factions/Knights/Buildings/House/House_Red.png",
+      "width": 128,
+      "height": 192,
+      "sha256": "27f027830c1b5499d99075e87c1ea5f5c26bf49ecfd6ada758ceb5da2d7b058e"
+    },
+    {
+      "file": "house-purple.png",
+      "original": "Factions/Knights/Buildings/House/House_Purple.png",
+      "width": 128,
+      "height": 192,
+      "sha256": "73fa8a851020814151b6d037cb0673adfcc0b1a515af74c78f79a8bd8e3ecb64"
+    },
+    {
+      "file": "house-yellow.png",
+      "original": "Factions/Knights/Buildings/House/House_Yellow.png",
+      "width": 128,
+      "height": 192,
+      "sha256": "2aa6fd3259755fdc2cb2cf856920dab098aa6d8493e9277b11685f4689aec4b8"
+    },
+    {
+      "file": "tower-blue.png",
+      "original": "Factions/Knights/Buildings/Tower/Tower_Blue.png",
+      "width": 128,
+      "height": 256,
+      "sha256": "2d39450c366fc1ebc0e5a290a860dcf21ebd7d4a22d16eb5cca23e6d4de94ca9"
+    },
+    {
+      "file": "tower-red.png",
+      "original": "Factions/Knights/Buildings/Tower/Tower_Red.png",
+      "width": 128,
+      "height": 256,
+      "sha256": "bec8cffab0b56b42345c754132b9ab911ae02b9f59d5413b91a1cdf41296083a"
+    },
+    {
+      "file": "tower-purple.png",
+      "original": "Factions/Knights/Buildings/Tower/Tower_Purple.png",
+      "width": 128,
+      "height": 256,
+      "sha256": "e90a2c082dfa5300d977513d89f6200196e722b07233d01af401aa0e69ceae3b"
+    },
+    {
+      "file": "tower-yellow.png",
+      "original": "Factions/Knights/Buildings/Tower/Tower_Yellow.png",
+      "width": 128,
+      "height": 256,
+      "sha256": "5b216a1cb209482bbcfd8793669f283621147ae96e6ff45532629ffc27b25fff"
+    },
+    {
+      "file": "castle-blue.png",
+      "original": "Factions/Knights/Buildings/Castle/Castle_Blue.png",
+      "width": 320,
+      "height": 256,
+      "sha256": "616cfeec6287ede0b368a14332afc9ac34462dee5bb3f5a8f7595464c8b2ca53"
+    },
+    {
+      "file": "castle-red.png",
+      "original": "Factions/Knights/Buildings/Castle/Castle_Red.png",
+      "width": 320,
+      "height": 256,
+      "sha256": "b64221f532aa3f6ec1074a5e0f36e9c3337a370f62ce366d6872535d7940b771"
+    },
+    {
+      "file": "castle-purple.png",
+      "original": "Factions/Knights/Buildings/Castle/Castle_Purple.png",
+      "width": 320,
+      "height": 256,
+      "sha256": "254d88e095d1173ce18c01a6aed304101013adbd49d7276a9234114f6759389c"
+    },
+    {
+      "file": "castle-yellow.png",
+      "original": "Factions/Knights/Buildings/Castle/Castle_Yellow.png",
+      "width": 320,
+      "height": 256,
+      "sha256": "f9bdf2a7a396ac3ff55241302405ed3c67f5ffbf2ef542e770dfb9e86f5113d6"
+    },
+    {
+      "file": "tree.png",
+      "original": "Resources/Trees/Tree.png",
+      "width": 768,
+      "height": 576,
+      "sha256": "63a1ae03991621528eab44d0840a75a923583a7bbb999311de27799ab21b4d3e"
+    },
+    {
+      "file": "grass.png",
+      "original": "Terrain/Ground/Tilemap_Flat.png",
+      "width": 640,
+      "height": 256,
+      "sha256": "683b4ebc6dff10d2bf6e2bd34c24d732defdc65abcb0f5b9f509655aff8bec56"
+    },
+    {
+      "file": "elevation.png",
+      "original": "Terrain/Ground/Tilemap_Elevation.png",
+      "width": 256,
+      "height": 512,
+      "sha256": "dab562d922d81e4de500dc9e2cb480e35825e6202728b2a0825714b8885daee1"
+    },
+    {
+      "file": "water.png",
+      "original": "Terrain/Water/Water.png",
+      "width": 64,
+      "height": 64,
+      "sha256": "5ef30a00bbff22590eabb5acabb8aca6cc415557e7ab5f60db07714f01a4dba1"
+    },
+    {
+      "file": "foam.png",
+      "original": "Terrain/Water/Foam/Foam.png",
+      "width": 1536,
+      "height": 192,
+      "sha256": "eaeaab4c2211ce5babac0da55d3da096eb68ead4137a1fa060cbd93aece995c9"
+    },
+    {
+      "file": "bridge.png",
+      "original": "Terrain/Bridge/Bridge_All.png",
+      "width": 192,
+      "height": 256,
+      "sha256": "816de342b39f03eeb97bc5d8837ece9d9fcc1936110207158b3ba01a1db3c95f"
+    },
+    {
+      "file": "fire.png",
+      "original": "Effects/Fire/Fire.png",
+      "width": 896,
+      "height": 128,
+      "sha256": "0ed74320a434cbe7503a03f51b8dce87ae1757c41020f2c98a74c21a0e96458c"
+    },
+    {
+      "file": "explosion.png",
+      "original": "Effects/Explosion/Explosions.png",
+      "width": 1728,
+      "height": 192,
+      "sha256": "fa3bcfbf05c3c1cef0e5f06976e2431c24c4ad05cdd71d7242e0b436f4e5ec8e"
+    },
+    {
+      "file": "death.png",
+      "original": "Factions/Knights/Troops/Dead/Dead.png",
+      "width": 896,
+      "height": 256,
+      "sha256": "2b621f86ef18fd92e4c4cc1718cc091fe62e2334d8ea54632eed7cb2995ef1fe"
+    },
+    {
+      "file": "gold.png",
+      "original": "Resources/Resources/G_Idle.png",
+      "width": 128,
+      "height": 128,
+      "sha256": "ee9a2018e179b95839105d0b6d39725f22ae57e28d73532421fb1994c4b4de78"
+    },
+    {
+      "file": "wood.png",
+      "original": "Resources/Resources/W_Idle.png",
+      "width": 128,
+      "height": 128,
+      "sha256": "23738d5fe80f20eb8320fa00925193d747067b537106289ac024d09c73b71999"
+    },
+    {
+      "file": "mine.png",
+      "original": "Resources/Gold Mine/GoldMine_Inactive.png",
+      "width": 192,
+      "height": 128,
+      "sha256": "83b6d5d74b84c565950f01b325bd93b0517ac6c19e719921095b71628065270a"
+    },
+    {
+      "file": "deco-01.png",
+      "original": "Deco/01.png",
+      "width": 64,
+      "height": 64,
+      "sha256": "aae1d14745a5886b3217498f3ad1f8c0a82f3f1dc644ac2efd25c3f36f90eae7"
+    },
+    {
+      "file": "deco-02.png",
+      "original": "Deco/02.png",
+      "width": 64,
+      "height": 64,
+      "sha256": "7adc58201b1db819ff18957eeacf044f4551beb5be09725587d8293cc2876d5a"
+    },
+    {
+      "file": "deco-03.png",
+      "original": "Deco/03.png",
+      "width": 64,
+      "height": 64,
+      "sha256": "5afe95e862aaa047064a1b189f19d97cf10363db4d4953218d4c4e8a44ee3838"
+    },
+    {
+      "file": "deco-04.png",
+      "original": "Deco/04.png",
+      "width": 64,
+      "height": 64,
+      "sha256": "e4a6132577721eb8837cc23fe5e25644c4d866da24c5e663fce58d86f4638f53"
+    },
+    {
+      "file": "deco-05.png",
+      "original": "Deco/05.png",
+      "width": 64,
+      "height": 64,
+      "sha256": "f51cf8d4647febc196a4b5e7afc80badaf50c76bf6309e548e11ffb1898ecb79"
+    },
+    {
+      "file": "deco-06.png",
+      "original": "Deco/06.png",
+      "width": 64,
+      "height": 64,
+      "sha256": "edc4335ad52060a562b21fef868c64576d33b96a6a97ac5ba1448b6fb0a939c1"
+    },
+    {
+      "file": "deco-07.png",
+      "original": "Deco/07.png",
+      "width": 64,
+      "height": 64,
+      "sha256": "fae1719e2b2de9bd708598cdd2a0d0a5ca09aa88630dc6b52a80957f6a465d31"
+    },
+    {
+      "file": "deco-08.png",
+      "original": "Deco/08.png",
+      "width": 64,
+      "height": 64,
+      "sha256": "f94b5fa5aac1b62b58d9389c5524bebd0d99a4193749e41a505642bde965a6a8"
+    },
+    {
+      "file": "deco-09.png",
+      "original": "Deco/09.png",
+      "width": 64,
+      "height": 64,
+      "sha256": "fa07501a73b22ae6d96297dfc5d8dad81791afe8751b8a40fb6ced4dfe45c3d5"
+    },
+    {
+      "file": "deco-10.png",
+      "original": "Deco/10.png",
+      "width": 64,
+      "height": 64,
+      "sha256": "68f57683bc1f512d34fc0107c6b4fb33904a3298295df09f3a2d4a05e977821b"
+    },
+    {
+      "file": "deco-11.png",
+      "original": "Deco/11.png",
+      "width": 64,
+      "height": 64,
+      "sha256": "26a7592cbc3ac76b63a871cd40261c45728eca9c520a39000f1f2cdc5bfda7fd"
+    },
+    {
+      "file": "deco-12.png",
+      "original": "Deco/12.png",
+      "width": 64,
+      "height": 64,
+      "sha256": "54d6fce705950699ae4752df20e9a0019571c155ad13f4f7bee2eb558f0eb233"
+    },
+    {
+      "file": "deco-13.png",
+      "original": "Deco/13.png",
+      "width": 64,
+      "height": 64,
+      "sha256": "9a7ef9a9695aba24dd43d3bbf97e7f0c67b10f61e3bba8ebf69ba2aefe5628d5"
+    },
+    {
+      "file": "deco-14.png",
+      "original": "Deco/14.png",
+      "width": 64,
+      "height": 64,
+      "sha256": "4515949922edc5533e07e60cf6b7212028e96aba3f5dcff89f2db9ea24a720c1"
+    },
+    {
+      "file": "deco-15.png",
+      "original": "Deco/15.png",
+      "width": 64,
+      "height": 64,
+      "sha256": "d09c7ef588b00cdbdc9e6d5239a6cb45804828410f4c50019f92a11f6472f376"
+    },
+    {
+      "file": "deco-16.png",
+      "original": "Deco/16.png",
+      "width": 64,
+      "height": 128,
+      "sha256": "bbf9170c41a2bd10f4e10942407f9c90c3a4f338f5fe454a4cc7fa0b287fafef"
+    },
+    {
+      "file": "deco-17.png",
+      "original": "Deco/17.png",
+      "width": 64,
+      "height": 128,
+      "sha256": "c3da63203ae56798b0188fc09c376bdb7ea6de74a8c1930c4ec6f7d02b5881ac"
+    },
+    {
+      "file": "deco-18.png",
+      "original": "Deco/18.png",
+      "width": 192,
+      "height": 192,
+      "sha256": "8ef2e9479438091df9622dd4aa4f943b2454916fadc7975cfa1f39d30231eb68"
+    }
+  ]
+}
