@@ -2,15 +2,15 @@
   {
     "slug": "cinderborn",
     "title": "Cinderborn: The Ashen Causeway",
-    "description": "A compact hex tactics trial: bargain for a seal, rescue two prisoners, or burn your cover and fight through the causeway.",
+    "description": "Three compact hex tactics contracts: bargain, escort, or fight with class techniques, high ground, and a stolen identity.",
     "repo": "Brynrg/cinderborn",
     "playUrl": "/games/cinderborn/",
     "category": "strategy",
     "status": "live",
     "framework": "vite",
     "supportsMobile": false,
-    "version": "0.4.0-trial.2",
-    "lastUpdated": "2026-11-26T23:13:18.950Z",
+    "version": "0.4.0-trial.3",
+    "lastUpdated": "2026-11-27T00:53:45.253Z",
     "emoji": "🔥"
   },
   {
